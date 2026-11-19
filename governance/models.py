@@ -1,0 +1,286 @@
+from django.db import models
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+
+
+class Province(models.Model):
+    code = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=120, unique=True)
+    region = models.CharField(max_length=100, default="Region III (Central Luzon)")
+    governor_office_name = models.CharField(max_length=150, default="Office of the Provincial Governor")
+    official_seal = models.ImageField(upload_to="seals/province/", blank=True, null=True)
+    primary_color = models.CharField(max_length=7, default="#1E3A8A")
+    secondary_color = models.CharField(max_length=7, default="#F59E0B")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"Province of {self.name}"
+
+
+class CityMunicipality(models.Model):
+    LGU_TYPES = [("CITY", "City"), ("MUNICIPALITY", "Municipality")]
+    province = models.ForeignKey(Province, on_delete=models.PROTECT, related_name="cities")
+    code = models.CharField(max_length=25, unique=True)
+    name = models.CharField(max_length=120)
+    lgu_type = models.CharField(max_length=20, choices=LGU_TYPES, default="CITY")
+    mayor_office_name = models.CharField(max_length=150, default="Office of the City Mayor")
+    official_seal = models.ImageField(upload_to="seals/city/", blank=True, null=True)
+    primary_color = models.CharField(max_length=7, default="#0F4C81")
+    secondary_color = models.CharField(max_length=7, default="#D97706")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "Cities and Municipalities"
+        unique_together = ("province", "name")
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name}, {self.province.name}"
+
+
+class BarangayTenant(models.Model):
+    PROVISION_STATUS = [
+        ("PENDING_APPROVAL", "Pending City/DILG Provisioning"),
+        ("TRIAL_ACTIVE", "Active Trial Pilot"),
+        ("FULL_ACTIVE", "Fully Operational"),
+        ("SUSPENDED", "Suspended"),
+    ]
+    city_municipality = models.ForeignKey(CityMunicipality, on_delete=models.PROTECT, related_name="barangays")
+    tenant_code = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=120)
+    zip_code = models.CharField(max_length=10, default="3100")
+    hall_address = models.CharField(max_length=255, blank=True)
+    official_email = models.EmailField(blank=True)
+    contact_number = models.CharField(max_length=30, blank=True)
+    status = models.CharField(max_length=25, choices=PROVISION_STATUS, default="PENDING_APPROVAL")
+    provisioning_authority_ref = models.CharField(max_length=120, blank=True)
+    provisioning_document = models.FileField(upload_to="provisioning_docs/", blank=True, null=True)
+    provisioned_by_name = models.CharField(max_length=120, blank=True)
+    provisioned_at = models.DateTimeField(blank=True, null=True)
+    term_years = models.PositiveSmallIntegerField(default=3)
+    fee_collection_enabled = models.BooleanField(default=False)
+    default_primary_color = models.CharField(max_length=7, default="#1E3A8A")
+    default_secondary_color = models.CharField(max_length=7, default="#F59E0B")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("city_municipality", "name")
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.city_municipality.name})"
+
+    def get_active_theme(self):
+        today = timezone.localdate()
+        active_occasion = self.occasion_themes.filter(is_active=True, start_date__lte=today, end_date__gte=today).first()
+        if active_occasion:
+            return {
+                "title": active_occasion.occasion_name,
+                "banner_text": active_occasion.banner_message,
+                "primary_color": active_occasion.primary_color,
+                "secondary_color": active_occasion.secondary_color,
+                "is_occasion": True,
+            }
+        return {
+            "title": self.name,
+            "banner_text": f"Official Digital Operations Portal — {self.name}",
+            "primary_color": self.default_primary_color,
+            "secondary_color": self.default_secondary_color,
+            "is_occasion": False,
+        }
+
+
+class LetterheadVersion(models.Model):
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="letterheads")
+    version_label = models.CharField(max_length=50)
+    barangay_logo = models.ImageField(upload_to="letterheads/logos/")
+    city_logo = models.ImageField(upload_to="letterheads/city_logos/", blank=True, null=True)
+    header_line_1 = models.CharField(max_length=150, default="Republic of the Philippines")
+    header_line_2 = models.CharField(max_length=150, default="Province of Nueva Ecija")
+    header_line_3 = models.CharField(max_length=150, default="City of Cabanatuan")
+    effective_from = models.DateField(default=timezone.localdate)
+    effective_until = models.DateField(blank=True, null=True)
+    is_current = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-effective_from", "-created_at"]
+
+    def __str__(self):
+        return f"{self.barangay.name} — {self.version_label}"
+
+
+class OccasionTheme(models.Model):
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="occasion_themes")
+    occasion_name = models.CharField(max_length=100)
+    banner_message = models.CharField(max_length=200, blank=True)
+    primary_color = models.CharField(max_length=7, default="#B91C1C")
+    secondary_color = models.CharField(max_length=7, default="#FBBF24")
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-start_date"]
+
+    def clean(self):
+        if self.end_date and self.start_date and self.end_date < self.start_date:
+            raise ValidationError("End date cannot be earlier than start date.")
+
+    def __str__(self):
+        return f"{self.barangay.name}: {self.occasion_name} ({self.start_date} to {self.end_date})"
+
+
+class AreaSubdivision(models.Model):
+    AREA_TYPES = [("PUROK", "Purok"), ("SUBDIVISION", "Subdivision"), ("ZONE", "Zone"), ("SITIO", "Sitio"), ("DISTRICT", "District")]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="subdivisions")
+    area_type = models.CharField(max_length=20, choices=AREA_TYPES, default="PUROK")
+    name = models.CharField(max_length=100)
+    description = models.CharField(max_length=200, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("barangay", "area_type", "name")
+        ordering = ["area_type", "name"]
+
+    def __str__(self):
+        return f"{self.get_area_type_display()} — {self.name} ({self.barangay.name})"
+
+
+class PhysicalStructure(models.Model):
+    OCCUPANCY_TYPES = [
+        ("OWNER_OCCUPIED", "Owner-Occupied"),
+        ("RENTED_TENANT", "Rented / Tenant-Occupied"),
+        ("CARETAKER", "Caretaker / Rent-Free"),
+        ("VACANT", "Vacant Structure"),
+    ]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="structures")
+    subdivision = models.ForeignKey(AreaSubdivision, on_delete=models.PROTECT, related_name="structures")
+    house_code = models.CharField(max_length=40)
+    parent_structure = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="extensions")
+    street_name = models.CharField(max_length=120, blank=True)
+    block_lot_or_number = models.CharField(max_length=80, blank=True)
+    landmark = models.CharField(max_length=150, blank=True)
+    occupancy_type = models.CharField(max_length=25, choices=OCCUPANCY_TYPES, default="OWNER_OCCUPIED")
+    property_owner_name = models.CharField(max_length=150, blank=True)
+    owner_contact = models.CharField(max_length=50, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("barangay", "house_code")
+        ordering = ["house_code"]
+
+    def clean(self):
+        if self.subdivision and self.subdivision.area_type == "SUBDIVISION" and not self.street_name.strip():
+            raise ValidationError({"street_name": "Street Name is required when the citizen resides inside a Subdivision."})
+
+    def __str__(self):
+        street = f", {self.street_name}" if self.street_name else ""
+        return f"{self.house_code} ({self.subdivision.name}{street})"
+
+
+class OfficialSeat(models.Model):
+    SEAT_CATEGORIES = [
+        ("PUNONG_BARANGAY", "Punong Barangay"),
+        ("KAGAWAD", "Sangguniang Barangay Member (Kagawad)"),
+        ("SECRETARY", "Barangay Secretary"),
+        ("TREASURER", "Barangay Treasurer"),
+        ("SK_CHAIRPERSON", "SK Chairperson"),
+        ("LUPON", "Lupong Tagapamayapa Member"),
+        ("TANOD_CHIEF", "Chief Barangay Tanod"),
+        ("BHW_FOCAL", "BHW / Health Focal"),
+    ]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="seats")
+    seat_code = models.CharField(max_length=30)
+    category = models.CharField(max_length=25, choices=SEAT_CATEGORIES)
+    seat_title = models.CharField(max_length=120)
+    committee_assignment = models.CharField(max_length=150, blank=True)
+    can_approve_clearances = models.BooleanField(default=False)
+    can_collect_fees = models.BooleanField(default=False)
+    can_manage_blotter = models.BooleanField(default=False)
+    sort_order = models.PositiveSmallIntegerField(default=10)
+
+    class Meta:
+        unique_together = ("barangay", "seat_code")
+        ordering = ["sort_order", "seat_title"]
+
+    def __str__(self):
+        return f"{self.seat_title} ({self.barangay.name})"
+class TermAssignment(models.Model):
+    ASSIGNMENT_STATUS = [
+        ("SCHEDULED_INCOMING", "Scheduled Incoming (3-Textbox Transition)"),
+        ("ACTIVE", "Active Incumbent"),
+        ("COMPLETED_TERM", "Completed Term (Historical Archive)"),
+        ("RESIGNED_OR_REMOVED", "Resigned / Vacated Early"),
+    ]
+    seat = models.ForeignKey(OfficialSeat, on_delete=models.PROTECT, related_name="assignments")
+    official_full_name = models.CharField(max_length=150)
+    contact_email_or_mobile = models.CharField(max_length=120, blank=True)
+    term_label = models.CharField(max_length=60, default="2026–2029 Term")
+    term_start = models.DateField(default=timezone.localdate)
+    term_end = models.DateField()
+    status = models.CharField(max_length=25, choices=ASSIGNMENT_STATUS, default="ACTIVE")
+    oath_or_appointment_ref = models.CharField(max_length=120, blank=True)
+    facilitated_by = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-term_start", "seat__sort_order"]
+
+    def clean(self):
+        if self.term_end and self.term_start and self.term_end < self.term_start:
+            raise ValidationError("Term end date cannot be earlier than term start date.")
+
+    def __str__(self):
+        return f"{self.official_full_name} — {self.seat.seat_title} ({self.term_label})"
+
+
+class ActingDesignation(models.Model):
+    seat = models.ForeignKey(OfficialSeat, on_delete=models.CASCADE, related_name="acting_designations")
+    principal_assignment = models.ForeignKey(TermAssignment, on_delete=models.SET_NULL, null=True, blank=True, related_name="acting_periods")
+    acting_official_name = models.CharField(max_length=150)
+    designation_order_ref = models.CharField(max_length=120)
+    reason = models.CharField(max_length=200, blank=True)
+    valid_from = models.DateField()
+    valid_until = models.DateField()
+    allow_clearance_signing = models.BooleanField(default=True)
+    allow_blotter_mediation = models.BooleanField(default=False)
+    allow_disbursement_approval = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-valid_from"]
+
+    def clean(self):
+        if self.valid_until and self.valid_from and self.valid_until < self.valid_from:
+            raise ValidationError("Acting valid_until date cannot be earlier than valid_from date.")
+
+    def __str__(self):
+        return f"Acting {self.seat.seat_title}: {self.acting_official_name} ({self.valid_from} to {self.valid_until})"
+class OfficialTurnoverRecord(models.Model):
+    STATUS_CHOICES = [
+        ("DRAFT_INVENTORY", "Preparing BGTT Inventory"),
+        ("PENDING_INCOMING_SIGN", "Pending Incoming Official Verification"),
+        ("COMPLETED_SIGNED", "Formally Turned Over & Signed"),
+    ]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="turnovers")
+    transition_cycle = models.CharField(max_length=80)
+    outgoing_punong_barangay = models.CharField(max_length=150)
+    incoming_punong_barangay = models.CharField(max_length=150)
+    outgoing_treasurer = models.CharField(max_length=150, blank=True)
+    incoming_treasurer = models.CharField(max_length=150, blank=True)
+    outgoing_secretary = models.CharField(max_length=150, blank=True)
+    incoming_secretary = models.CharField(max_length=150, blank=True)
+    turnover_date = models.DateField(default=timezone.localdate)
+    status = models.CharField(max_length=25, choices=STATUS_CHOICES, default="DRAFT_INVENTORY")
+    handover_notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-turnover_date"]
+
+    def __str__(self):
+        return f"{self.transition_cycle}: {self.outgoing_punong_barangay} → {self.incoming_punong_barangay}"

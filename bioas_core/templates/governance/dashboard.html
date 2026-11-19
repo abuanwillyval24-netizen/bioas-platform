@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ theme.title }} — BIOAS</title>
+  <style>
+    :root { --primary: {{ theme.primary_color }}; --secondary: {{ theme.secondary_color }}; }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; background: #f3f4f6; color: #111827; }
+    .topbar { background: var(--primary); color: #fff; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 4px solid var(--secondary); }
+    .brand h1 { margin: 0; font-size: 1.15rem; }
+    .search-box { position: relative; background: #fff; border-radius: 8px; width: 340px; max-width: 100%; display: flex; align-items: center; }
+    .ghost-input, .real-input { width: 100%; padding: 8px 56px 8px 12px; font-size: 0.92rem; border: none; outline: none; background: transparent; }
+    .ghost-input { position: absolute; left: 0; color: #9ca3af; pointer-events: none; }
+    .real-input { position: relative; color: #111827; z-index: 2; }
+    .tab-badge { position: absolute; right: 8px; background: #e5e7eb; color: #374151; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+    .tier-tabs { background: #1f2937; padding: 9px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+    .tier-links a { color: #d1d5db; text-decoration: none; padding: 5px 11px; border-radius: 6px; font-size: 0.84rem; font-weight: 600; margin-right: 4px; display: inline-block; }
+    .tier-links a.active { background: var(--secondary); color: #111827; }
+    .btn-group a { background: #374151; color: #fff; text-decoration: none; padding: 5px 11px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; margin-left: 6px; display: inline-block; }
+    .layout { display: flex; min-height: calc(100vh - 105px); }
+    .sidebar { width: 235px; background: #fff; border-right: 1px solid #e5e7eb; padding: 14px 10px; flex-shrink: 0; }
+    .side-group { font-size: 0.72rem; font-weight: 800; color: #6b7280; text-transform: uppercase; padding: 10px 10px 4px; }
+    .sidebar a { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 6px; color: #374151; text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 2px; }
+    .sidebar a.active { background: #dbeafe; color: #1e3a8a; font-weight: 700; }
+    .pill { background: #e5e7eb; color: #374151; font-size: 0.72rem; padding: 1px 6px; border-radius: 999px; }
+    .main { flex: 1; padding: 20px 24px; max-width: 1100px; display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .card { background: #fff; border-radius: 10px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-top: 4px solid var(--primary); }
+    .card h3 { margin: 0 0 4px; font-size: 0.76rem; color: #6b7280; text-transform: uppercase; }
+    .card .stat { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+    .section-title { font-size: 1rem; font-weight: 800; color: #1e3a8a; margin: 14px 0 10px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .section-title a { font-size: 0.82rem; text-decoration: none; background: #1e3a8a; color: #fff; padding: 5px 11px; border-radius: 5px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 18px; }
+    th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 0.85rem; }
+    th { background: #f9fafb; font-weight: 700; }
+    .badge { padding: 3px 8px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; background: #dbeafe; color: #1e40af; }
+    .badge-warn { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><h1>{{ theme.title }}</h1><small>{{ theme.banner_text }}</small></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <form method="get">
+        <input type="hidden" name="tier" value="{{ tier }}" /><input type="hidden" name="module" value="{{ module }}" />
+        <div class="search-box">
+          <input type="text" id="ghostInput" class="ghost-input" readonly tabindex="-1" />
+          <input type="text" id="realInput" name="q" value="{{ query }}" class="real-input" placeholder="Search all 14 modules..." autocomplete="off" />
+          <span class="tab-badge">TAB</span>
+        </div>
+      </form>
+      <a href="/theme-settings/" title="Command & Barangay Color Settings" style="color:#fff;text-decoration:none;background:rgba(255,255,255,0.16);width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;" aria-label="Settings">&#9881;</a>
+    </div>
+    </form>
+  </header>
+
+  <nav class="tier-tabs">
+    <div class="tier-links">
+      <a href="?tier=BARANGAY&module={{ module }}" class="{% if tier == 'BARANGAY' %}active{% endif %}">Tier 1: Barangay Window</a>
+      <a href="?tier=CITY" class="{% if tier == 'CITY' %}active{% endif %}">Tier 2: City Mayor / DILG</a>
+      <a href="?tier=PROVINCE" class="{% if tier == 'PROVINCE' %}active{% endif %}">Tier 3: Provincial Governor</a>
+    </div>
+    <div class="btn-group">
+      <a href="/portal/">New Citizen Sign-Up</a>
+      <a href="/citizen-home/">Citizen Login / Report</a>
+      <a href="/admin/">+ Admin Control Panel</a><a href="/logout/" style="background:#991b1b;">Logout</a>
+  </nav>
+
+  <div class="layout">
+    {% if tier == "BARANGAY" %}
+    <aside class="sidebar">
+      <div class="side-group">Command</div>
+      <a href="?tier=BARANGAY&module=OVERVIEW" class="{% if module == 'OVERVIEW' %}active{% endif %}"><span>Command Overview</span><span class="pill">12</span></a>
+      <div class="side-group">Frontline Services</div>
+      <a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02. Citizens & Reports</span><span class="pill">{{ citizens|length }}</span></a>
+      <a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>
+      <a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Blotter & VAWC</span><span class="pill">{{ blotter_cases|length }}</span></a>
+      <a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury & Collections</span><span class="pill">{{ receipts|length }}</span></a>
+      <div class="side-group">Community & Care</div>
+      <a href="?tier=BARANGAY&module=HEALTH" class="{% if module == 'HEALTH' %}active{% endif %}"><span>06. Health Station</span><span class="pill">{{ health_records|length }}</span></a>
+      <a href="?tier=BARANGAY&module=WELFARE" class="{% if module == 'WELFARE' %}active{% endif %}"><span>07. Welfare & Associations</span><span class="pill">{{ associations|length }}</span></a>
+      <a href="?tier=BARANGAY&module=SK" class="{% if module == 'SK' %}active{% endif %}"><span>10. SK & Youth</span><span class="pill">{{ kk_youth|length }}</span></a>
+      <div class="side-group">Operations & Governance</div>
+      <a href="?tier=BARANGAY&module=FLEET" class="{% if module == 'FLEET' %}active{% endif %}"><span>08. Fleet & Equipment</span><span class="pill">{{ vehicles|length }}</span></a>
+      <a href="?tier=BARANGAY&module=DRRM" class="{% if module == 'DRRM' %}active{% endif %}"><span>09. BDRRMC & Evac</span><span class="pill">{{ hazards|length }}</span></a>
+      <a href="?tier=BARANGAY&module=LEGISLATION" class="{% if module == 'LEGISLATION' %}active{% endif %}"><span>11. Ordinances & BDP</span><span class="pill">{{ measures|length }}</span></a>
+      <a href="?tier=BARANGAY&module=AUDIT" class="{% if module == 'AUDIT' %}active{% endif %}"><span>12. COA & DILG Audit</span><span class="pill">{{ coa_audits|length }}</span></a>
+      <div class="side-group">Transition & Reference</div>
+      <a href="?tier=BARANGAY&module=TURNOVER" class="{% if module == 'TURNOVER' %}active{% endif %}"><span>13. Governance Turnover</span><span class="pill">{{ total_pending_turnover }}</span></a>
+      <a href="?tier=BARANGAY&module=POLICY" class="{% if module == 'POLICY' %}active{% endif %}"><span>14. Policy & Glossary</span><span class="pill">SOP</span></a>
+    </aside>
+    {% endif %}
+
+    <main class="main">
+      {% if query %}<div class="card" style="margin-bottom:16px;"><h3>Search Results ({{ search_results|length }})</h3><ul>{% for item in search_results %}<li><strong>{{ item }}</strong></li>{% empty %}<li>No matches found.</li>{% endfor %}</ul></div>{% endif %}
+      {% if tier == "BARANGAY" %}
+        {% if module == "CITIZENS" %}
+          <div class="section-title"><span>02. Citizen Master 201</span><a href="/admin/citizens/citizenprofile/add/">+ Add Citizen</a></div>
+          <table><thead><tr><th>QR ID</th><th>Full Name</th><th>Sex / Gender</th><th>Status</th></tr></thead><tbody>
+            {% for c in citizens %}<tr><td><strong>{{ c.citizen_qr_id }}</strong></td><td>{{ c.full_name }}</td><td>{{ c.get_sex_display }}</td><td><span class="badge">{{ c.get_status_display }}</span></td></tr>{% endfor %}
+          </tbody></table>
+          <div class="section-title"><span>Citizen Portal Community Reports & Complaints</span><a href="/citizen-home/" target="_blank">Open Citizen Portal →</a></div>
+          <table><thead><tr><th>Tracking Code</th><th>Resident</th><th>Category</th><th>Location</th><th>Status</th></tr></thead><tbody>
+            {% for rep in citizen_reports %}<tr><td><strong>{{ rep.tracking_code }}</strong></td><td>{{ rep.citizen.full_name }}</td><td>{{ rep.get_category_display }}</td><td>{{ rep.location_landmark }}</td><td><span class="badge">{{ rep.get_status_display }}</span> {% if rep.status == 'SUBMITTED_OPEN' %}<a href="/report-status/{{ rep.id }}/DISPATCHED_TANOD_WO/" style="margin-left:6px;background:#d97706;color:#fff;padding:2px 7px;border-radius:5px;text-decoration:none;font-size:0.74rem;font-weight:700;">Dispatch →</a>{% endif %}{% if rep.status != 'RESOLVED_CLOSED' %}<a href="/report-status/{{ rep.id }}/RESOLVED_CLOSED/" style="margin-left:6px;background:#16a34a;color:#fff;padding:2px 7px;border-radius:5px;text-decoration:none;font-size:0.74rem;font-weight:700;">Resolve ✓</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="5">No community reports submitted yet.</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "CERTIFICATES" %}
+          <div class="section-title"><span>03. Certificates & Clearances</span><a href="/admin/documents/certificaterequest/add/">+ Issue Certificate</a></div>
+          <table><thead><tr><th>Control No.</th><th>Citizen</th><th>Document</th><th>Status</th><th>Action</th></tr></thead><tbody>
+            {% for cert in certificates %}<tr><td><strong>{{ cert.control_number }}</strong></td><td>{{ cert.citizen.full_name }}</td><td>{{ cert.get_cert_type_display }}</td><td><span class="badge">{{ cert.get_status_display }}</span></td><td><a href="/certificate/{{ cert.control_number }}/" target="_blank">Print →</a></td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "BLOTTER" %}
+          <div class="section-title"><span>04. Blotter & VAWC Vault</span><a href="/admin/blotter/blottercase/add/">+ Log Case</a></div>
+          <table><thead><tr><th>Case No.</th><th>Parties (VAWC Masked)</th><th>Stage</th><th>Clearance</th></tr></thead><tbody>
+            {% for b in blotter_cases %}<tr><td><strong>{{ b.case_number }}</strong></td><td>{{ b.masked_title }}</td><td><span class="badge">{{ b.get_stage_display }}</span></td><td>{% if b.blocks_clearance %}<span class="badge badge-warn">Blocked</span>{% else %}<span class="badge">Cleared</span>{% endif %}</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "TREASURY" %}
+          <div class="section-title"><span>05A. Pending Official Receipt (OR) Clearance Unlock Queue</span></div>
+          <table><thead><tr><th>Control No.</th><th>Citizen</th><th>Document</th><th>Fee</th><th>Action</th></tr></thead><tbody>
+            {% for pc in pending_or_certs %}<tr><td><strong>{{ pc.control_number }}</strong></td><td>{{ pc.citizen.full_name }}</td><td>{{ pc.get_cert_type_display }}</td><td>₱{{ pc.fee_amount }}</td><td><a href="/issue-or/{{ pc.id }}/" style="background:#16a34a;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:0.78rem;font-weight:700;">Issue OR & Unlock →</a></td></tr>{% empty %}<tr><td colspan="5">No certificates waiting for Official Receipt payment.</td></tr>{% endfor %}
+          </tbody></table>
+          <div class="section-title"><span>05. Treasury Receipts & Bereavement Welfare Sheets</span><a href="/admin/treasury/">+ Manage Treasury</a></div>
+          <table><thead><tr><th>Ref / Serial</th><th>Payor / Beneficiary</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+            {% for r in receipts %}<tr><td><strong>OR #{{ r.or_number }}</strong></td><td>{{ r.payor_name }}</td><td>₱{{ r.amount_paid }}</td><td><span class="badge">OR Paid</span></td></tr>{% endfor %}
+            {% for a in abuloy_sheets %}<tr><td><strong>{{ a.serial_number }}</strong></td><td>Deceased: {{ a.deceased_name }}</td><td>₱{{ a.total_collected }}</td><td><span class="badge">{{ a.get_status_display }}</span></td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "HEALTH" %}
+          <div class="section-title"><span>06. Health Station</span><a href="/admin/health_station/">+ Manage Health</a></div>
+          <table><thead><tr><th>Date</th><th>Citizen</th><th>Program</th><th>Medicine</th></tr></thead><tbody>
+            {% for h in health_records %}<tr><td>{{ h.visit_date }}</td><td><strong>{{ h.citizen.full_name }}</strong></td><td>{{ h.get_program_type_display }}</td><td>{{ h.vaccine_or_medicine_given }}</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "WELFARE" %}
+          <div class="section-title"><span>07A. Configurable Association Groups & Assigned Heads</span><a href="/admin/social_welfare/associationgroup/add/">+ Add Association Group</a></div>
+          <table><thead><tr><th>Code</th><th>Association Group</th><th>Assigned Association Head</th><th>Members</th><th>Status</th></tr></thead><tbody>
+            {% for ag in associations %}<tr><td><strong>{{ ag.group_code }}</strong></td><td>{{ ag.group_name }}</td><td><strong>{{ ag.display_head }}</strong></td><td>{{ ag.member_count }}</td><td><span class="badge">{% if ag.is_active %}Active{% else %}Inactive{% endif %}</span></td></tr>{% empty %}<tr><td colspan="5">No association groups configured yet.</td></tr>{% endfor %}
+          </tbody></table>
+          <div class="section-title"><span>07B. Social Welfare & Aid Releases</span><a href="/admin/social_welfare/socialaiddistribution/add/">+ Log Aid Release</a></div>
+          <table><thead><tr><th>Beneficiary</th><th>Program</th><th>Cycle</th><th>Amount</th></tr></thead><tbody>
+            {% for s in social_aids %}<tr><td><strong>{{ s.citizen.full_name }}</strong></td><td>{{ s.get_program_category_display }}</td><td>{{ s.distribution_cycle }}</td><td>₱{{ s.amount_or_pack_value }}</td></tr>{% empty %}<tr><td colspan="4">No aid releases recorded yet.</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "FLEET" %}
+          <div class="section-title"><span>08. Fleet & Equipment</span><a href="/admin/assets_fleet/">+ Manage Fleet</a></div>
+          <table><thead><tr><th>Plate</th><th>Vehicle</th><th>Driver</th><th>Status</th></tr></thead><tbody>
+            {% for v in vehicles %}<tr><td><strong>{{ v.plate_or_body_number }}</strong></td><td>{{ v.vehicle_name }}</td><td>{{ v.assigned_driver }}</td><td><span class="badge">{{ v.get_status_display }}</span></td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "DRRM" %}
+          <div class="section-title"><span>09. BDRRMC & Evacuation</span><a href="/admin/drrm/">+ Manage DRRM</a></div>
+          <table><thead><tr><th>Code</th><th>Alert</th><th>Level</th><th>Families</th></tr></thead><tbody>
+            {% for hz in hazards %}<tr><td><strong>{{ hz.alert_code }}</strong></td><td>{{ hz.title }}</td><td><span class="badge badge-warn">{{ hz.get_alert_level_display }}</span></td><td>{{ hz.affected_families_count }}</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "SK" %}
+          <div class="section-title"><span>10. SK & Youth (KK)</span><a href="/admin/sk_youth/">+ Manage SK</a></div>
+          <table><thead><tr><th>Code</th><th>Project</th><th>Budget</th><th>Status</th></tr></thead><tbody>
+            {% for sk in sk_projects %}<tr><td><strong>{{ sk.project_code }}</strong></td><td>{{ sk.title }}</td><td>₱{{ sk.allocated_budget }}</td><td><span class="badge">{{ sk.get_status_display }}</span></td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "LEGISLATION" %}
+          <div class="section-title"><span>11. Ordinances & BDP</span><a href="/admin/planning_legislation/">+ Manage Measures</a></div>
+          <table><thead><tr><th>Series</th><th>Title</th><th>Author</th><th>Status</th></tr></thead><tbody>
+            {% for m in measures %}<tr><td><strong>{{ m.series_number }}</strong></td><td>{{ m.title }}</td><td>{{ m.authored_by }}</td><td><span class="badge">{{ m.get_status_display }}</span></td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "TURNOVER" %}
+          <div class="section-title"><span>13A. Incumbent-to-Incoming Officials Pending Handover Summary (BGTT)</span><a href="/admin/governance/officialturnoverrecord/add/">+ Log Turnover Record</a></div>
+          <div class="grid">
+            <div class="card"><h3>Pending Portal Sign-Ups</h3><div class="stat">{{ turnover_summary.pending_citizens }}</div><small>Awaiting Secretary Approval</small></div>
+            <div class="card"><h3>Open Citizen Reports</h3><div class="stat">{{ turnover_summary.open_citizen_reports }}</div><small>Unresolved Community Issues</small></div>
+            <div class="card"><h3>Pending OR Certificates</h3><div class="stat">{{ turnover_summary.pending_or_certs }}</div><small>Unpaid / Unreleased Clearances</small></div>
+            <div class="card"><h3>Active Blotter Holds</h3><div class="stat">{{ turnover_summary.active_blotter_holds }}</div><small>Ongoing Lupon / VAWC Cases</small></div>
+            <div class="card"><h3>Open Welfare Sheets</h3><div class="stat">{{ turnover_summary.open_welfare_sheets }}</div><small>Unremitted Bereavement Sheets</small></div>
+            <div class="card"><h3>Unreturned Equipment</h3><div class="stat">{{ turnover_summary.unreturned_equipment }}</div><small>Items Currently Out on Loan</small></div>
+            <div class="card"><h3>Pending COA Packages</h3><div class="stat">{{ turnover_summary.pending_coa }}</div><small>For Liquidation / City Acct</small></div>
+            <div class="card"><h3>Pending DILG Reports</h3><div class="stat">{{ turnover_summary.pending_dilg }}</div><small>Awaiting DILG Transmittal</small></div>
+          </div>
+          <div class="section-title"><span>13B. Official Transition & Sign-Off Log (Incumbent vs. Newly Elected)</span></div>
+          <table><thead><tr><th>Transition Cycle</th><th>Outgoing Punong Barangay</th><th>Incoming Punong Barangay</th><th>Date</th><th>Status</th></tr></thead><tbody>
+            {% for t in turnovers %}<tr><td><strong>{{ t.transition_cycle }}</strong></td><td>{{ t.outgoing_punong_barangay }}</td><td><strong>{{ t.incoming_punong_barangay }}</strong></td><td>{{ t.turnover_date }}</td><td><span class="badge">{{ t.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No formal turnover sign-off records logged yet. Click "+ Log Turnover Record" above to start BGTT handover.</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "POLICY" %}
+          <div class="section-title"><span>14A. Philippine Statutory & Legal Policy Framework</span></div>
+          <table><thead><tr><th>Law / Issuance</th><th>Operational Rule Enforced in BIOAS</th></tr></thead><tbody>
+            <tr><td><strong>RA 7160 (Local Government Code)</strong></td><td>Governs Barangay executive/legislative powers, Katarungang Pambarangay mediation before court filing, and the 20% Barangay Development Plan (BDP).</td></tr>
+            <tr><td><strong>RA 11261 (First-Time Jobseekers Act)</strong></td><td>Enforces a 100% fee waiver on Barangay Clearances and certifications for qualified first-time jobseekers with Oath of Undertaking.</td></tr>
+            <tr><td><strong>RA 9262 (Anti-VAWC Act)</strong></td><td>Automatically masks victim and respondent identities (<em>CONFIDENTIAL — RA 9262</em>) on the dashboard while maintaining clearance holds.</td></tr>
+            <tr><td><strong>RA 10173 (Data Privacy Act)</strong></td><td>Restricts 201 resident data access by LGU tier (Barangay full access vs. City/Province aggregated statistics only).</td></tr>
+            <tr><td><strong>RA 11032 (Ease of Doing Business / ARTA)</strong></td><td>Tracks certificate issuance turnaround times and standardizes frontline service requirements.</td></tr>
+            <tr><td><strong>RA 10121 (PDRRM Act)</strong></td><td>Tracks BDRRMC hazard alerts, evacuation center occupancy, and 70% Mitigation / 30% Quick Response Fund (QRF) COA liquidation.</td></tr>
+          </tbody></table>
+          <div class="section-title"><span>14B. BIOAS System User Guide & Operational Glossary</span></div>
+          <table><thead><tr><th>Term / Feature</th><th>Definition & Staff Standard Operating Procedure (SOP)</th></tr></thead><tbody>
+            <tr><td><strong>201 Master & Citizen QR ID</strong></td><td>Permanent digital resident record (e.g., <em>CIT-LAG-001</em>) linking households, certificates, health visits, social welfare, and portal logins.</td></tr>
+            <tr><td><strong>OR Unlock Rule</strong></td><td>Paid certificates stay in <em>Pending OR</em> status until the Barangay Treasurer logs the Official Receipt number, unlocking printing.</td></tr>
+            <tr><td><strong>Bereavement Welfare Sheet</strong></td><td>Serialized collection sheet for community bereavement assistance (<em>Abuloy</em>) with full remitter-to-family turnover tracking.</td></tr>
+            <tr><td><strong>BGTT Governance Turnover</strong></td><td>Barangay Governance Transition Team summary tallying all pending cases, cash/COA items, and borrowed assets between outgoing and incoming officials.</td></tr>
+            <tr><td><strong>ABYIP & BDP</strong></td><td>Annual Barangay Youth Investment Program (SK) and Barangay Development Plan tracked for DILG and COA compliance.</td></tr>
+          </tbody></table>
+        {% elif module == "AUDIT" %}
+          <div class="section-title"><span>12A. COA Audit & Financial Liquidation</span><a href="/admin/audit_analytics/coaauditcompliance/add/">+ Add COA Package</a></div>
+          <table><thead><tr><th>Ref</th><th>COA Audit Package</th><th>Period</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+            {% for coa in coa_audits %}<tr><td><strong>{{ coa.audit_reference }}</strong></td><td>{{ coa.get_audit_type_display }}</td><td>{{ coa.period_covered }}</td><td>₱{{ coa.amount_involved }}</td><td><span class="badge">{{ coa.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No COA audit packages logged yet.</td></tr>{% endfor %}
+          </tbody></table>
+          <div class="section-title"><span>12B. DILG Mandatory Reports & System Audit Trail</span><a href="/admin/audit_analytics/dilgcompliancereport/add/">+ Add DILG Report</a></div>
+          <table><thead><tr><th>Report</th><th>Period</th><th>Status</th><th>Ref</th></tr></thead><tbody>
+            {% for d in dilg_reports %}<tr><td><strong>{{ d.get_report_category_display }}</strong></td><td>{{ d.reporting_period }}</td><td><span class="badge">{{ d.get_status_display }}</span></td><td>{{ d.transmittal_reference }}</td></tr>{% empty %}<tr><td colspan="4">No DILG reports logged yet.</td></tr>{% endfor %}
+          </tbody></table>
+        {% else %}
+          <div class="grid">
+            <div class="card"><h3>Active Barangay</h3><div class="stat">{{ active_barangay.name|default:"Not Set" }}</div><small>{{ active_barangay.tenant_code }}</small></div>
+            <div class="card"><h3>02. 201 Citizens</h3><div class="stat">{{ citizens|length }}</div><small>{{ citizen_reports|length }} Community Reports</small></div>
+            <div class="card"><h3>03. Certificates</h3><div class="stat">{{ certificates|length }}</div><small>Clearances & Indigency</small></div>
+            <div class="card"><h3>04. Blotter / VAWC</h3><div class="stat">{{ blotter_cases|length }}</div><small>RA 9262 Protected</small></div>
+            <div class="card"><h3>05. Treasury</h3><div class="stat">₱{{ total_collections|floatformat:2 }}</div><small>{{ receipts|length }} Official Receipts | {{ abuloy_sheets|length }} Welfare Sheets</small></div>
+            <div class="card"><h3>06. Health Station</h3><div class="stat">{{ health_records|length }}</div><small>{{ medicines|length }} Med Items</small></div>
+      
+                    <div class="card"><h3>07. Associations & Aid</h3><div class="stat">{{ associations|length }}</div><small>Groups | {{ social_aids|length }} Aid Releases</small></div>
+            <div class="card"><h3>08. Fleet & Assets</h3><div class="stat">{{ vehicles|length }}</div><small>{{ trips|length }} Trips</small></div>
+            <div class="card"><h3>09. BDRRMC Alerts</h3><div class="stat">{{ hazards|length }}</div><small>{{ evac_centers|length }} Evac Centers</small></div>
+            <div class="card"><h3>10. SK Youth (KK)</h3><div class="stat">{{ kk_youth|length }}</div><small>{{ sk_projects|length }} Projects</small></div>
+            <div class="card"><h3>11. Legislation</h3><div class="stat">{{ measures|length }}</div><small>{{ bdp_projects|length }} BDP</small></div>
+            <div class="card"><h3>12. COA & DILG Audit</h3><div class="stat">{{ coa_audits|length }}</div><small>COA | {{ dilg_reports|length }} DILG</small></div>
+            <div class="card"><h3>13. Governance Turnover</h3><div class="stat">{{ total_pending_turnover }}</div><small>Pending BGTT Handover Items</small></div>
+            <div class="card"><h3>14. Policy & Glossary</h3><div class="stat">6 Laws</div><small>RA 7160, 11261, 9262 & SOPs</small></div>
+          </div>
+          {% endif %}
+      {% elif tier == "CITY" %}
+        <div class="grid"><div class="card"><h3>City</h3><div class="stat">{{ city.name|default:"Not Set" }}</div></div><div class="card"><h3>Barangays</h3><div class="stat">{{ city_barangays|length }}</div></div></div>
+        <table><thead><tr><th>Code</th><th>Barangay</th><th>Status</th><th>Action</th></tr></thead><tbody>
+          {% for b in city_barangays %}<tr><td><strong>{{ b.tenant_code }}</strong></td><td>{{ b.name }}</td><td><span class="badge">{{ b.get_status_display }}</span></td><td><a href="?tier=BARANGAY&tenant={{ b.tenant_code }}">Open →</a></td></tr>{% endfor %}
+        </tbody></table>
+      {% elif tier == "PROVINCE" %}
+        <div class="grid"><div class="card"><h3>Province</h3><div class="stat">{{ province.name|default:"Not Set" }}</div></div><div class="card"><h3>Cities</h3><div class="stat">{{ province_cities|length }}</div></div></div>
+        <table><thead><tr><th>Code</th><th>City</th><th>Barangays</th><th>Action</th></tr></thead><tbody>
+          {% for c in province_cities %}<tr><td><strong>{{ c.code }}</strong></td><td>{{ c.name }}</td><td>{{ c.barangay_count }}</td><td><a href="?tier=CITY">Inspect →</a></td></tr>{% endfor %}
+        </tbody></table>
+      {% endif %}
+    </main>
+  </div>
+  <script>
+    const suggestions = {{ suggestions_json|safe }};
+    const realInput = document.getElementById("realInput");
+    const ghostInput = document.getElementById("ghostInput");
+    function updateGhost() {
+      const val = realInput.value;
+      if (!val) { ghostInput.value = ""; return; }
+      const match = suggestions.find(s => s.toLowerCase().startsWith(val.toLowerCase()));
+      ghostInput.value = match ? val + match.slice(val.length) : "";
+    }
+    realInput.addEventListener("input", updateGhost);
+    realInput.addEventListener("keydown", (e) => {
+      if ((e.key === "Tab" || e.key === "ArrowRight") && ghostInput.value && ghostInput.value !== realInput.value) {
+        e.preventDefault(); realInput.value = ghostInput.value; ghostInput.value = "";
+      } else if (e.key === "Escape") { realInput.value = ""; ghostInput.value = ""; }
+    });
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey && e.key.toLowerCase() === "k") || (e.key === "/" && document.activeElement !== realInput)) { e.preventDefault(); realInput.focus(); }
+    });
+    updateGhost();
+  </script>
+</body>
+</html>

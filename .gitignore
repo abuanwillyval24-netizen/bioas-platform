@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+fix_dash.py
+add_turnover_policy.py
+populate_all_14.py
+seed_pilot.py
