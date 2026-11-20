@@ -128,5 +128,27 @@ def approve_citizen(request, citizen_id):
         citizen.status = "ACTIVE_RESIDENT"
         citizen.save(update_fields=["status"])
         SystemAuditLog.objects.create(
-            barangay=citizen.barangay, action_type="PORTAL_APPROVAL",
+            barangay=citizen.barangay,
+            action_type="PORTAL_APPROVAL",
             actor_name=request.user.username if request.user.is_authenticated else "Barangay Secretary",
+            actor_role="Barangay Secretary",
+            reference_code=citizen.citizen_qr_id,
+            details=f"Approved Citizen Portal registration and synced {citizen.full_name} to 201 Master.",
+        )
+    return redirect("/?tier=BARANGAY&module=CITIZENS")
+
+
+def update_report_status(request, report_id, new_status):
+    rep = get_object_or_404(CitizenCommunityReport, id=report_id)
+    if new_status in ("DISPATCHED_TANOD_WO", "RESOLVED_CLOSED"):
+        rep.status = new_status
+        rep.save(update_fields=["status"])
+        SystemAuditLog.objects.create(
+            barangay=rep.barangay,
+            action_type="CITIZEN_REPORT_UPDATE",
+            actor_name=request.user.username if request.user.is_authenticated else "Barangay Secretary",
+            actor_role="Barangay Secretary",
+            reference_code=rep.tracking_code,
+            details=f"Updated community report {rep.tracking_code} to {rep.get_status_display()}.",
+        )
+    return redirect("/?tier=BARANGAY&module=CITIZENS")
