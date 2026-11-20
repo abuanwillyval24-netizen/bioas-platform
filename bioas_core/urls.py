@@ -3,7 +3,7 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from governance.views import command_dashboard, theme_settings, staff_login, staff_logout
-from governance.views import command_dashboard, theme_settings, staff_login, staff_logout, portal_info
+from governance.portal_info import portal_info
 
 from governance.staff_turnover import staff_roster_and_turnover, approve_staff_account, download_term_archive
 from citizens.views import citizen_portal, citizen_home, approve_citizen, update_report_status
