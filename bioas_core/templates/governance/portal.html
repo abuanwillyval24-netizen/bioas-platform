@@ -33,12 +33,22 @@
     <a href="/">← Back to Command Dashboard</a>
   </header>
   <div class="card">
-    {% if success_msg %}
-      <div class="ack-box">
-        <div class="ack-icon">✔</div>
-        <h2>Thank You! Registration Submitted</h2>
-        <p>{{ success_msg }}</p>
-        <a href="/" class="btn-home">Back to Home Dashboard</a>
+    {% if submitted_citizen or success_msg %}
+      <div class="ack-box" style="text-align:center;padding:28px 20px;background:#f0fdf4;border:1px solid #86efac;border-top:5px solid #16a34a;border-radius:12px;">
+        <div class="ack-icon" style="width:56px;height:56px;margin:0 auto 12px;border-radius:50%;background:#16a34a;color:#fff;font-size:1.8rem;display:flex;align-items:center;justify-content:center;">✔</div>
+        <h2 style="color:#166534;margin:0 0 8px;">Thank You for Signing Up! Registration Acknowledged</h2>
+        <p style="color:#1e293b;font-size:.95rem;max-width:540px;margin:0 auto 14px;line-height:1.5;">
+          Your Barangay 201 Citizen Profile for <strong>{{ submitted_citizen.first_name }} {{ submitted_citizen.last_name }}</strong> has been received with your <strong>RA 10173 Data Privacy Electronic Signature</strong> and is now queued for <strong>Barangay Secretary verification within 24–48 hours</strong>.
+        </p>
+        {% if submitted_citizen %}
+          <div style="display:inline-block;background:#fff;border:1px dashed #16a34a;padding:10px 18px;border-radius:8px;margin-bottom:16px;font-size:.9rem;color:#0f172a;">
+            Reference Citizen QR ID: <strong style="color:#1e3a8a;font-size:1.05rem;">{{ submitted_citizen.citizen_qr_id }}</strong>
+          </div>
+        {% endif %}
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <a href="/citizen-home/" class="btn-home" style="background:#1e3a8a;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700;">Go to Citizen Self-Service</a>
+          <a href="/" class="btn-home" style="background:#e2e8f0;color:#0f172a;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700;">Back to Home Dashboard</a>
+        </div>
       </div>
     {% else %}
     <h2>Citizen Online Registration / Profile Sync</h2>
