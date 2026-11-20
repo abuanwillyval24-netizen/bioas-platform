@@ -110,10 +110,10 @@ def citizen_home(request):
     <div style="font-size:.72rem;color:#4b5563;">Scan Resident ID</div>
   </div>
 </div>
-<div class="card"><h3>Report Community Issue</h3><form method="post"><input type="hidden" name="qr_id" value="{{ citizen.citizen_qr_id }}"><input type="hidden" name="action" value="SUBMIT_REPORT">
+<div class="card"><h3>Report Community Issue</h3><form method="post">{% csrf_token %}<input type="hidden" name="qr_id" value="{{ citizen.citizen_qr_id }}"><input type="hidden" name="action" value="SUBMIT_REPORT">
 <label>Category</label><select name="category"><option value="INFRASTRUCTURE_LIGHT">Broken Streetlight / Road Issue</option><option value="PEACE_ORDER_NOISE">Peace & Order / Noise</option><option value="SANITATION_WASTE">Garbage / Drainage</option><option value="DRRM_HAZARD">Flood / Emergency Hazard</option></select>
 <label>Location Landmark</label><input name="location_landmark" required><label>Details</label><textarea name="description" rows="2" required></textarea><button type="submit">Submit Report</button></form></div>
-<div class="card"><h3>Request Certificate Online</h3><form method="post"><input type="hidden" name="qr_id" value="{{ citizen.citizen_qr_id }}"><input type="hidden" name="action" value="REQUEST_CERT">
+<div class="card"><h3>Request Certificate Online</h3><form method="post">{% csrf_token %}<input type="hidden" name="qr_id" value="{{ citizen.citizen_qr_id }}"><input type="hidden" name="action" value="REQUEST_CERT">
 <label>Document</label><select name="cert_type"><option value="BARANGAY_CLEARANCE">Barangay Clearance</option><option value="INDIGENCY">Certificate of Indigency (Exempt)</option><option value="FIRST_TIME_JOBSEEKER">First-Time Jobseeker RA 11261 (Exempt)</option></select>
 <label>Purpose</label><input name="purpose" required><button type="submit">Request Certificate</button></form></div>
 <div class="card"><h3>My Reports</h3><table><thead><tr><th>Code</th><th>Category</th><th>Location</th><th>Status</th></tr></thead><tbody>{% for r in citizen.community_reports.all %}<tr><td><strong>{{ r.tracking_code }}</strong></td><td>{{ r.get_category_display }}</td><td>{{ r.location_landmark }}</td><td>{{ r.get_status_display }}</td></tr>{% empty %}<tr><td colspan="4">None yet.</td></tr>{% endfor %}</tbody></table></div>
