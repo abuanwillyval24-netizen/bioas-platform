@@ -39,43 +39,75 @@ def staff_login(request):
         else:
             error = "Invalid staff username or password."
     bg_css = (
-        f"background:linear-gradient(120deg,rgba(15,23,42,.82) 0%,rgba(15,23,42,.48) 55%,rgba(15,23,42,.72) 100%),url('{showcase.background_image_url}') center/cover no-repeat fixed;"
+        f"background:linear-gradient(120deg,rgba(15,23,42,.82) 0%,rgba(15,23,42,.52) 55%,rgba(15,23,42,.75) 100%),url('{showcase.background_image_url}') center/cover no-repeat fixed;"
         if (showcase and showcase.background_image_url)
         else "background:radial-gradient(circle at 20% 25%,#1d4ed8 0%,#0f172a 55%,#090d16 100%);"
     )
     tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BIOAS Official Portal — {{ brgy.name|default:"Barangay Lagare" }}</title>
-<style>*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}body{margin:0;min-height:100vh;""" + bg_css + """color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:28px 36px}.top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:14px;max-width:620px}.seal{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.5);background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35)}.seal-fallback{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:#fbbf24;letter-spacing:.05em}.gov-tag{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fbbf24;margin-bottom:4px}.brand h1{margin:0;font-size:1.75rem;font-weight:800;letter-spacing:-.01em;text-shadow:0 2px 10px rgba(0,0,0,.4)}.brand p{margin:4px 0 0;color:#e2e8f0;font-size:.92rem;text-shadow:0 1px 6px rgba(0,0,0,.4)}.login-card{width:360px;max-width:100%;background:rgba(255,255,255,.97);color:#0f172a;border-radius:14px;padding:24px 26px;box-shadow:0 20px 50px rgba(0,0,0,.45);border-top:4px solid #1e3a8a}.login-card h2{margin:0 0 4px;font-size:1.15rem;color:#0f172a}.login-card .sub{margin:0 0 14px;font-size:.8rem;color:#64748b}label{display:block;font-size:.78rem;font-weight:700;color:#334155;margin:10px 0 4px}input{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.9rem;background:#f8fafc}input:focus{outline:none;border-color:#1e3a8a;background:#fff;box-shadow:0 0 0 3px rgba(30,58,138,.12)}button{width:100%;margin-top:16px;padding:11px;background:#1e3a8a;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:.92rem;cursor:pointer;transition:background .15s}button:hover{background:#1d4ed8}.err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:8px 10px;border-radius:8px;font-size:.8rem;margin-bottom:10px;font-weight:600}.links{margin-top:14px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:.78rem}.links a{color:#1e3a8a;font-weight:700;text-decoration:none}.links a:hover{text-decoration:underline}.bottom-bar{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-top:24px}.accomplishments{display:flex;gap:10px;flex-wrap:wrap;max-width:780px}.acc-pill{background:rgba(15,23,42,.68);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);padding:8px 14px;border-radius:10px;font-size:.8rem;color:#f8fafc}.acc-pill span{color:#fbbf24;font-weight:800;margin-right:6px}.ver{font-size:.75rem;color:rgba(255,255,255,.72);background:rgba(15,23,42,.55);padding:6px 12px;border-radius:8px}</style></head><body>
-<div class="top-row">
-  <div class="brand">
-    {% if showcase and showcase.featured_photo_url %}<img src="{{ showcase.featured_photo_url }}" alt="Official Seal" class="seal">{% else %}<div class="seal-fallback">BIOAS</div>{% endif %}
-    <div>
-      <div class="gov-tag">Republic of the Philippines • Official LGU Command Portal</div>
-      <h1>{{ brgy.name|default:"Barangay Lagare" }}</h1>
-      <p>{{ showcase.hero_tagline|default:"Transparent, Fast & Citizen-Centered Digital Barangay Governance" }}</p>
+<style>*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}body{margin:0;min-height:100vh;""" + bg_css + """color:#fff;display:flex;flex-direction:column;justify-content:space-between}.hero-stage{padding:28px 36px 24px;display:flex;flex-direction:column;justify-content:space-between;min-height:74vh}.top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:14px;max-width:620px}.seal{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.5);background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35)}.seal-fallback{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:#fbbf24;letter-spacing:.05em}.gov-tag{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fbbf24;margin-bottom:4px}.brand h1{margin:0;font-size:1.75rem;font-weight:800;letter-spacing:-.01em;text-shadow:0 2px 10px rgba(0,0,0,.4)}.brand p{margin:4px 0 0;color:#e2e8f0;font-size:.92rem;text-shadow:0 1px 6px rgba(0,0,0,.4)}.login-card{width:360px;max-width:100%;background:rgba(255,255,255,.97);color:#0f172a;border-radius:14px;padding:24px 26px;box-shadow:0 20px 50px rgba(0,0,0,.45);border-top:4px solid #1e3a8a}.login-card h2{margin:0 0 4px;font-size:1.15rem;color:#0f172a}.login-card .sub{margin:0 0 14px;font-size:.8rem;color:#64748b}label{display:block;font-size:.78rem;font-weight:700;color:#334155;margin:10px 0 4px}input{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.9rem;background:#f8fafc}input:focus{outline:none;border-color:#1e3a8a;background:#fff;box-shadow:0 0 0 3px rgba(30,58,138,.12)}button{width:100%;margin-top:16px;padding:11px;background:#1e3a8a;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:.92rem;cursor:pointer;transition:background .15s}button:hover{background:#1d4ed8}.recovery-row{text-align:center;margin-top:10px;font-size:.75rem;color:#64748b}.recovery-row a{color:#1e3a8a;text-decoration:none;font-weight:600}.recovery-row a:hover{text-decoration:underline}.err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:8px 10px;border-radius:8px;font-size:.8rem;margin-bottom:10px;font-weight:600}.links{margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:.78rem}.links a{color:#1e3a8a;font-weight:700;text-decoration:none}.links a:hover{text-decoration:underline}.accomplishments{display:flex;gap:10px;flex-wrap:wrap;max-width:860px;margin-top:24px}.acc-pill{background:rgba(15,23,42,.68);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);padding:8px 14px;border-radius:10px;font-size:.8rem;color:#f8fafc}.acc-pill span{color:#fbbf24;font-weight:800;margin-right:6px}.gov-footer{background:#0b1324;border-top:3px solid #f59e0b;color:#cbd5e1}.tier1-grid{max-width:1240px;margin:0 auto;padding:28px 36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px}.tier1-grid h4{margin:0 0 10px;font-size:.84rem;text-transform:uppercase;letter-spacing:.06em;color:#fbbf24}.tier1-grid p,.tier1-grid li{font-size:.78rem;line-height:1.6;color:#cbd5e1;margin:0 0 4px}.tier1-grid ul{list-style:none;padding:0;margin:0}.tier1-grid a{color:#e2e8f0;text-decoration:none}.tier1-grid a:hover{color:#fbbf24;text-decoration:underline}.agency-badge{display:flex;align-items:center;gap:10px;margin-bottom:8px}.agency-badge img,.agency-mini{width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid #f59e0b;background:#1e3a8a;color:#fbbf24;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.75rem}.social-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}.social-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:.75rem;font-weight:800;text-decoration:none;transition:background .15s,transform .15s}.social-btn:hover{background:#f59e0b;color:#0f172a;transform:translateY(-2px)}.tier2-strip{background:#060a14;border-top:1px solid rgba(255,255,255,.12);padding:22px 36px}.tier2-grid{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;align-items:start}.rep-seal{display:flex;gap:12px;align-items:flex-start}.coat{width:46px;height:46px;border-radius:50%;border:2px solid #94a3b8;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.72rem;flex-shrink:0}.tier2-grid h5{margin:0 0 8px;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#f8fafc}.tier2-grid p,.tier2-grid li{font-size:.75rem;line-height:1.55;color:#94a3b8;margin:0 0 4px}.tier2-grid ul{list-style:none;padding:0;margin:0}.tier2-grid a{color:#94a3b8;text-decoration:none}.tier2-grid a:hover{color:#fff;text-decoration:underline}</style></head><body>
+<div class="hero-stage">
+  <div class="top-row">
+    <div class="brand">
+      {% if showcase and showcase.featured_photo_url %}<img src="{{ showcase.featured_photo_url }}" alt="Official Seal" class="seal">{% else %}<div class="seal-fallback">BIOAS</div>{% endif %}
+      <div>
+        <div class="gov-tag">Republic of the Philippines • Official LGU Command Portal</div>
+        <h1>{{ brgy.name|default:"Barangay Lagare" }}</h1>
+        <p>{{ showcase.hero_tagline|default:"Transparent, Fast & Citizen-Centered Digital Barangay Governance" }}</p>
+      </div>
+    </div>
+    <div class="login-card">
+      <h2>Authorized Sign In</h2>
+      <p class="sub">Barangay, SK & LGU Operations Access</p>
+      {% if error %}<div class="err">{{ error }}</div>{% endif %}
+      <form method="post">{% csrf_token %}
+        <label>Username</label><input name="username" placeholder="Enter official username" required autofocus>
+        <label>Password</label><input type="password" name="password" placeholder="Enter password" required>
+        <button type="submit">Log In</button>
+      </form>
+      <div class="recovery-row"><a href="/portal-info/#recovery">Forgot Password?</a> &nbsp;•&nbsp; <a href="/portal-info/#recovery">Forgot Username?</a></div>
+      <div class="links"><a href="/portal/">Citizen Sign-Up</a><a href="/citizen-home/">Resident Self-Service</a></div>
     </div>
   </div>
-  <div class="login-card">
-    <h2>Authorized Sign In</h2>
-    <p class="sub">Barangay, SK & LGU Operations Access</p>
-    {% if error %}<div class="err">{{ error }}</div>{% endif %}
-    <form method="post">{% csrf_token %}
-      <label>Username</label><input name="username" placeholder="Enter official username" required autofocus>
-      <label>Password</label><input type="password" name="password" placeholder="Enter password" required>
-      <button type="submit">Log In</button>
-    </form>
-    <div class="links"><a href="/portal/">Citizen Sign-Up</a><a href="/citizen-home/">Resident Self-Service</a></div>
-  </div>
-</div>
-<div class="bottom-bar">
   <div class="accomplishments">
     <div class="acc-pill"><span>✓</span>{{ showcase.accomplishment_1|default:"100% Digital Citizen 201 & QR ID Synchronization" }}</div>
     <div class="acc-pill"><span>✓</span>{{ showcase.accomplishment_2|default:"Zero-Backlog Barangay & Business Clearance Issuance" }}</div>
     <div class="acc-pill"><span>✓</span>{{ showcase.accomplishment_3|default:"COA & DILG Full Disclosure Policy Compliant" }}</div>
   </div>
-  <div class="ver">BIOAS Enterprise Governance Suite • RA 10173 Protected</div>
 </div>
-</body></html>"""
-    return HttpResponse(engines["django"].from_string(tpl).render({"error": error, "brgy": brgy, "showcase": showcase}, request))
+
+<footer class="gov-footer">
+  <div class="tier1-grid">
+    <div>
+      <div class="agency-badge">
+        {% if showcase and showcase.featured_photo_url %}<img src="{{ showcase.featured_photo_url }}" alt="LGU Seal">{% else %}<span class="agency-mini">LGU</span>{% endif %}
+        <strong style="color:#fff;font-size:.92rem;">{{ brgy.name|default:"Barangay Lagare" }}</strong>
+      </div>
+      <p>{{ brgy.city_municipality.name|default:"Cabanatuan City" }}, {{ brgy.city_municipality.province.name|default:"Nueva Ecija" }}, Philippines</p>
+      <p>Email: info@barangaylagare.gov.ph</p>
+      <p>Tel: (044) 463-0000</p>
+    </div>
+    <div>
+      <h4>About Us</h4>
+      <ul>
+        <li><a href="/portal-info/#mandate">• Who We Are / Mandate</a></li>
+        <li><a href="/portal-info/#officials">• Key Officials</a></li>
+        <li><a href="/portal-info/#charter">• Citizen’s Charter</a></li>
+        <li><a href="/portal-info/#transparency">• Transparency Seal</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Help & Legal</h4>
+      <ul>
+        <li><a href="/portal-info/#guide">• User Guide / How to Register</a></li>
+        <li><a href="/portal-info/#faqs">• FAQs</a></li>
+        <li><a href="/portal-info/#contact">• Contact Us / Helpdesk</a></li>
+        <li><a href="/portal-info/#privacy">• Data Privacy Notice (RA 10173)</a></li>
+        <li><a href="/portal-info/#terms">• Terms of Use</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Connect With Us</h4>
+      <div class="social-row">
 
 
 def staff_logout(request):
@@ -215,3 +247,21 @@ def theme_settings(request):
 <div class="card"><h3 style="margin-top:0;">3. Barangay Colors</h3><div style="margin-bottom:8px;"><button type="button" class="preset" onclick="sc('#1E3A8A','#F59E0B')">DILG Navy & Gold</button><button type="button" class="preset" onclick="sc('#065F46','#FBBF24')">Emerald & Gold</button><button type="button" class="preset" onclick="sc('#7F1D1D','#F59E0B')">Maroon & Amber</button></div><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_THEME"><label>Primary Color</label><input type="color" id="p" name="primary_color" value="{{ p_col }}"><label>Accent Color</label><input type="color" id="s" name="secondary_color" value="{{ s_col }}"><button type="submit" class="save">Apply Colors</button></form></div></div>
 <script>function sc(a,b){document.getElementById('p').value=a;document.getElementById('s').value=b;}</script></body></html>"""
     return HttpResponse(engines["django"].from_string(tpl).render({"u": u, "p_col": p_col, "s_col": s_col, "notice": notice, "error": error}, request))
+def portal_info(request):
+    brgy = BarangayTenant.objects.first()
+    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Official Portal Information — {{ brgy.name|default:"Barangay Lagare" }}</title>
+<style>*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}body{margin:0;background:#f1f5f9;color:#0f172a}.top{background:#1e3a8a;color:#fff;padding:16px 28px;display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid #f59e0b}.top a{color:#fff;text-decoration:none;font-weight:700;background:rgba(255,255,255,.15);padding:7px 14px;border-radius:8px}.wrap{max-width:920px;margin:24px auto;padding:0 16px}.card{background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:16px;box-shadow:0 2px 8px rgba(15,23,42,.06);border-left:5px solid #1e3a8a}h2{margin:0 0 8px;color:#1e3a8a;font-size:1.15rem}p,li{font-size:.9rem;line-height:1.6;color:#334155}</style></head><body>
+<div class="top"><strong>{{ brgy.name|default:"Barangay Lagare" }} — Official Public Information & Helpdesk</strong><a href="/login/">← Back to Sign In</a></div>
+<div class="wrap">
+  <div class="card" id="recovery"><h2>Account Recovery (Forgot Username or Password)</h2><p>For LGU security and audit compliance under RA 10173, Barangay and SK staff password resets are verified through the <strong>Punong Barangay (Captain)</strong> or <strong>System Administrator</strong> via the Official Roster module, or at the Barangay Secretariat Desk during office hours (Monday–Friday, 8:00 AM – 5:00 PM).</p></div>
+  <div class="card" id="mandate"><h2>Who We Are / Mandate</h2><p>Pursuant to Republic Act No. 7160 (Local Government Code of 1991), <strong>{{ brgy.name|default:"Barangay Lagare" }}</strong> serves as the primary planning and implementing unit of government policies, plans, programs, projects, and activities in the community, and as a forum wherein the collective views of the people may be expressed, crystallized, and considered.</p></div>
+  <div class="card" id="officials"><h2>Key Officials</h2><p>Led by the <strong>Punong Barangay</strong>, seven (7) <strong>Sangguniang Barangay Members (Kagawad)</strong>, the <strong>Sangguniang Kabataan (SK) Chairperson</strong> and seven (7) <strong>SK Councilors</strong>, supported by the <strong>Barangay Secretary</strong>, <strong>Barangay Treasurer</strong>, and <strong>Chief Tanod (Hepe)</strong>.</p></div>
+  <div class="card" id="charter"><h2>Citizen’s Charter (RA 11032 Ease of Doing Business)</h2><ul><li><strong>Barangay Clearance / Residency / Good Moral:</strong> Same-day issuance upon 201 verification and Treasurer Official Receipt.</li><li><strong>Barangay Business Clearance:</strong> Same-day assessment and endorsement for local business permits.</li><li><strong>Certificate of Indigency & First-Time Job Seeker (RA 11261):</strong> Fee-exempt issuance upon documentary verification.</li></ul></div>
+  <div class="card" id="transparency"><h2>Transparency Seal & Full Disclosure Policy</h2><p>In compliance with DILG Memorandum Circulars and COA rules, Barangay Budget Allocations, 20% Barangay Development Plan (BDP) utilization, and Official Receipt collections are logged with immutable audit trails.</p></div>
+  <div class="card" id="guide"><h2>User Guide / How to Register</h2><p>Click <strong>Citizen Sign-Up</strong> on the main portal, complete your personal details, upload a valid supporting document (PDF, Word, or Photo), sign the RA 10173 electronic acknowledgement, and wait 24–48 hours for Barangay Secretary activation.</p></div>
+  <div class="card" id="faqs"><h2>Frequently Asked Questions (FAQs)</h2><p><strong>How do I check my registration?</strong> Once approved by the Barangay Secretary, use your assigned Citizen QR ID on the <strong>Resident Self-Service</strong> page to request certificates or submit community reports.</p></div>
+  <div class="card" id="contact"><h2>Contact Us / Helpdesk</h2><p><strong>Office Address:</strong> Barangay Hall, {{ brgy.name|default:"Barangay Lagare" }}, {{ brgy.city_municipality.name|default:"Cabanatuan City" }}, {{ brgy.city_municipality.province.name|default:"Nueva Ecija" }}, Philippines<br><strong>Email:</strong> info@barangaylagare.gov.ph &nbsp;|&nbsp; <strong>Tel:</strong> (044) 463-0000</p></div>
+  <div class="card" id="privacy"><h2>Data Privacy Notice (Republic Act No. 10173)</h2><p>All personal information collected through the BIOAS Portal is processed strictly for lawful Barangay 201 Registry, civil documentation, social welfare, and public safety administration in accordance with the Data Privacy Act of 2012.</p></div>
+  <div class="card" id="terms"><h2>Terms of Use</h2><p>Unauthorized access, falsification of resident records, or misuse of official QR verification credentials is punishable under applicable Philippine laws and LGU ordinances.</p></div>
+</div></body></html>"""
+    return HttpResponse(engines["django"].from_string(tpl).render({"brgy": brgy}, request))

@@ -3,6 +3,8 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from governance.views import command_dashboard, theme_settings, staff_login, staff_logout
+from governance.views import command_dashboard, theme_settings, staff_login, staff_logout, portal_info
+
 from governance.staff_turnover import staff_roster_and_turnover, approve_staff_account, download_term_archive
 from citizens.views import citizen_portal, citizen_home, approve_citizen, update_report_status
 from documents.views import issue_certificate_counter, print_certificate
@@ -12,6 +14,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("login/", staff_login, name="staff_login"),
     path("logout/", staff_logout, name="staff_logout"),
+        path("portal-info/", portal_info, name="portal_info"),
+
     path("", command_dashboard, name="command_dashboard"),
     path("theme-settings/", theme_settings, name="theme_settings"),
     path("staff-roster/", staff_roster_and_turnover, name="staff_roster"),
