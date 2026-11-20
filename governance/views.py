@@ -118,6 +118,26 @@ def command_dashboard(request):
     ] + [f"{c.full_name} [{c.citizen_qr_id}]" for c in citizens] + [f"{a.group_name} (Head: {a.display_head})" for a in associations]
 
     query = params.get("q", "").strip()
+        search_results = [item for item in suggestions if query.lower() in item.lower()] if query else []
+    city_barangays = BarangayTenant.objects.filter(city_municipality=city).annotate(subdivision_count=Count("subdivisions", distinct=True), structure_count=Count("structures", distinct=True)) if city else BarangayTenant.objects.none()
+    province_cities = CityMunicipality.objects.filter(province=province).annotate(barangay_count=Count("barangays", distinct=True)) if province else CityMunicipality.objects.none()
+
+    html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "dashboard.html"
+    template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
+    return HttpResponse(template.render({
+        "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
+        "theme": theme, "citizens": citizens, "households": households, "citizen_reports": citizen_reports,
+        "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
+        "receipts": receipts, "abuloy_sheets": abuloy_sheets, "total_collections": total_collections,
+        "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "associations": associations,
+        "vehicles": vehicles, "trips": trips, "equipment_loans": equipment_loans,
+        "hazards": hazards, "evac_centers": evac_centers, "kk_youth": kk_youth, "sk_projects": sk_projects,
+        "measures": measures, "bdp_projects": bdp_projects, "audit_logs": audit_logs, "dilg_reports": dilg_reports, "coa_audits": coa_audits,
+        "turnovers": turnovers, "turnover_summary": turnover_summary, "total_pending_turnover": total_pending_turnover,
+        "city_barangays": city_barangays, "province_cities": province_cities,
+        "query": query, "search_results": search_results, "suggestions_json": json.dumps(sorted(set(suggestions))),
+    }, request))
+
 @login_required(login_url="/login/")
 def theme_settings(request):
     barangay = BarangayTenant.objects.first()
