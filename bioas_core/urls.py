@@ -25,3 +25,7 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+from governance.staff_turnover import staff_roster_and_turnover, approve_staff_account, download_term_archive
+    path("staff-roster/", staff_roster_and_turnover, name="staff_roster"),
+    path("staff-roster/approve/<int:profile_id>/<str:new_status>/", approve_staff_account, name="approve_staff"),
+    path("staff-roster/archive/<int:archive_id>/", download_term_archive, name="download_term_archive"),

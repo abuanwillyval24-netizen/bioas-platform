@@ -284,3 +284,59 @@ class OfficialTurnoverRecord(models.Model):
 
     def __str__(self):
         return f"{self.transition_cycle}: {self.outgoing_punong_barangay} → {self.incoming_punong_barangay}"
+from django.conf import settings
+
+
+class BarangayStaffProfile(models.Model):
+    ROLE_CHOICES = [
+        ("CAPTAIN", "Punong Barangay (Captain)"),
+        ("COUNCILOR", "Sangguniang Barangay Member (Councilor)"),
+        ("SK_CHAIRMAN", "SK Chairperson (Youth Chairman)"),
+        ("SK_COUNCILOR", "SK Kagawad (SK Youth Councilor)"),
+        ("SECRETARY", "Barangay Secretary"),
+        ("ASST_SECRETARY", "Assistant Barangay Secretary"),
+        ("TREASURER", "Barangay Treasurer"),
+        ("ASST_TREASURER", "Assistant Barangay Treasurer"),
+        ("HEPE", "Chief Tanod (Hepe)"),
+        ("WAREHOUSE_KEEPER", "Warehouse Keeper"),
+        ("CUSTODIAN", "Property Custodian"),
+        ("SOCIAL_WORKER", "Barangay Social Worker (DSWD / MSWD)"),
+    ]
+    STATUS_CHOICES = [
+        ("PENDING_CAPTAIN", "Pending Captain Approval"),
+        ("ACTIVE", "Approved & Active"),
+        ("SUSPENDED", "Suspended"),
+    ]
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="staff_profile")
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="staff_profiles")
+    seat_code = models.CharField(max_length=40, blank=True, help_text="Persistent official seat ID (e.g., SEAT-CAPTAIN, SEAT-KAGAWAD-1, SEAT-SK-CHAIR)")
+    full_name = models.CharField(max_length=150)
+    role = models.CharField(max_length=25, choices=ROLE_CHOICES)
+    committee_or_unit = models.CharField(max_length=150, blank=True)
+    term_start_date = models.DateField(null=True, blank=True)
+    approval_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING_CAPTAIN")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_staff_profiles")
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="approved_staff_profiles")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.full_name} — {self.get_role_display()} ({self.get_approval_status_display()})"
+
+
+class TermArchiveSnapshot(models.Model):
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="term_archives")
+    term_label = models.CharField(max_length=120)
+    scoped_start_date = models.DateField()
+    scoped_end_date = models.DateField()
+    outgoing_captain_name = models.CharField(max_length=150)
+    incoming_captain_name = models.CharField(max_length=150)
+    oath_taking_doc_ref = models.CharField(max_length=150, help_text="COMELEC Proclamation / Oath-Taking Reference No.")
+    oath_document = models.FileField(upload_to="turnover_oaths/", null=True, blank=True)
+    archived_counts_json = models.JSONField(default=dict)
+    roster_snapshot_json = models.JSONField(default=list)
+    executed_by = models.CharField(max_length=150)
+    executed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.barangay.name} — {self.term_label} ({self.scoped_start_date} to {self.scoped_end_date})"

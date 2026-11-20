@@ -21,32 +21,27 @@ from audit_analytics.models import SystemAuditLog, DILGComplianceReport, COAAudi
 
 
 def staff_login(request):
-    barangay = BarangayTenant.objects.first()
-    p_col = getattr(barangay, "primary_color", "#1E3A8A") if barangay else "#1E3A8A"
-    s_col = getattr(barangay, "secondary_color", "#F59E0B") if barangay else "#F59E0B"
+    if request.user.is_authenticated:
+        return redirect("/")
     error = ""
-
     if request.method == "POST":
         user = authenticate(request, username=request.POST.get("username", "").strip(), password=request.POST.get("password", ""))
         if user is not None:
-            login(request, user)
-            if barangay:
-                SystemAuditLog.objects.create(
-                    barangay=barangay, action_type="STAFF_LOGIN", actor_name=user.username,
-                    actor_role="Command Staff", reference_code=f"LOGIN-{user.id}", details="Signed in to BIOAS Command Portal.",
-                )
-            return redirect(request.GET.get("next") or "/")
-        error = "Invalid staff username or password."
-
-    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>BIOAS Staff Login — {{ barangay.name|default:"Command Portal" }}</title>
-<style>*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}.box{background:#fff;max-width:410px;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.12)}.hdr{background:{{ p_col }};color:#fff;padding:20px;text-align:center;border-bottom:4px solid {{ s_col }}}.body{padding:22px}label{display:block;font-weight:700;font-size:.82rem;margin:10px 0 4px;color:#374151}input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px}button{margin-top:16px;width:100%;padding:11px;background:{{ p_col }};color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer}.err{background:#fee2e2;color:#991b1b;padding:9px;border-radius:6px;font-size:.84rem;font-weight:700;margin-bottom:10px}.links{margin-top:16px;text-align:center;font-size:.82rem;border-top:1px solid #e5e7eb;padding-top:12px}.links a{color:{{ p_col }};font-weight:700;text-decoration:none;margin:0 8px}</style></head><body>
-<div class="box"><div class="hdr"><h2 style="margin:0 0 4px;font-size:1.15rem;">{{ barangay.name|default:"BIOAS Command Portal" }}</h2><small>Authorized Barangay & LGU Officials Login</small></div>
-<div class="body">{% if error %}<div class="err">{{ error }}</div>{% endif %}
-<form method="post">{% csrf_token %}<label>Staff Username</label><input type="text" name="username" required autofocus /><label>Password</label><input type="password" name="password" required /><button type="submit">Sign In to Command Dashboard →</button></form>
-<div class="links">Resident Services: <a href="/portal/">New Sign-Up</a> | <a href="/citizen-home/">Citizen Login</a></div>
-</div></div></body></html>"""
-    return HttpResponse(engines["django"].from_string(tpl).render({"barangay": barangay, "p_col": p_col, "s_col": s_col, "error": error}, request))
+            prof = getattr(user, "staff_profile", None)
+            if not user.is_superuser and prof and prof.approval_status != "ACTIVE":
+                error = f"Account status: {prof.get_approval_status_display()}. Punong Barangay (Captain) approval is required before signing in."
+            else:
+                login(request, user)
+                return redirect(request.GET.get("next") or "/")
+        else:
+            error = "Invalid staff username or password."
+    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BIOAS Staff Login</title>
+<style>*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#1e3a8a;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}.box{background:#fff;max-width:420px;width:100%;border-radius:12px;padding:28px;box-shadow:0 12px 30px rgba(0,0,0,.25);border-top:6px solid #f59e0b}h2{margin:0 0 6px;color:#1e3a8a}p{margin:0 0 18px;color:#4b5563;font-size:.88rem}label{display:block;font-size:.82rem;font-weight:700;margin:10px 0 4px}input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px}button{width:100%;margin-top:16px;padding:11px;background:#1e3a8a;color:#fff;border:0;border-radius:6px;font-weight:800;cursor:pointer}.err{background:#fee2e2;color:#991b1b;padding:9px;border-radius:6px;font-size:.84rem;margin-bottom:12px;font-weight:700}.links{margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:.82rem}.links a{color:#1e3a8a;font-weight:700;text-decoration:none}</style></head><body>
+<div class="box"><h2>BIOAS Command Login</h2><p>Barangay Information & Operations System — Authorized LGU Personnel</p>
+{% if error %}<div class="err">{{ error }}</div>{% endif %}
+<form method="post">{% csrf_token %}<label>Staff Username</label><input name="username" required autofocus><label>Password</label><input type="password" name="password" required><button type="submit">Sign In to Command Dashboard</button></form>
+<div class="links"><a href="/portal/">New Citizen Sign-Up</a><a href="/citizen-home/">Citizen Login / Report</a></div></div></body></html>"""
+    return HttpResponse(engines["django"].from_string(tpl).render({"error": error}, request))
 
 
 def staff_logout(request):

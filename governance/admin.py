@@ -122,3 +122,18 @@ class OfficialTurnoverRecordAdmin(admin.ModelAdmin):
     list_display = ("transition_cycle", "outgoing_punong_barangay", "incoming_punong_barangay", "turnover_date", "status", "barangay")
     list_filter = ("barangay", "status", "turnover_date")
     search_fields = ("transition_cycle", "outgoing_punong_barangay", "incoming_punong_barangay")
+from .models import BarangayStaffProfile, TermArchiveSnapshot
+
+
+@admin.register(BarangayStaffProfile)
+class BarangayStaffProfileAdmin(admin.ModelAdmin):
+    list_display = ("seat_code", "full_name", "role", "barangay", "approval_status", "term_start_date", "approved_by")
+    list_filter = ("barangay", "role", "approval_status")
+    search_fields = ("full_name", "seat_code", "user__username", "committee_or_unit")
+
+
+@admin.register(TermArchiveSnapshot)
+class TermArchiveSnapshotAdmin(admin.ModelAdmin):
+    list_display = ("term_label", "barangay", "scoped_start_date", "scoped_end_date", "outgoing_captain_name", "incoming_captain_name", "oath_taking_doc_ref", "executed_at")
+    list_filter = ("barangay",)
+    readonly_fields = ("archived_counts_json", "roster_snapshot_json", "executed_at")
