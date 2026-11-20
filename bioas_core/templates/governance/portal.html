@@ -182,33 +182,6 @@
   </div>
 
   <script>
-    function computeExactAge() {
-      const m = document.getElementById("dobMonth").value;
-      const d = document.getElementById("dobDay").value;
-      const y = document.getElementById("dobYear").value;
-      const ageInput = document.getElementById("ageInput");
-      const birthDateHidden = document.getElementById("birthDateHidden");
-      const dobHint = document.getElementById("dobHint");
-      if (!m || !d || !y) {
-        birthDateHidden.value = ""; ageInput.value = ""; dobHint.style.display = "none"; checkCompletion(); return;
-      }
-      const yearNum = parseInt(y, 10), monthNum = parseInt(m, 10), dayNum = parseInt(d, 10);
-      const dob = new Date(yearNum, monthNum - 1, dayNum);
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (dob.getMonth() !== monthNum - 1 || dob > today) {
-        birthDateHidden.value = ""; ageInput.value = ""; dobHint.style.display = "block"; checkCompletion(); return;
-      }
-      dobHint.style.display = "none";
-      birthDateHidden.value = `${y}-${m}-${d}`;
-      let years = today.getFullYear() - yearNum;
-      let months = today.getMonth() - (monthNum - 1);
-      if (today.getDate() < dayNum) months--;
-      if (months < 0) { years--; months += 12; }
-      ageInput.value = `${years} Years/ ${months} Months`;
-      checkCompletion();
-    }
-
     const fields = Array.from(document.querySelectorAll(".track-field"));
     const progressBar = document.getElementById("progressBar");
     const progressText = document.getElementById("progressText");
@@ -216,6 +189,64 @@
     const ageInput = document.getElementById("ageInput");
     const docInput = document.getElementById("docInput");
     const suffixInput = document.getElementById("suffixInput");
+    const privacyCheck = document.querySelector('input[name="agree_terms_privacy"]');
+    const sigInput = document.querySelector('input[name="applicant_electronic_signature"]');
+
+    function checkCompletion() {
+      let filled = 0;
+      fields.forEach(f => {
+        if (f.type === "file") {
+          if (f.files && f.files.length > 0) filled++;
+        } else if (f.value && f.value.trim() !== "") {
+          filled++;
+        }
+      });
+      const total = fields.length || 1;
+      const pct = Math.round((filled / total) * 100);
+      if (progressBar) progressBar.style.width = pct + "%";
+      const agreed = privacyCheck ? privacyCheck.checked : true;
+      const signed = sigInput ? sigInput.value.trim().length >= 2 : true;
+      if (progressText) {
+        progressText.textContent = `Form Completion: ${pct}% (Minimum 80% + Data Privacy Consent & E-Signature required)`;
+      }
+      if (submitBtn) {
+        submitBtn.disabled = !(pct >= 80 && agreed && signed);
+      }
+    }
+
+    function computeExactAge() {
+      const m = document.getElementById("dobMonth")?.value;
+      const d = document.getElementById("dobDay")?.value;
+      const y = document.getElementById("dobYear")?.value;
+      const birthDateHidden = document.getElementById("birthDateHidden");
+      const dobHint = document.getElementById("dobHint");
+      if (!m || !d || !y) {
+        if (birthDateHidden) birthDateHidden.value = "";
+        if (ageInput) ageInput.value = "";
+        if (dobHint) dobHint.style.display = "none";
+        checkCompletion();
+        return;
+      }
+      const yearNum = parseInt(y, 10), monthNum = parseInt(m, 10), dayNum = parseInt(d, 10);
+      const dob = new Date(yearNum, monthNum - 1, dayNum);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (dob.getMonth() !== monthNum - 1 || dob > today) {
+        if (birthDateHidden) birthDateHidden.value = "";
+        if (ageInput) ageInput.value = "";
+        if (dobHint) dobHint.style.display = "block";
+        checkCompletion();
+        return;
+      }
+      if (dobHint) dobHint.style.display = "none";
+      if (birthDateHidden) birthDateHidden.value = `${y}-${String(monthNum).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+      let years = today.getFullYear() - yearNum;
+      let months = today.getMonth() - (monthNum - 1);
+      if (today.getDate() < dayNum) months--;
+      if (months < 0) { years--; months += 12; }
+      if (ageInput) ageInput.value = `${years} Years / ${months} Months`;
+      checkCompletion();
+    }
 
     function blockInvalidKey(e, regex) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -227,4 +258,31 @@
       inp.addEventListener("keydown", (e) => blockInvalidKey(e, /^[A-Za-z. ]$/));
       inp.addEventListener("input", () => {
         inp.value = inp.value.replace(/[^A-Za-z. ]/g, "");
-        const trimmed = inp.value.trim();
+        checkCompletion();
+      });
+    });
+
+    if (suffixInput) {
+      suffixInput.addEventListener("input", () => {
+        suffixInput.value = suffixInput.value.replace(/[^A-Za-z0-9. ]/g, "");
+        checkCompletion();
+      });
+    }
+
+    ["dobMonth", "dobDay", "dobYear"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("change", computeExactAge);
+    });
+
+    fields.forEach(f => {
+      f.addEventListener("input", checkCompletion);
+      f.addEventListener("change", checkCompletion);
+    });
+
+    if (privacyCheck) privacyCheck.addEventListener("change", checkCompletion);
+    if (sigInput) sigInput.addEventListener("input", checkCompletion);
+
+    computeExactAge();
+  </script>
+</body>
+</html>
