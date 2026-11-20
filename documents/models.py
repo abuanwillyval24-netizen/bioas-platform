@@ -8,11 +8,16 @@ from citizens.models import CitizenProfile
 class CertificateRequest(models.Model):
     CERT_TYPES = [
         ("BARANGAY_CLEARANCE", "Barangay Clearance"),
+        ("BUSINESS_CLEARANCE", "Barangay Business Clearance / Permit Endorsement"),
         ("INDIGENCY", "Certificate of Indigency (Fee-Exempt)"),
         ("FIRST_TIME_JOBSEEKER", "First-Time Jobseeker Certification — RA 11261 (Fee-Exempt)"),
         ("RESIDENCY", "Certificate of Residency"),
         ("GOOD_MORAL", "Certificate of Good Moral Character"),
+        ("SOLO_PARENT", "Solo Parent / Senior / PWD Endorsement"),
+        ("BUILDING_FENCING", "Barangay Building / Fencing Clearance"),
+        ("LUPON_CFA", "Lupon Certificate to File Action (CFA)"),
     ]
+
     STATUS_CHOICES = [
         ("PENDING_OR", "Pending Treasurer OR Payment"),
         ("READY_TO_PRINT", "Approved & Ready to Print"),

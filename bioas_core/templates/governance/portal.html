@@ -166,6 +166,16 @@
       <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
       <div class="progress-text" id="progressText">Form Completion: 0% (Minimum 80% required to submit)</div>
 
+      <div style="background:#f8fafc;border:1px solid #cbd5e1;border-left:4px solid #1e3a8a;border-radius:8px;padding:12px;margin:14px 0;">
+  <strong style="color:#1e3a8a;font-size:.88rem;display:block;margin-bottom:6px;">Citizen Declaration, Terms of Use & Data Privacy Consent (RA 10173)</strong>
+  <label style="display:flex;align-items:flex-start;gap:8px;font-size:.82rem;font-weight:600;color:#334155;margin:6px 0;cursor:pointer;">
+    <input type="checkbox" name="agree_terms_privacy" required style="width:auto;margin-top:3px;">
+    <span>I certify that all information and uploaded documents are true and accurate, and I hereby agree to the <strong>Barangay Digital Portal Terms of Use</strong> and consent to the collection and processing of my personal data in accordance with the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong> for official Barangay 201 Registry and LGU services.</span>
+  </label>
+  <label style="font-size:.8rem;font-weight:700;color:#1e3a8a;margin-top:8px;display:block;">Electronic Signature (Type Your Full Legal Name to Acknowledge) *</label>
+  <input type="text" name="applicant_electronic_signature" placeholder="Type your full name (e.g., Juan Dela Cruz)" required style="width:100%;padding:8px;border:1px solid #94a3b8;border-radius:6px;font-style:italic;background:#fff;">
+</div>
+
       <button type="submit" id="submitBtn" disabled>Submit to Barangay Secretary for 201 Verification</button>
     </form>
     {% endif %}

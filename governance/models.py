@@ -340,3 +340,15 @@ class TermArchiveSnapshot(models.Model):
 
     def __str__(self):
         return f"{self.barangay.name} — {self.term_label} ({self.scoped_start_date} to {self.scoped_end_date})"
+class BarangayPortalShowcase(models.Model):
+    barangay = models.OneToOneField(BarangayTenant, on_delete=models.CASCADE, related_name="portal_showcase")
+    hero_tagline = models.CharField(max_length=200, default="Transparent, Fast & Citizen-Centered Digital Barangay Governance")
+    background_image_url = models.URLField(blank=True, help_text="Optional custom background photo URL for the Login & Portal header")
+    featured_photo_url = models.URLField(blank=True, help_text="Optional Barangay Hall / Accomplishment photo URL")
+    accomplishment_1 = models.CharField(max_length=200, default="100% Digital Citizen 201 & QR ID Synchronization")
+    accomplishment_2 = models.CharField(max_length=200, default="Zero-Backlog Barangay & Business Clearance Issuance")
+    accomplishment_3 = models.CharField(max_length=200, default="COA & DILG Full Disclosure Policy Compliant")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Portal Showcase — {self.barangay.name}"

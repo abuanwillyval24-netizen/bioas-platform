@@ -7,6 +7,7 @@ from django.db.models import Count, Sum
 from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from .models import Province, CityMunicipality, BarangayTenant, OfficialTurnoverRecord
+from .models import Province, CityMunicipality, BarangayTenant, OfficialTurnoverRecord, BarangayPortalShowcase
 from citizens.models import CitizenProfile, Household, CitizenCommunityReport
 from documents.models import CertificateRequest
 from blotter.models import BlotterCase
@@ -24,6 +25,8 @@ def staff_login(request):
     if request.user.is_authenticated:
         return redirect("/")
     error = ""
+    brgy = BarangayTenant.objects.first()
+    showcase = BarangayPortalShowcase.objects.filter(barangay=brgy).first() if brgy else None
     if request.method == "POST":
         user = authenticate(request, username=request.POST.get("username", "").strip(), password=request.POST.get("password", ""))
         if user is not None:
@@ -35,13 +38,44 @@ def staff_login(request):
                 return redirect(request.GET.get("next") or "/")
         else:
             error = "Invalid staff username or password."
-    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BIOAS Staff Login</title>
-<style>*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#1e3a8a;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}.box{background:#fff;max-width:420px;width:100%;border-radius:12px;padding:28px;box-shadow:0 12px 30px rgba(0,0,0,.25);border-top:6px solid #f59e0b}h2{margin:0 0 6px;color:#1e3a8a}p{margin:0 0 18px;color:#4b5563;font-size:.88rem}label{display:block;font-size:.82rem;font-weight:700;margin:10px 0 4px}input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:6px}button{width:100%;margin-top:16px;padding:11px;background:#1e3a8a;color:#fff;border:0;border-radius:6px;font-weight:800;cursor:pointer}.err{background:#fee2e2;color:#991b1b;padding:9px;border-radius:6px;font-size:.84rem;margin-bottom:12px;font-weight:700}.links{margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:.82rem}.links a{color:#1e3a8a;font-weight:700;text-decoration:none}</style></head><body>
-<div class="box"><h2>BIOAS Command Login</h2><p>Barangay Information & Operations System — Authorized LGU Personnel</p>
-{% if error %}<div class="err">{{ error }}</div>{% endif %}
-<form method="post">{% csrf_token %}<label>Staff Username</label><input name="username" required autofocus><label>Password</label><input type="password" name="password" required><button type="submit">Sign In to Command Dashboard</button></form>
-<div class="links"><a href="/portal/">New Citizen Sign-Up</a><a href="/citizen-home/">Citizen Login / Report</a></div></div></body></html>"""
-    return HttpResponse(engines["django"].from_string(tpl).render({"error": error}, request))
+    bg_css = (
+        f"background:linear-gradient(120deg,rgba(15,23,42,.82) 0%,rgba(15,23,42,.48) 55%,rgba(15,23,42,.72) 100%),url('{showcase.background_image_url}') center/cover no-repeat fixed;"
+        if (showcase and showcase.background_image_url)
+        else "background:radial-gradient(circle at 20% 25%,#1d4ed8 0%,#0f172a 55%,#090d16 100%);"
+    )
+    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BIOAS Official Portal — {{ brgy.name|default:"Barangay Lagare" }}</title>
+<style>*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}body{margin:0;min-height:100vh;""" + bg_css + """color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:28px 36px}.top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:14px;max-width:620px}.seal{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.5);background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35)}.seal-fallback{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:#fbbf24;letter-spacing:.05em}.gov-tag{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fbbf24;margin-bottom:4px}.brand h1{margin:0;font-size:1.75rem;font-weight:800;letter-spacing:-.01em;text-shadow:0 2px 10px rgba(0,0,0,.4)}.brand p{margin:4px 0 0;color:#e2e8f0;font-size:.92rem;text-shadow:0 1px 6px rgba(0,0,0,.4)}.login-card{width:360px;max-width:100%;background:rgba(255,255,255,.97);color:#0f172a;border-radius:14px;padding:24px 26px;box-shadow:0 20px 50px rgba(0,0,0,.45);border-top:4px solid #1e3a8a}.login-card h2{margin:0 0 4px;font-size:1.15rem;color:#0f172a}.login-card .sub{margin:0 0 14px;font-size:.8rem;color:#64748b}label{display:block;font-size:.78rem;font-weight:700;color:#334155;margin:10px 0 4px}input{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.9rem;background:#f8fafc}input:focus{outline:none;border-color:#1e3a8a;background:#fff;box-shadow:0 0 0 3px rgba(30,58,138,.12)}button{width:100%;margin-top:16px;padding:11px;background:#1e3a8a;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:.92rem;cursor:pointer;transition:background .15s}button:hover{background:#1d4ed8}.err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:8px 10px;border-radius:8px;font-size:.8rem;margin-bottom:10px;font-weight:600}.links{margin-top:14px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:.78rem}.links a{color:#1e3a8a;font-weight:700;text-decoration:none}.links a:hover{text-decoration:underline}.bottom-bar{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-top:24px}.accomplishments{display:flex;gap:10px;flex-wrap:wrap;max-width:780px}.acc-pill{background:rgba(15,23,42,.68);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);padding:8px 14px;border-radius:10px;font-size:.8rem;color:#f8fafc}.acc-pill span{color:#fbbf24;font-weight:800;margin-right:6px}.ver{font-size:.75rem;color:rgba(255,255,255,.72);background:rgba(15,23,42,.55);padding:6px 12px;border-radius:8px}</style></head><body>
+<div class="top-row">
+  <div class="brand">
+    {% if showcase and showcase.featured_photo_url %}<img src="{{ showcase.featured_photo_url }}" alt="Official Seal" class="seal">{% else %}<div class="seal-fallback">BIOAS</div>{% endif %}
+    <div>
+      <div class="gov-tag">Republic of the Philippines • Official LGU Command Portal</div>
+      <h1>{{ brgy.name|default:"Barangay Lagare" }}</h1>
+      <p>{{ showcase.hero_tagline|default:"Transparent, Fast & Citizen-Centered Digital Barangay Governance" }}</p>
+    </div>
+  </div>
+  <div class="login-card">
+    <h2>Authorized Sign In</h2>
+    <p class="sub">Barangay, SK & LGU Operations Access</p>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <form method="post">{% csrf_token %}
+      <label>Username</label><input name="username" placeholder="Enter official username" required autofocus>
+      <label>Password</label><input type="password" name="password" placeholder="Enter password" required>
+      <button type="submit">Log In</button>
+    </form>
+    <div class="links"><a href="/portal/">Citizen Sign-Up</a><a href="/citizen-home/">Resident Self-Service</a></div>
+  </div>
+</div>
+<div class="bottom-bar">
+  <div class="accomplishments">
+    <div class="acc-pill"><span>✓</span>{{ showcase.accomplishment_1|default:"100% Digital Citizen 201 & QR ID Synchronization" }}</div>
+    <div class="acc-pill"><span>✓</span>{{ showcase.accomplishment_2|default:"Zero-Backlog Barangay & Business Clearance Issuance" }}</div>
+    <div class="acc-pill"><span>✓</span>{{ showcase.accomplishment_3|default:"COA & DILG Full Disclosure Policy Compliant" }}</div>
+  </div>
+  <div class="ver">BIOAS Enterprise Governance Suite • RA 10173 Protected</div>
+</div>
+</body></html>"""
+    return HttpResponse(engines["django"].from_string(tpl).render({"error": error, "brgy": brgy, "showcase": showcase}, request))
 
 
 def staff_logout(request):
