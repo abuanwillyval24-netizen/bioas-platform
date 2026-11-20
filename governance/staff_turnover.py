@@ -160,3 +160,100 @@ def staff_roster_and_turnover(request):
                     barangay=brgy, transition_cycle=f"Oath Turnover ({oath_ref})",
                     outgoing_punong_barangay=outgoing_cap_name, incoming_punong_barangay=incoming_cap_name,
                     outgoing_treasurer="Archived Term Treasurer", outgoing_secretary="Archived Term Secretary",
+                    status="COMPLETED_TURNOVER",
+                )
+                SystemAuditLog.objects.create(
+                    barangay=brgy, action_type="ELECTION_OATH_TURNOVER",
+                    actor_name=request.user.username, actor_role=actor_role, reference_code=oath_ref,
+                    details=f"Executed Election/Oath-Taking Turnover ({start_d} to {end_d}). Archived {sum(counts.values())} scoped records and updated persistent official seats.",
+                )
+                notice = f"Oath-Taking Turnover executed! Scoped records ({start_d} to {end_d}) archived under {oath_ref} and official seat names updated."
+
+    roster = BarangayStaffProfile.objects.filter(barangay=brgy).order_by("id") if brgy else []
+    archives = TermArchiveSnapshot.objects.filter(barangay=brgy).order_by("-executed_at") if brgy else []
+
+    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BIOAS Official Roster & Oath Turnover</title>
+<style>*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f3f4f6}.top{background:#1e3a8a;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid #f59e0b}.top a{color:#fff;text-decoration:none;font-weight:700;margin-left:14px}.wrap{max-width:1180px;margin:20px auto;padding:0 16px}.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}label{display:block;font-size:.8rem;font-weight:700;margin:8px 0 4px}input,select{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px}.btn{padding:8px 14px;background:#1e3a8a;color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;font-size:.82rem}.btn-ok{background:#15803d}.btn-warn{background:#b91c1c}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5e7eb;font-size:.83rem;text-align:left}.badge{padding:3px 8px;border-radius:999px;font-size:.73rem;font-weight:800}.ACTIVE{background:#dcfce7;color:#166534}.PENDING_CAPTAIN{background:#fef3c7;color:#92400e}.SUSPENDED{background:#fee2e2;color:#991b1b}</style></head><body>
+<div class="top"><strong>BIOAS Official Roster, Captain Approval & Oath-Taking Turnover</strong><div><a href="/?tier=BARANGAY&module=TURNOVER">← Back to Dashboard</a></div></div>
+<div class="wrap">
+{% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}
+{% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
+
+{% if creatable_roles %}
+<div class="card"><h3 style="margin-top:0;">Create Barangay / SK / Delegated Staff Account (Subject to Captain Approval)</h3>
+<form method="post">{% csrf_token %}<input type="hidden" name="action" value="CREATE_STAFF">
+<div class="grid">
+<div><label>Official Role</label><select name="role">{% for code, label in creatable_roles %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+<div><label>Full Name</label><input name="full_name" placeholder="Hon. / Name" required></div>
+<div><label>Login Username</label><input name="username" placeholder="e.g., sec_lagare" required></div>
+<div><label>Initial Password</label><input type="password" name="password" required></div>
+<div><label>Seat Code / Desk</label><input name="seat_code" placeholder="e.g., DESK-WAREHOUSE-1"></div>
+<div><label>Committee / Unit</label><input name="committee_or_unit" placeholder="e.g., DSWD / MSWD Focal"></div>
+</div>
+{% if can_approve %}<label style="margin-top:10px;"><input type="checkbox" name="auto_approve" style="width:auto;" checked> Approve & Activate Immediately (Captain / Admin Privilege)</label>{% endif %}
+<button type="submit" class="btn" style="margin-top:12px;">Create Staff Account</button></form></div>
+{% endif %}
+
+<div class="card"><h3 style="margin-top:0;">Persistent Official Seats & Staff Roster (Captain, 7 Councilors, SK Chair, 7 SK Councilors, Sec/Treas + Assts, Hepe & Units)</h3>
+<table><thead><tr><th>Seat ID</th><th>Role</th><th>Official / Staff Name (Editable)</th><th>Login User</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+{% for p in roster %}<tr>
+<td><strong>{{ p.seat_code }}</strong></td>
+<td>{{ p.get_role_display }}<br><small style="color:#6b7280;">{{ p.committee_or_unit }}</small></td>
+<td><form method="post" style="display:flex;gap:6px;align-items:center;">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_SEAT_HOLDER"><input type="hidden" name="profile_id" value="{{ p.id }}"><input name="full_name" value="{{ p.full_name }}" style="padding:5px;"><input type="password" name="new_password" placeholder="New Pass (opt)" style="padding:5px;width:120px;"><button type="submit" class="btn" style="padding:5px 9px;">Save</button></form></td>
+<td><code>{{ p.user.username }}</code></td>
+<td><span class="badge {{ p.approval_status }}">{{ p.get_approval_status_display }}</span></td>
+<td>{% if can_approve %}
+  {% if p.approval_status != "ACTIVE" %}<a href="/staff-roster/approve/{{ p.id }}/ACTIVE/" class="btn btn-ok">Approve</a>{% endif %}
+  {% if p.approval_status == "ACTIVE" %}<a href="/staff-roster/approve/{{ p.id }}/SUSPENDED/" class="btn btn-warn">Suspend</a>{% endif %}
+{% else %}<small>Captain Approval Required</small>{% endif %}</td>
+</tr>{% endfor %}</tbody></table></div>
+
+{% if can_approve %}
+<div class="card" style="border-left:5px solid #d97706;"><h3 style="margin-top:0;">Election & Oath-Taking Seat Transition + Scoped-Date Term Archival</h3>
+<p style="font-size:.85rem;color:#374151;">Upload the signed <strong>COMELEC Proclamation / Oath-Taking Document</strong> and set the outgoing term date scope. All records processed within those dates will be archived for COA/DILG audit reference, while persistent seat accounts remain intact with updated official names.</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="EXECUTE_OATH_TURNOVER">
+<div class="grid">
+<div><label>Outgoing Term Label</label><input name="term_label" value="2023-2026 Barangay & SK Term" required></div>
+<div><label>Scoped Term Start Date</label><input type="date" name="scoped_start_date" required></div>
+<div><label>Scoped Term End Date</label><input type="date" name="scoped_end_date" required></div>
+<div><label>Oath-Taking / Proclamation Ref. No.</label><input name="oath_taking_doc_ref" placeholder="e.g., COMELEC-OATH-2026-001" required></div>
+<div><label>Signed Oath-Taking Document (PDF/JPG/PNG)</label><input type="file" name="oath_document" required></div>
+</div>
+<h4 style="margin:14px 0 6px;">Incoming Sworn-In Officials (Leave unchanged if re-elected)</h4>
+<div class="grid">{% for p in roster %}{% if "SEAT-" in p.seat_code %}<div><label>{{ p.seat_code }} ({{ p.get_role_display }})</label><input name="incoming_name_{{ p.id }}" value="{{ p.full_name }}"></div>{% endif %}{% endfor %}</div>
+<button type="submit" class="btn btn-ok" style="margin-top:14px;">Execute Oath-Taking Turnover & Archive Scoped Term</button></form></div>
+{% endif %}
+
+<div class="card"><h3 style="margin-top:0;">Archived Term Snapshots (Audit & Paper Trail Vault)</h3>
+<table><thead><tr><th>Term Label</th><th>Scoped Dates</th><th>Outgoing → Incoming Captain</th><th>Oath Ref.</th><th>Archived Counts</th><th>Audit Export</th></tr></thead><tbody>
+{% for a in archives %}<tr><td><strong>{{ a.term_label }}</strong></td><td>{{ a.scoped_start_date }} to {{ a.scoped_end_date }}</td><td>{{ a.outgoing_captain_name }} → <strong>{{ a.incoming_captain_name }}</strong></td><td>{{ a.oath_taking_doc_ref }}</td><td><small>{{ a.archived_counts_json }}</small></td><td><a href="/staff-roster/archive/{{ a.id }}/" class="btn">Download Archive JSON</a></td></tr>{% empty %}<tr><td colspan="6">No archived term snapshots yet.</td></tr>{% endfor %}</tbody></table></div>
+</div></body></html>"""
+    return HttpResponse(engines["django"].from_string(tpl).render({
+        "roster": roster, "archives": archives, "creatable_roles": creatable_roles,
+        "can_approve": can_approve, "notice": notice, "error": error,
+    }, request))
+
+
+@login_required(login_url="/login/")
+def approve_staff_account(request, profile_id, new_status):
+    actor_role = get_actor_role(request.user)
+    if actor_role in ("SUPERADMIN", "CAPTAIN") and new_status in ("ACTIVE", "SUSPENDED"):
+        prof = get_object_or_404(BarangayStaffProfile, id=profile_id)
+        prof.approval_status = new_status
+        prof.approved_by = request.user
+        prof.save(update_fields=["approval_status", "approved_by"])
+        SystemAuditLog.objects.create(
+            barangay=prof.barangay, action_type="CAPTAIN_STAFF_APPROVAL",
+            actor_name=request.user.username, actor_role=actor_role, reference_code=prof.seat_code,
+            details=f"Punong Barangay updated {prof.full_name} ({prof.get_role_display()}) status to {prof.get_approval_status_display()}.",
+        )
+    return redirect("/staff-roster/")
+
+
+@login_required(login_url="/login/")
+def download_term_archive(request, archive_id):
+    snap = get_object_or_404(TermArchiveSnapshot, id=archive_id)
+    payload = {
+        "barangay": snap.barangay.name, "term_label": snap.term_label,
+        "scoped_start_date": str(snap.scoped_start_date), "scoped_end_date": str(snap.scoped_end_date),
+        "outgoing_captain": snap.outgoing_captain_name, "incoming_captain": snap.incoming_captain_name,
