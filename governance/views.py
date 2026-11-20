@@ -105,6 +105,52 @@ def staff_login(request):
         <li><a href="/portal-info/#terms">&bull; Terms of Use</a></li>
       </ul>
 
+          </div>
+    <div>
+      <h4>Connect With Us</h4>
+      <div class="social-row">
+        <a href="https://facebook.com" target="_blank" rel="noopener" class="social-btn" title="Facebook">FB</a>
+        <a href="https://instagram.com" target="_blank" rel="noopener" class="social-btn" title="Instagram">IG</a>
+        <a href="https://tiktok.com" target="_blank" rel="noopener" class="social-btn" title="TikTok">TT</a>
+        <a href="/portal-info/#mandate" class="social-btn" title="Official Website">WEB</a>
+      </div>
+      <p>Follow our verified social media pages for official updates.</p>
+    </div>
+  </div>
+  <div class="tier2-strip">
+    <div class="tier2-grid">
+      <div class="rep-seal">
+        <div class="coat">RP</div>
+        <div>
+          <h5>Republic of the Philippines</h5>
+          <p>All content is in the public domain unless otherwise stated.</p>
+        </div>
+      </div>
+      <div>
+        <h5>About GOV.PH</h5>
+        <p>Learn more about the Philippine government, its structure, how government works, and the people behind it.</p>
+        <ul>
+          <li><a href="https://www.gov.ph" target="_blank" rel="noopener">&bull; GOV.PH</a></li>
+          <li><a href="https://data.gov.ph" target="_blank" rel="noopener">&bull; Open Data Portal</a></li>
+          <li><a href="https://officialgazette.gov.ph" target="_blank" rel="noopener">&bull; Official Gazette</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Government Links</h5>
+        <ul>
+          <li><a href="https://op-proper.gov.ph" target="_blank" rel="noopener">&bull; Office of the President</a></li>
+          <li><a href="https://ovp.gov.ph" target="_blank" rel="noopener">&bull; Office of the Vice President</a></li>
+          <li><a href="https://senate.gov.ph" target="_blank" rel="noopener">&bull; Senate of the Philippines</a></li>
+          <li><a href="https://congress.gov.ph" target="_blank" rel="noopener">&bull; House of Representatives</a></li>
+          <li><a href="https://judiciary.gov.ph" target="_blank" rel="noopener">&bull; Supreme Court</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+</body></html>"""
+    return HttpResponse(engines["django"].from_string(tpl).render({"error": error, "brgy": brgy, "showcase": showcase}, request))
+
 
 def staff_logout(request):
     logout(request)
