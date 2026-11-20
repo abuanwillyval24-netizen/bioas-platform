@@ -118,7 +118,7 @@ def command_dashboard(request):
     ] + [f"{c.full_name} [{c.citizen_qr_id}]" for c in citizens] + [f"{a.group_name} (Head: {a.display_head})" for a in associations]
 
     query = params.get("q", "").strip()
-        search_results = [item for item in suggestions if query.lower() in item.lower()] if query else []
+    search_results = [item for item in suggestions if query.lower() in item.lower()] if query else []
     city_barangays = BarangayTenant.objects.filter(city_municipality=city).annotate(subdivision_count=Count("subdivisions", distinct=True), structure_count=Count("structures", distinct=True)) if city else BarangayTenant.objects.none()
     province_cities = CityMunicipality.objects.filter(province=province).annotate(barangay_count=Count("barangays", distinct=True)) if province else CityMunicipality.objects.none()
 
