@@ -35,7 +35,8 @@ def citizen_portal(request):
             first_name=request.POST["first_name"].strip(),
             middle_name=request.POST.get("middle_name", "").strip(),
             suffix=request.POST.get("suffix", "").strip(),
-            sex=request.POST["sex"],
+                        sex=(request.POST.get("sex") or request.POST.get("gender", "M"))[:1].upper(),
+
             gender_identity=request.POST.get("gender_identity", "PREFER_NOT_TO_SAY"),
             birth_date=request.POST["birth_date"],
             civil_status=request.POST.get("civil_status", "SINGLE"),
