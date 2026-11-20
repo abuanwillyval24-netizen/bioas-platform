@@ -257,3 +257,9 @@ def download_term_archive(request, archive_id):
         "barangay": snap.barangay.name, "term_label": snap.term_label,
         "scoped_start_date": str(snap.scoped_start_date), "scoped_end_date": str(snap.scoped_end_date),
         "outgoing_captain": snap.outgoing_captain_name, "incoming_captain": snap.incoming_captain_name,
+        "oath_taking_doc_ref": snap.oath_taking_doc_ref, "archived_counts": snap.archived_counts_json,
+        "roster_snapshot": snap.roster_snapshot_json,
+    }
+    resp = HttpResponse(json.dumps(payload, indent=2), content_type="application/json")
+    resp["Content-Disposition"] = f'attachment; filename="BIOAS_TermArchive_{snap.id}.json"'
+    return resp
