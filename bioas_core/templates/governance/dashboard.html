@@ -38,18 +38,6 @@
     .badge { padding: 3px 8px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; background: #dbeafe; color: #1e40af; }
     .badge-warn { background: #fee2e2; color: #991b1b; }
   </style>
-  <div class="brgy-center-hero">
-  <div style="font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:#fde68a;font-weight:800;">
-    Active Barangay Command Center • {{ city.name|default:"Cabanatuan City" }}, {{ province.name|default:"Nueva Ecija" }}
-  </div>
-  <h1>{{ active_barangay.name|default:"Barangay Lagare" }}</h1>
-  <div style="font-size:.86rem;color:#e0e7ff;">Tenant Code: <strong>{{ active_barangay.tenant_code|default:"BRGY-LAGARE" }}</strong> • All 14 Operational Modules Synchronized</div>
-  <div class="tier-split-bar">
-    <a href="/?tier=BARANGAY&module=OVERVIEW" class="{% if tier == 'BARANGAY' %}active-tier{% endif %}">Tier 1: Barangay Window</a>
-    <a href="/?tier=CITY&module=OVERVIEW" class="{% if tier == 'CITY' %}active-tier{% endif %}">Tier 2: City Mayor / LGU</a>
-    <a href="/?tier=DILG&module=AUDIT" class="{% if tier == 'DILG' %}active-tier{% endif %}">Tier 3: DILG Oversight</a>
-    <a href="/?tier=PROVINCE&module=OVERVIEW" class="{% if tier == 'PROVINCE' %}active-tier{% endif %}">Tier 4: Provincial Governor</a>
-  </div>
 </div>
 
 </head>
@@ -72,9 +60,11 @@
 
   <nav class="tier-tabs">
     <div class="tier-links">
-      <a href="?tier=BARANGAY&module={{ module }}" class="{% if tier == 'BARANGAY' %}active{% endif %}">Tier 1: Barangay Window</a>
-      <a href="?tier=CITY" class="{% if tier == 'CITY' %}active{% endif %}">Tier 2: City Mayor / DILG</a>
-      <a href="?tier=PROVINCE" class="{% if tier == 'PROVINCE' %}active{% endif %}">Tier 3: Provincial Governor</a>
+          <a href="/?tier=BARANGAY&module={{ module }}" class="{% if tier == 'BARANGAY' %}active{% endif %}">Tier 1: Barangay Window</a>
+    <a href="/?tier=CITY&module={{ module }}" class="{% if tier == 'CITY' %}active{% endif %}">Tier 2: City / Municipal LGU</a>
+    <a href="/?tier=DILG&module={{ module }}" class="{% if tier == 'DILG' %}active{% endif %}">Tier 3: DILG Oversight</a>
+    <a href="/?tier=PROVINCE&module={{ module }}" class="{% if tier == 'PROVINCE' %}active{% endif %}">Tier 4: Provincial Governor</a>
+    <a href="?tier=PROVINCE" class="{% if tier == 'PROVINCE' %}active{% endif %}">Tier 3: Provincial Governor</a>
     </div>
     <div class="btn-group">
       <a href="/portal/">New Citizen Sign-Up</a>
