@@ -80,6 +80,8 @@
       <a href="?tier=BARANGAY&module=OVERVIEW" class="{% if module == 'OVERVIEW' %}active{% endif %}"><span>Command Overview</span><span class="pill">12</span></a>
       <div class="side-group">Frontline Services</div>
       <a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02. Citizens & Reports</span><span class="pill">{{ citizens|length }}</span></a>
+            <a href="?tier=BARANGAY&module=LEDGER_201" class="{% if module == 'LEDGER_201' %}active{% endif %}"><span>02B. Master 201 Excel Ledger</span><span class="pill">{{ pop_stats.total_residents }}</span></a>
+
       <a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>
       <a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Blotter & VAWC</span><span class="pill">{{ blotter_cases|length }}</span></a>
       <a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury & Collections</span><span class="pill">{{ receipts|length }}</span></a>
@@ -211,14 +213,100 @@
             {% empty %}<tr><td colspan="5">No households linked yet. Enter a Household Code (e.g., HH-001) above or in the Citizen Portal to auto-group family members.</td></tr>{% endfor %}
           </tbody></table>
 
+          <div class="section-title"><span>Citizen Portal Community Reports &amp; Complaints</span><a href="/citizen-home/" target="_blank">Open Citizen Portal &rarr;</a></div>
+          <table><thead><tr><th>Tracking Code</th><th>Resident</th><th>Category</th><th>Location</th><th>Status</th></tr></thead><tbody>
+            {% for rep in citizen_reports %}<tr><td><strong>{{ rep.tracking_code }}</strong></td><td>{{ rep.citizen.full_name }}</td><td>{{ rep.get_category_display }}</td><td>{{ rep.location_landmark }}</td><td><span class="badge">{{ rep.get_status_display }}</span> {% if rep.status == 'SUBMITTED_OPEN' %}<a href="/report-status/{{ rep.id }}/DISPATCHED_TANOD_WO/" style="margin-left:6px;background:#d97706;color:#fff;padding:2px 7px;border-radius:5px;text-decoration:none;font-size:0.74rem;font-weight:700;">Dispatch &rarr;</a>{% endif %}{% if rep.status != 'RESOLVED_CLOSED' %}<a href="/report-status/{{ rep.id }}/RESOLVED_CLOSED/" style="margin-left:6px;background:#16a34a;color:#fff;padding:2px 7px;border-radius:5px;text-decoration:none;font-size:0.74rem;font-weight:700;">Resolve &#10003;</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="5">No community reports submitted yet.</td></tr>{% endfor %}
+          </tbody></table>
+
+        {% elif module == "LEDGER_201" %}
+          <style>.main{max-width:100% !important;}</style>
           <div class="section-title">
-            <span>02E. Master 201 Approved Resident Ledger (Excel Grid &mdash; <span id="xlCount">0</span> Rows)</span>
+            <span>02B. Master 201 Approved Resident Ledger (Full-Screen Excel Grid &mdash; <span id="xlCount">0</span> Rows)</span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-              <button type="button" onclick="toggleColMenu()" style="background:#334155;color:#fff;border:0;padding:5px 11px;border-radius:5px;font-size:.78rem;font-weight:700;cursor:pointer;">Columns &#9662;</button>
-              <button type="button" onclick="export201CSV()" style="background:#16a34a;color:#fff;border:0;padding:5px 11px;border-radius:5px;font-size:.78rem;font-weight:700;cursor:pointer;">Export Excel (.CSV)</button>
-              <button type="button" onclick="print201Ledger()" style="background:#1e3a8a;color:#fff;border:0;padding:5px 11px;border-radius:5px;font-size:.78rem;font-weight:700;cursor:pointer;">Print Ledger</button>
+              <button type="button" onclick="toggleColMenu()" style="background:#334155;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Customize Columns &#9662;</button>
+              <button type="button" onclick="resetColPrefs()" style="background:#475569;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Show All Columns</button>
+              <button type="button" onclick="export201CSV()" style="background:#16a34a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Export Excel (.CSV)</button>
+              <button type="button" onclick="print201Ledger()" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Print Ledger</button>
             </div>
           </div>
+
+          <div class="card" style="padding:12px;margin-bottom:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;align-items:center;">
+              <input id="xlSearch" oninput="filter201Table()" placeholder="Search Name, QR, Address, Job..." style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlPurok" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <option value="">All Puroks</option>
+                <option value="Purok I">Purok I</option><option value="Purok II">Purok II</option><option value="Purok III">Purok III</option>
+                <option value="Purok IV">Purok IV</option><option value="Purok V">Purok V</option><option value="Purok VI">Purok VI</option><option value="Purok VII">Purok VII</option>
+              </select>
+              <select id="xlSex" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <option value="">All Sexes</option><option value="Male">Male</option><option value="Female">Female</option>
+              </select>
+              <select id="xlVoter" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <option value="">All Voter Status</option><option value="Voter">Registered Voter</option><option value="Non-Voter">Non-Voter</option>
+              </select>
+              <select id="xlClass" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <option value="">All Classifications</option>
+                <option value="Senior">Senior Citizen</option><option value="PWD">PWD</option><option value="Solo Parent">Solo Parent</option>
+                <option value="4Ps">4Ps Beneficiary</option><option value="Pregnant">Pregnant</option><option value="OFW">OFW</option>
+              </select>
+              <button type="button" onclick="reset201Filters()" style="background:#e2e8f0;color:#0f172a;border:0;padding:7px 10px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Reset Filters</button>
+            </div>
+            <div id="xlColMenu" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0;flex-wrap:wrap;gap:8px;font-size:.76rem;font-weight:700;"></div>
+          </div>
+
+          <div id="xlPrintArea" style="overflow-x:auto;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:18px;border:1px solid #cbd5e1;">
+            <table id="xl201Table" style="margin:0;min-width:2200px;border-collapse:collapse;">
+              <thead>
+                <tr style="background:#0f172a;color:#fff;">
+                  <th data-col="0" style="background:#0f172a;color:#fff;position:sticky;left:0;z-index:3;">QR ID</th>
+                  <th data-col="1" style="background:#0f172a;color:#fff;position:sticky;left:95px;z-index:3;">Full Name</th>
+                  <th data-col="2" style="background:#0f172a;color:#fff;">Birthdate</th>
+                  <th data-col="3" style="background:#0f172a;color:#fff;">Age</th>
+                  <th data-col="4" style="background:#0f172a;color:#fff;">Sex</th>
+                  <th data-col="5" style="background:#0f172a;color:#fff;">Civil Status</th>
+                  <th data-col="6" style="background:#0f172a;color:#fff;">Purok</th>
+                  <th data-col="7" style="background:#0f172a;color:#fff;">Address</th>
+                  <th data-col="8" style="background:#0f172a;color:#fff;">Residency</th>
+                  <th data-col="9" style="background:#0f172a;color:#fff;">Household ID</th>
+                  <th data-col="10" style="background:#0f172a;color:#fff;">Relationship</th>
+                  <th data-col="11" style="background:#0f172a;color:#fff;">Mobile</th>
+                  <th data-col="12" style="background:#0f172a;color:#fff;">Email</th>
+                  <th data-col="13" style="background:#0f172a;color:#fff;">Education</th>
+                  <th data-col="14" style="background:#0f172a;color:#fff;">Occupation</th>
+                  <th data-col="15" style="background:#0f172a;color:#fff;">PhilSys ID</th>
+                  <th data-col="16" style="background:#0f172a;color:#fff;">Voter Status</th>
+                  <th data-col="17" style="background:#0f172a;color:#fff;">Precinct</th>
+                  <th data-col="18" style="background:#0f172a;color:#fff;">Senior</th>
+                  <th data-col="19" style="background:#0f172a;color:#fff;">PWD</th>
+                  <th data-col="20" style="background:#0f172a;color:#fff;">Solo Parent</th>
+                  <th data-col="21" style="background:#0f172a;color:#fff;">4Ps</th>
+                  <th data-col="22" style="background:#0f172a;color:#fff;">Pregnant</th>
+                  <th data-col="23" style="background:#0f172a;color:#fff;">Portal Edit (Approval)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in citizens %}{% if c.status == "ACTIVE_RESIDENT" %}
+                <tr class="xl-row" data-purok="{{ c.purok }}" data-sex="{{ c.get_sex_display }}" data-voter="{% if c.is_registered_voter %}Voter{% else %}Non-Voter{% endif %}" data-class="{% if c.is_senior_citizen %}Senior {% endif %}{% if c.is_pwd %}PWD {% endif %}{% if c.is_solo_parent %}Solo Parent {% endif %}{% if c.is_4ps_beneficiary %}4Ps {% endif %}{% if c.is_pregnant %}Pregnant {% endif %}{% if c.is_ofw %}OFW{% endif %}">
+                  <td data-col="0" style="position:sticky;left:0;background:#f8fafc;font-weight:800;z-index:2;">{{ c.citizen_qr_id }}</td>
+                  <td data-col="1" style="position:sticky;left:95px;background:#f8fafc;font-weight:700;z-index:2;white-space:nowrap;">{{ c.full_name }}</td>
+                  <td data-col="2" style="white-space:nowrap;">{{ c.birth_date|date:"Y-m-d" }}</td>
+                  <td data-col="3"><strong>{{ c.age }}</strong></td>
+                  <td data-col="4">{{ c.get_sex_display }}</td>
+                  <td data-col="5">{{ c.get_civil_status_display }}</td>
+                  <td data-col="6" style="white-space:nowrap;">{{ c.purok }}</td>
+                  <td data-col="7" style="white-space:nowrap;">{{ c.address_line|default:"-" }}</td>
+                  <td data-col="8">{{ c.get_residency_status_display }}</td>
+                  <td data-col="9"><strong>{{ c.household.household_code|default:"-" }}</strong></td>
+                  <td data-col="10">{{ c.get_relationship_to_head_display }}</td>
+                  <td data-col="11">{{ c.mobile_number|default:"-" }}</td>
+                  <td data-col="12">{{ c.email_address|default:"-" }}</td>
+                  <td data-col="13">{{ c.get_education_level_display|default:"-" }}</td>
+                  <td data-col="14">{{ c.occupation|default:"-" }}</td>
+                  <td data-col="15">{{ c.philsys_id|default:"-" }}</td>
+                  <td data-col="16">{% if c.is_registered_voter %}<span class="badge">Voter</span>{% else %}Non-Voter{% endif %}</td>
+                  <td data-col="17">{{ c.precinct_number|default:"-" }}</td>
+                  <td data-col="18">{% if c.is_senior_citizen %}Yes{% else %}-{% endif %}</td>
+                  <td data-col="19">{% if c.is_pwd %}Yes{% else %}-{% endif %}</td>
 
         {% elif module == "CERTIFICATES" %}
           <div class="section-title"><span>03. Certificates & Clearances</span><a href="/admin/documents/certificaterequest/add/">+ Issue Certificate</a></div>
