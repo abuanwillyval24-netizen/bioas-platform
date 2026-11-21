@@ -1,10 +1,23 @@
+import base64
+from io import BytesIO
 import uuid
+import qrcode
 from pathlib import Path
 from django.http import HttpResponse
 from django.template import engines
 from governance.models import BarangayTenant
-from treasury.models import CertificateRequest
+from documents.models import CertificateRequest
 from .models import CitizenProfile, Household, CitizenCommunityReport
+
+
+def make_citizen_qr_uri(payload):
+    qr = qrcode.QRCode(box_size=4, border=1)
+    qr.add_data(payload)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#111827", back_color="white")
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 def citizen_portal(request):
@@ -150,8 +163,8 @@ def citizen_home(request):
             )
             notice = f"Certificate Requested! Control No.: {cert.control_number} ({cert.get_status_display()})."
 
+    citizen_qr_uri = make_citizen_qr_uri(request.build_absolute_uri(f"/citizen-home/?qr_id={citizen.citizen_qr_id}")) if citizen else ""
     family_members = citizen.household.members.all() if (citizen and citizen.household) else []
     recent_certs = CertificateRequest.objects.filter(citizen=citizen)[:5] if citizen else []
     recent_reports = CitizenCommunityReport.objects.filter(citizen=citizen)[:5] if citizen else []
 
-    tpl = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Citizen 201 & Self-Service Portal</title>
