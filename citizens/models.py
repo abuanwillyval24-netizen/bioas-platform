@@ -210,3 +210,31 @@ class CitizenCommunityReport(models.Model):
     category = models.CharField(max_length=30, choices=REPORT_CATEGORIES)
     location_landmark = models.CharField(max_length=160)
     description = models.TextField()
+class CitizenCommunityReport(models.Model):
+    REPORT_CATEGORIES = [
+        ("INFRASTRUCTURE_LIGHT", "Broken Streetlight / Road & Drainage Issue"),
+        ("PEACE_ORDER_NOISE", "Peace & Order / Curfew / Noise Concern"),
+        ("SANITATION_WASTE", "Garbage Collection / Drainage Clogging"),
+        ("DRRM_HAZARD", "Flood / Fallen Tree / Emergency Hazard Report"),
+        ("GENERAL_SUGGESTION", "General Inquiry / Suggestion for Barangay Council"),
+    ]
+    STATUS_CHOICES = [
+        ("SUBMITTED_OPEN", "Submitted / Open for Action"),
+        ("DISPATCHED_TANOD_WO", "Dispatched to Tanod / Maintenance Work Order"),
+        ("RESOLVED_CLOSED", "Resolved / Closed"),
+    ]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="citizen_reports")
+    citizen = models.ForeignKey(CitizenProfile, on_delete=models.CASCADE, related_name="community_reports")
+    tracking_code = models.CharField(max_length=40, unique=True)
+    category = models.CharField(max_length=30, choices=REPORT_CATEGORIES)
+    location_landmark = models.CharField(max_length=160)
+    description = models.TextField()
+    status = models.CharField(max_length=25, choices=STATUS_CHOICES, default="SUBMITTED_OPEN")
+    barangay_remarks = models.CharField(max_length=220, blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-submitted_at"]
+
+    def __str__(self):
+        return f"{self.tracking_code} - {self.citizen.full_name} ({self.get_status_display()})"
