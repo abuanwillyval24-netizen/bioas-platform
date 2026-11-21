@@ -1,52 +1,47 @@
-import base64
-from io import BytesIO
 import uuid
-import qrcode
 from pathlib import Path
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect
 from django.template import engines
 from governance.models import BarangayTenant
-from documents.models import CertificateRequest
-from audit_analytics.models import SystemAuditLog
-from .models import CitizenProfile, CitizenCommunityReport
-
-
-def make_citizen_qr_uri(payload):
-    qr = qrcode.QRCode(box_size=4, border=1)
-    qr.add_data(payload)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="#111827", back_color="white")
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+from treasury.models import CertificateRequest
+from .models import CitizenProfile, Household, CitizenCommunityReport
 
 
 def citizen_portal(request):
     barangays = BarangayTenant.objects.all()
     active_barangay = barangays.first()
     submitted_citizen = None
+    submitted_email = ""
 
     if request.method == "POST" and active_barangay:
+        target_brgy = barangays.filter(id=request.POST.get("barangay_id")).first() or active_barangay
+        raw_sex = (request.POST.get("sex") or request.POST.get("gender") or "MALE").strip().upper()
+        norm_sex = "FEMALE" if raw_sex.startswith("F") else "MALE"
+        submitted_email = request.POST.get("email_address", "").strip()
+
         submitted_citizen = CitizenProfile.objects.create(
-            barangay=active_barangay,
+            barangay=target_brgy,
             citizen_qr_id=f"CIT-{uuid.uuid4().hex[:6].upper()}",
             last_name=request.POST["last_name"].strip(),
             first_name=request.POST["first_name"].strip(),
             middle_name=request.POST.get("middle_name", "").strip(),
             suffix=request.POST.get("suffix", "").strip(),
-                        sex=(request.POST.get("sex") or request.POST.get("gender", "M"))[:1].upper(),
-
+            sex=norm_sex,
             gender_identity=request.POST.get("gender_identity", "PREFER_NOT_TO_SAY"),
             birth_date=request.POST["birth_date"],
             civil_status=request.POST.get("civil_status", "SINGLE"),
+            address_line=request.POST.get("address_line", "").strip(),
+            purok=request.POST.get("purok", "Purok I").strip() or "Purok I",
             mobile_number=request.POST.get("mobile_number", "").strip(),
+            email_address=submitted_email,
             is_registered_voter=bool(request.POST.get("is_registered_voter")),
             is_senior_citizen=bool(request.POST.get("is_senior_citizen")),
             is_pwd=bool(request.POST.get("is_pwd")),
             is_solo_parent=bool(request.POST.get("is_solo_parent")),
             is_4ps_beneficiary=bool(request.POST.get("is_4ps_beneficiary")),
             is_first_time_jobseeker=bool(request.POST.get("is_first_time_jobseeker")),
+            supporting_document=request.FILES.get("supporting_document"),
+            electronic_signature=request.POST.get("applicant_electronic_signature", "").strip(),
             status="PENDING_APPROVAL",
         )
 
@@ -56,100 +51,107 @@ def citizen_portal(request):
         "barangays": barangays,
         "active_barangay": active_barangay,
         "submitted_citizen": submitted_citizen,
+        "submitted_email": submitted_email,
     }, request))
 
 
 def citizen_home(request):
     qr_id = (request.POST.get("qr_id") or request.GET.get("qr_id") or "").strip().upper()
-    citizen = CitizenProfile.objects.filter(citizen_qr_id=qr_id).first() if qr_id else None
+    citizen = CitizenProfile.objects.select_related("barangay", "household").filter(citizen_qr_id=qr_id).first() if qr_id else None
     notice, error = "", ""
 
     if qr_id and not citizen:
         error = f"Citizen QR ID '{qr_id}' not found."
+    elif citizen and citizen.status == "PENDING_APPROVAL":
+        error = "Account Status: Pending Administrator Approval. You will receive access within 24 hours once verified by the Barangay Secretary."
+        citizen = None
     elif citizen and citizen.status != "ACTIVE_RESIDENT":
-        error = f"Account Status: {citizen.get_status_display()}. Awaiting Secretary approval."
+        error = f"Account Status: {citizen.get_status_display()}."
         citizen = None
 
     if request.method == "POST" and citizen:
-        if request.POST.get("action") == "SUBMIT_REPORT":
+        act = request.POST.get("action")
+        if act == "UPDATE_201_PROFILE":
+            citizen.birth_place = request.POST.get("birth_place", citizen.birth_place).strip()
+            citizen.religion = request.POST.get("religion", citizen.religion).strip()
+            citizen.blood_type = request.POST.get("blood_type", citizen.blood_type).strip()
+            citizen.civil_status = request.POST.get("civil_status", citizen.civil_status)
+            citizen.address_line = request.POST.get("address_line", citizen.address_line).strip()
+            citizen.purok = request.POST.get("purok", citizen.purok).strip() or "Purok I"
+            citizen.residency_status = request.POST.get("residency_status", citizen.residency_status)
+            try:
+                citizen.years_in_barangay = max(0, int(request.POST.get("years_in_barangay", citizen.years_in_barangay) or 0))
+            except ValueError:
+                pass
+            citizen.mobile_number = request.POST.get("mobile_number", citizen.mobile_number).strip()
+            citizen.email_address = request.POST.get("email_address", citizen.email_address).strip()
+            citizen.emergency_contact_name = request.POST.get("emergency_contact_name", citizen.emergency_contact_name).strip()
+            citizen.emergency_contact_phone = request.POST.get("emergency_contact_phone", citizen.emergency_contact_phone).strip()
+            citizen.father_name = request.POST.get("father_name", citizen.father_name).strip()
+            citizen.mother_maiden_name = request.POST.get("mother_maiden_name", citizen.mother_maiden_name).strip()
+            citizen.spouse_name = request.POST.get("spouse_name", citizen.spouse_name).strip()
+            citizen.education_level = request.POST.get("education_level", citizen.education_level)
+            citizen.school_or_course = request.POST.get("school_or_course", citizen.school_or_course).strip()
+            citizen.occupation = request.POST.get("occupation", citizen.occupation).strip()
+            citizen.employer_or_business = request.POST.get("employer_or_business", citizen.employer_or_business).strip()
+            citizen.monthly_income = request.POST.get("monthly_income", citizen.monthly_income).strip()
+            citizen.philsys_id = request.POST.get("philsys_id", citizen.philsys_id).strip()
+            citizen.precinct_number = request.POST.get("precinct_number", citizen.precinct_number).strip()
+            citizen.osca_id_number = request.POST.get("osca_id_number", citizen.osca_id_number).strip()
+            citizen.pwd_id_number = request.POST.get("pwd_id_number", citizen.pwd_id_number).strip()
+            citizen.pwd_disability_type = request.POST.get("pwd_disability_type", citizen.pwd_disability_type).strip()
+            citizen.solo_parent_id_number = request.POST.get("solo_parent_id_number", citizen.solo_parent_id_number).strip()
+            citizen.four_ps_household_id = request.POST.get("four_ps_household_id", citizen.four_ps_household_id).strip()
+            citizen.is_ofw = bool(request.POST.get("is_ofw"))
+            citizen.is_pregnant = bool(request.POST.get("is_pregnant"))
+            hh_code = request.POST.get("household_code", "").strip().upper()
+            if hh_code:
+                hh = Household.objects.filter(barangay=citizen.barangay, household_code=hh_code).first()
+                if not hh:
+                    hh = Household.objects.create(
+                        barangay=citizen.barangay,
+                        household_code=hh_code,
+                        household_head_name=citizen.full_name,
+                        purok=citizen.purok,
+                        address_line=citizen.address_line,
+                    )
+                citizen.household = hh
+                citizen.relationship_to_head = request.POST.get("relationship_to_head", citizen.relationship_to_head)
+            if request.FILES.get("photo"):
+                citizen.photo = request.FILES["photo"]
+            if request.FILES.get("supporting_document"):
+                citizen.supporting_document = request.FILES["supporting_document"]
+            citizen.save()
+            notice = f"201 Master Profile synced! Completion: {citizen.profile_completion_pct}%."
+
+        elif act == "SUBMIT_REPORT":
             rep = CitizenCommunityReport.objects.create(
-                barangay=citizen.barangay, citizen=citizen, tracking_code=f"RPT-{uuid.uuid4().hex[:6].upper()}",
-                category=request.POST["category"], location_landmark=request.POST["location_landmark"].strip(),
+                barangay=citizen.barangay,
+                citizen=citizen,
+                tracking_code=f"RPT-{uuid.uuid4().hex[:6].upper()}",
+                category=request.POST["category"],
+                location_landmark=request.POST["location_landmark"].strip(),
                 description=request.POST["description"].strip(),
             )
             notice = f"Report Submitted! Tracking Code: {rep.tracking_code}."
-        elif request.POST.get("action") == "REQUEST_CERT":
+
+        elif act == "REQUEST_CERT":
             ctype = request.POST["cert_type"]
             exempt = ctype in ("INDIGENCY", "FIRST_TIME_JOBSEEKER")
             cert = CertificateRequest.objects.create(
-                barangay=citizen.barangay, citizen=citizen, control_number=f"CERT-{uuid.uuid4().hex[:6].upper()}",
-                cert_type=ctype, purpose=request.POST["purpose"].strip(), is_fee_exempt=exempt,
+                barangay=citizen.barangay,
+                citizen=citizen,
+                control_number=f"CERT-{uuid.uuid4().hex[:6].upper()}",
+                cert_type=ctype,
+                purpose=request.POST["purpose"].strip(),
+                is_fee_exempt=exempt,
                 fee_amount=0.00 if exempt else float(citizen.barangay.default_clearance_fee),
                 status="READY_TO_PRINT" if (exempt or not citizen.barangay.fee_collection_enabled) else "PENDING_OR",
             )
             notice = f"Certificate Requested! Control No.: {cert.control_number} ({cert.get_status_display()})."
 
-    citizen_qr_uri = make_citizen_qr_uri(request.build_absolute_uri(f"/citizen-home/?qr_id={citizen.citizen_qr_id}")) if citizen else ""
+    family_members = citizen.household.members.all() if (citizen and citizen.household) else []
+    recent_certs = CertificateRequest.objects.filter(citizen=citizen)[:5] if citizen else []
+    recent_reports = CitizenCommunityReport.objects.filter(citizen=citizen)[:5] if citizen else []
 
-    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Citizen Portal</title>
-<style>*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f3f4f6}.top{background:#1e3a8a;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;border-bottom:4px solid #f59e0b}.top a{color:#fff;text-decoration:none;font-weight:700;margin-left:12px}.wrap{max-width:860px;margin:20px auto;padding:0 16px}.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}label{display:block;font-size:.82rem;font-weight:700;margin:8px 0 4px}input,select,textarea{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px}button{margin-top:12px;padding:9px 15px;background:#1e3a8a;color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #e5e7eb;font-size:.85rem;text-align:left}</style></head><body>
-<div class="top"><strong>BIOAS Citizen Self-Service & Reporting</strong><div><a href="/portal/">New Sign-Up</a><a href="/">Dashboard</a></div></div>
-<div class="wrap">
-{% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}
-{% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
-<div class="card"><h3 style="margin-top:0;">Approved Resident Sign-In</h3><form method="get" style="display:flex;gap:8px;"><input name="qr_id" value="{{ qr_id }}" placeholder="Enter Citizen QR ID (e.g., CIT-LAG-001)" required><button type="submit" style="margin:0;">Sign In</button></form></div>
-{% if citizen %}
-<div class="card" style="border-left:5px solid #16a34a;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
-  <div>
-    <div style="font-size:.78rem;font-weight:800;color:#166534;text-transform:uppercase;">Official 201 Digital Resident Card</div>
-    <h3 style="margin:4px 0;">{{ citizen.full_name }}</h3>
-    <div>QR ID: <strong>{{ citizen.citizen_qr_id }}</strong> | {{ citizen.barangay.name }}</div>
-    <div style="font-size:.82rem;color:#4b5563;margin-top:4px;">Status: <strong>{{ citizen.get_status_display }}</strong></div>
-  </div>
-  <div style="text-align:center;">
-    <img src="{{ citizen_qr_uri }}" alt="Resident QR" style="width:96px;height:96px;border:1px solid #d1d5db;border-radius:6px;padding:3px;background:#fff;" />
-    <div style="font-size:.72rem;color:#4b5563;">Scan Resident ID</div>
-  </div>
-</div>
-<div class="card"><h3>Report Community Issue</h3><form method="post">{% csrf_token %}<input type="hidden" name="qr_id" value="{{ citizen.citizen_qr_id }}"><input type="hidden" name="action" value="SUBMIT_REPORT">
-<label>Category</label><select name="category"><option value="INFRASTRUCTURE_LIGHT">Broken Streetlight / Road Issue</option><option value="PEACE_ORDER_NOISE">Peace & Order / Noise</option><option value="SANITATION_WASTE">Garbage / Drainage</option><option value="DRRM_HAZARD">Flood / Emergency Hazard</option></select>
-<label>Location Landmark</label><input name="location_landmark" required><label>Details</label><textarea name="description" rows="2" required></textarea><button type="submit">Submit Report</button></form></div>
-<div class="card"><h3>Request Certificate Online</h3><form method="post">{% csrf_token %}<input type="hidden" name="qr_id" value="{{ citizen.citizen_qr_id }}"><input type="hidden" name="action" value="REQUEST_CERT">
-<label>Document</label><select name="cert_type"><option value="BARANGAY_CLEARANCE">Barangay Clearance</option><option value="INDIGENCY">Certificate of Indigency (Exempt)</option><option value="FIRST_TIME_JOBSEEKER">First-Time Jobseeker RA 11261 (Exempt)</option></select>
-<label>Purpose</label><input name="purpose" required><button type="submit">Request Certificate</button></form></div>
-<div class="card"><h3>My Reports</h3><table><thead><tr><th>Code</th><th>Category</th><th>Location</th><th>Status</th></tr></thead><tbody>{% for r in citizen.community_reports.all %}<tr><td><strong>{{ r.tracking_code }}</strong></td><td>{{ r.get_category_display }}</td><td>{{ r.location_landmark }}</td><td>{{ r.get_status_display }}</td></tr>{% empty %}<tr><td colspan="4">None yet.</td></tr>{% endfor %}</tbody></table></div>
-<div class="card"><h3>My Certificates</h3><table><thead><tr><th>Control No.</th><th>Type</th><th>Status</th></tr></thead><tbody>{% for c in citizen.certificate_requests.all %}<tr><td><strong>{{ c.control_number }}</strong></td><td>{{ c.get_cert_type_display }}</td><td>{{ c.get_status_display }}</td></tr>{% empty %}<tr><td colspan="3">None yet.</td></tr>{% endfor %}</tbody></table></div>
-{% endif %}</div></body></html>"""
-    return HttpResponse(engines["django"].from_string(tpl).render({"citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error, "citizen_qr_uri": citizen_qr_uri}, request))
-
-
-def approve_citizen(request, citizen_id):
-    citizen = get_object_or_404(CitizenProfile, id=citizen_id)
-    if citizen.status == "PENDING_APPROVAL":
-        citizen.status = "ACTIVE_RESIDENT"
-        citizen.save(update_fields=["status"])
-        SystemAuditLog.objects.create(
-            barangay=citizen.barangay,
-            action_type="PORTAL_APPROVAL",
-            actor_name=request.user.username if request.user.is_authenticated else "Barangay Secretary",
-            actor_role="Barangay Secretary",
-            reference_code=citizen.citizen_qr_id,
-            details=f"Approved Citizen Portal registration and synced {citizen.full_name} to 201 Master.",
-        )
-    return redirect("/?tier=BARANGAY&module=CITIZENS")
-
-
-def update_report_status(request, report_id, new_status):
-    rep = get_object_or_404(CitizenCommunityReport, id=report_id)
-    if new_status in ("DISPATCHED_TANOD_WO", "RESOLVED_CLOSED"):
-        rep.status = new_status
-        rep.save(update_fields=["status"])
-        SystemAuditLog.objects.create(
-            barangay=rep.barangay,
-            action_type="CITIZEN_REPORT_UPDATE",
-            actor_name=request.user.username if request.user.is_authenticated else "Barangay Secretary",
-            actor_role="Barangay Secretary",
-            reference_code=rep.tracking_code,
-            details=f"Updated community report {rep.tracking_code} to {rep.get_status_display()}.",
-        )
-    return redirect("/?tier=BARANGAY&module=CITIZENS")
+    tpl = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Citizen 201 & Self-Service Portal</title>

@@ -1,3 +1,4 @@
+from datetime import date
 from django.db import models
 from django.utils import timezone
 from governance.models import BarangayTenant, PhysicalStructure
@@ -8,11 +9,13 @@ class Household(models.Model):
     structure = models.ForeignKey(PhysicalStructure, on_delete=models.SET_NULL, null=True, blank=True, related_name="households")
     household_code = models.CharField(max_length=50, unique=True)
     household_head_name = models.CharField(max_length=150)
+    purok = models.CharField(max_length=40, default="Purok I")
+    address_line = models.CharField(max_length=220, blank=True)
     monthly_income_bracket = models.CharField(max_length=80, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.household_code} — {self.household_head_name}"
+        return f"{self.household_code} - {self.household_head_name} ({self.purok})"
 
 
 class CitizenProfile(models.Model):
@@ -30,15 +33,46 @@ class CitizenProfile(models.Model):
         ("WIDOWED", "Widowed"),
         ("SEPARATED", "Separated"),
     ]
+    RELATIONSHIP_CHOICES = [
+        ("HEAD", "Head of Family"),
+        ("SPOUSE", "Spouse"),
+        ("CHILD", "Child (Son / Daughter)"),
+        ("PARENT", "Parent"),
+        ("SIBLING", "Sibling"),
+        ("GRANDCHILD", "Grandchild"),
+        ("IN_LAW", "Son / Daughter-in-Law"),
+        ("OTHER", "Other Household Member"),
+    ]
+    RESIDENCY_CHOICES = [
+        ("PERMANENT", "Permanent / Homeowner"),
+        ("RENTER", "Renter / Boarder"),
+        ("SHARER", "Sharer / Living with Relatives"),
+        ("TRANSIENT", "Transient / Temporary"),
+    ]
+    EDUCATION_CHOICES = [
+        ("NO_FORMAL", "No Formal Education"),
+        ("ELEMENTARY_LEVEL", "Elementary Level"),
+        ("ELEMENTARY_GRAD", "Elementary Graduate"),
+        ("HIGHSCHOOL_LEVEL", "High School / JHS Level"),
+        ("HIGHSCHOOL_GRAD", "High School / SHS Graduate"),
+        ("VOCATIONAL", "Vocational / TESDA"),
+        ("COLLEGE_LEVEL", "College Level"),
+        ("COLLEGE_GRAD", "College Graduate"),
+        ("POST_GRAD", "Post-Graduate (Master's / Doctorate)"),
+    ]
     STATUS_CHOICES = [
         ("PENDING_APPROVAL", "Pending Portal Approval"),
         ("ACTIVE_RESIDENT", "Active Verified Resident"),
         ("TRANSFERRED_OUT", "Transferred Out"),
         ("DECEASED", "Deceased"),
     ]
+
     barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="citizens")
     household = models.ForeignKey(Household, on_delete=models.SET_NULL, null=True, blank=True, related_name="members")
+    relationship_to_head = models.CharField(max_length=20, choices=RELATIONSHIP_CHOICES, default="HEAD")
     citizen_qr_id = models.CharField(max_length=40, unique=True)
+    philsys_id = models.CharField(max_length=40, blank=True)
+
     last_name = models.CharField(max_length=80)
     first_name = models.CharField(max_length=80)
     middle_name = models.CharField(max_length=80, blank=True)
@@ -46,21 +80,94 @@ class CitizenProfile(models.Model):
     sex = models.CharField(max_length=10, choices=SEX_CHOICES)
     gender_identity = models.CharField(max_length=25, choices=GENDER_CHOICES, default="PREFER_NOT_TO_SAY")
     birth_date = models.DateField()
+    birth_place = models.CharField(max_length=140, blank=True)
+    citizenship = models.CharField(max_length=50, default="Filipino")
+    religion = models.CharField(max_length=80, blank=True)
+    blood_type = models.CharField(max_length=10, blank=True)
     civil_status = models.CharField(max_length=20, choices=CIVIL_STATUS_CHOICES, default="SINGLE")
+
+    address_line = models.CharField(max_length=220, blank=True)
+    purok = models.CharField(max_length=40, default="Purok I")
+    residency_status = models.CharField(max_length=20, choices=RESIDENCY_CHOICES, default="PERMANENT")
+    years_in_barangay = models.PositiveIntegerField(default=1)
+
     mobile_number = models.CharField(max_length=30, blank=True)
+    email_address = models.EmailField(blank=True)
+    emergency_contact_name = models.CharField(max_length=120, blank=True)
+    emergency_contact_phone = models.CharField(max_length=30, blank=True)
+
+    father_name = models.CharField(max_length=140, blank=True)
+    mother_maiden_name = models.CharField(max_length=140, blank=True)
+    spouse_name = models.CharField(max_length=140, blank=True)
+
+    education_level = models.CharField(max_length=25, choices=EDUCATION_CHOICES, blank=True)
+    school_or_course = models.CharField(max_length=140, blank=True)
+    occupation = models.CharField(max_length=120, blank=True)
+    employer_or_business = models.CharField(max_length=140, blank=True)
+    monthly_income = models.CharField(max_length=60, blank=True)
+
     is_registered_voter = models.BooleanField(default=False)
+    precinct_number = models.CharField(max_length=30, blank=True)
     is_senior_citizen = models.BooleanField(default=False)
+    osca_id_number = models.CharField(max_length=40, blank=True)
     is_pwd = models.BooleanField(default=False)
+    pwd_id_number = models.CharField(max_length=40, blank=True)
+    pwd_disability_type = models.CharField(max_length=80, blank=True)
     is_solo_parent = models.BooleanField(default=False)
+    solo_parent_id_number = models.CharField(max_length=40, blank=True)
     is_4ps_beneficiary = models.BooleanField(default=False)
+    four_ps_household_id = models.CharField(max_length=40, blank=True)
     is_first_time_jobseeker = models.BooleanField(default=False)
+    is_ofw = models.BooleanField(default=False)
+
+    is_pregnant = models.BooleanField(default=False)
+    birth_registered_date = models.DateField(null=True, blank=True)
+    date_of_death = models.DateField(null=True, blank=True)
+
+    photo = models.FileField(upload_to="citizen_201/photos/", null=True, blank=True)
+    supporting_document = models.FileField(upload_to="citizen_201/docs/", null=True, blank=True)
+    electronic_signature = models.CharField(max_length=140, blank=True)
+
     status = models.CharField(max_length=25, choices=STATUS_CHOICES, default="ACTIVE_RESIDENT")
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     @property
     def full_name(self):
         parts = [self.first_name, self.middle_name, self.last_name, self.suffix]
         return " ".join(p for p in parts if p)
+
+    @property
+    def age(self):
+        if not self.birth_date:
+            return 0
+        ref = self.date_of_death if (self.status == "DECEASED" and self.date_of_death) else date.today()
+        return max(0, ref.year - self.birth_date.year - ((ref.month, ref.day) < (self.birth_date.month, self.birth_date.day)))
+
+    @property
+    def profile_completion_pct(self):
+        checks = [
+            bool(self.last_name and self.first_name),
+            bool(self.birth_date),
+            bool(self.birth_place),
+            bool(self.address_line),
+            bool(self.purok),
+            bool(self.mobile_number),
+            bool(self.emergency_contact_name),
+            bool(self.education_level),
+            bool(self.occupation),
+            bool(self.household_id),
+            bool(self.photo),
+            bool(self.supporting_document),
+        ]
+        return int(round((sum(checks) / len(checks)) * 100))
+
+    def save(self, *args, **kwargs):
+        if self.status == "DECEASED" and not self.date_of_death:
+            self.date_of_death = date.today()
+        if self.birth_date and self.age >= 60:
+            self.is_senior_citizen = True
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.full_name} ({self.citizen_qr_id})"
@@ -81,7 +188,7 @@ class CitizenPortalUpdateRequest(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Update Request — {self.citizen.full_name} ({self.get_status_display()})"
+        return f"Update Request - {self.citizen.full_name} ({self.get_status_display()})"
 
 
 class CitizenCommunityReport(models.Model):
@@ -103,12 +210,3 @@ class CitizenCommunityReport(models.Model):
     category = models.CharField(max_length=30, choices=REPORT_CATEGORIES)
     location_landmark = models.CharField(max_length=160)
     description = models.TextField()
-    status = models.CharField(max_length=25, choices=STATUS_CHOICES, default="SUBMITTED_OPEN")
-    barangay_remarks = models.CharField(max_length=220, blank=True)
-    submitted_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-submitted_at"]
-
-    def __str__(self):
-        return f"{self.tracking_code} — {self.citizen.full_name} ({self.get_status_display()})"

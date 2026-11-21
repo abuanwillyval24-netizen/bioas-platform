@@ -99,17 +99,77 @@
     {% endif %}
 
     <main class="main">
+      {% if action_notice %}<div class="card" style="background:#dcfce7;border-top-color:#16a34a;color:#166534;font-weight:700;margin-bottom:16px;">{{ action_notice }}</div>{% endif %}
       {% if query %}<div class="card" style="margin-bottom:16px;"><h3>Search Results ({{ search_results|length }})</h3><ul>{% for item in search_results %}<li><strong>{{ item }}</strong></li>{% empty %}<li>No matches found.</li>{% endfor %}</ul></div>{% endif %}
       {% if tier == "BARANGAY" %}
         {% if module == "CITIZENS" %}
-          <div class="section-title"><span>02. Citizen Master 201</span><a href="/admin/citizens/citizenprofile/add/">+ Add Citizen</a></div>
-          <table><thead><tr><th>QR ID</th><th>Full Name</th><th>Sex / Gender</th><th>Status</th></tr></thead><tbody>
-            {% for c in citizens %}<tr><td><strong>{{ c.citizen_qr_id }}</strong></td><td>{{ c.full_name }}</td><td>{{ c.get_sex_display }}</td><td><span class="badge">{{ c.get_status_display }}</span></td></tr>{% endfor %}
+          <div class="section-title"><span>02A. Live Barangay Population Dashboard (Auto-Calculated)</span><a href="/portal/" target="_blank">+ Open Citizen Sign-Up Portal &rarr;</a></div>
+          <div class="grid">
+            <div class="card"><h3>Total Active Residents</h3><div class="stat">{{ pop_stats.total_residents }}</div><small>Verified 201 Registry</small></div>
+            <div class="card"><h3>Male / Female</h3><div class="stat">{{ pop_stats.male_count }} / {{ pop_stats.female_count }}</div><small>Male vs. Female</small></div>
+            <div class="card"><h3>Voters / Non-Voters</h3><div class="stat">{{ pop_stats.registered_voters }} / {{ pop_stats.non_voters }}</div><small>COMELEC Registered vs. Non-Voter</small></div>
+            <div class="card"><h3>Children (Unmarried / Married)</h3><div class="stat">{{ pop_stats.children_total }} ({{ pop_stats.unmarried_children }} / {{ pop_stats.married_children }})</div><small>Auto-Derived from Household Tree</small></div>
+            <div class="card"><h3>Senior Citizens (60+)</h3><div class="stat">{{ pop_stats.senior_count }}</div><small>OSCA Eligible</small></div>
+            <div class="card"><h3>Persons with Disabilities</h3><div class="stat">{{ pop_stats.pwd_count }}</div><small>PWD Registry</small></div>
+            <div class="card"><h3>Solo Parents</h3><div class="stat">{{ pop_stats.solo_parent_count }}</div><small>RA 8972 / 11861</small></div>
+            <div class="card"><h3>Pregnant / Births / Deaths</h3><div class="stat">{{ pop_stats.pregnant_count }} / {{ pop_stats.recent_births_count }} / {{ pop_stats.deaths_count }}</div><small>Maternal, Recent Births &amp; Deceased</small></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:18px;">
+            <div>
+              <div class="section-title"><span>Population Breakdown by Purok / Zone</span></div>
+              <table><thead><tr><th>Purok / Zone</th><th style="text-align:right;">Active Residents</th></tr></thead><tbody>
+                {% for pr in pop_stats.purok_rows %}<tr><td><strong>{{ pr.name }}</strong></td><td style="text-align:right;"><strong>{{ pr.count }}</strong></td></tr>{% endfor %}
+              </tbody></table>
+            </div>
+            <div>
+              <div class="section-title"><span>Sectoral &amp; Vital Statistics Summary</span></div>
+              <table><thead><tr><th>Category</th><th style="text-align:right;">Count</th></tr></thead><tbody>
+                <tr><td>Male Residents</td><td style="text-align:right;"><strong>{{ pop_stats.male_count }}</strong></td></tr>
+                <tr><td>Female Residents</td><td style="text-align:right;"><strong>{{ pop_stats.female_count }}</strong></td></tr>
+                <tr><td>Registered Voters</td><td style="text-align:right;"><strong>{{ pop_stats.registered_voters }}</strong></td></tr>
+                <tr><td>Non-Voters</td><td style="text-align:right;"><strong>{{ pop_stats.non_voters }}</strong></td></tr>
+                <tr><td>Unmarried Children</td><td style="text-align:right;"><strong>{{ pop_stats.unmarried_children }}</strong></td></tr>
+                <tr><td>Married Children</td><td style="text-align:right;"><strong>{{ pop_stats.married_children }}</strong></td></tr>
+                <tr><td>Pregnant Residents</td><td style="text-align:right;"><strong>{{ pop_stats.pregnant_count }}</strong></td></tr>
+                <tr><td>Recent Births (Last 12 Mos.)</td><td style="text-align:right;"><strong>{{ pop_stats.recent_births_count }}</strong></td></tr>
+                <tr><td>Recorded Deaths</td><td style="text-align:right;"><strong>{{ pop_stats.deaths_count }}</strong></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+
+          {% if turnover_summary.pending_citizens > 0 %}
+          <div class="section-title"><span>02B. Pending Citizen Portal Sign-Ups (1-Click Secretary Approval)</span></div>
+          <table><thead><tr><th>QR ID</th><th>Applicant Name</th><th>Sex / Age</th><th>Purok</th><th>Supporting Doc</th><th>Action</th></tr></thead><tbody>
+            {% for c in citizens %}{% if c.status == "PENDING_APPROVAL" %}
+            <tr>
+              <td><strong>{{ c.citizen_qr_id }}</strong></td>
+              <td>{{ c.full_name }}</td>
+              <td>{{ c.get_sex_display }} / {{ c.age }} yrs</td>
+              <td>{{ c.purok }}</td>
+              <td>{% if c.supporting_document %}<a href="{{ c.supporting_document.url }}" target="_blank">View Proof</a>{% else %}Uploaded{% endif %}</td>
+              <td><form method="post" style="margin:0;">{% csrf_token %}<input type="hidden" name="action" value="APPROVE_CITIZEN"><input type="hidden" name="citizen_id" value="{{ c.id }}"><button type="submit" style="background:#16a34a;color:#fff;border:0;padding:5px 12px;border-radius:6px;font-weight:700;cursor:pointer;">Approve &amp; Sync 201 &rarr;</button></form></td>
+            </tr>
+            {% endif %}{% endfor %}
           </tbody></table>
-          <div class="section-title"><span>Citizen Portal Community Reports & Complaints</span><a href="/citizen-home/" target="_blank">Open Citizen Portal →</a></div>
-          <table><thead><tr><th>Tracking Code</th><th>Resident</th><th>Category</th><th>Location</th><th>Status</th></tr></thead><tbody>
-            {% for rep in citizen_reports %}<tr><td><strong>{{ rep.tracking_code }}</strong></td><td>{{ rep.citizen.full_name }}</td><td>{{ rep.get_category_display }}</td><td>{{ rep.location_landmark }}</td><td><span class="badge">{{ rep.get_status_display }}</span> {% if rep.status == 'SUBMITTED_OPEN' %}<a href="/report-status/{{ rep.id }}/DISPATCHED_TANOD_WO/" style="margin-left:6px;background:#d97706;color:#fff;padding:2px 7px;border-radius:5px;text-decoration:none;font-size:0.74rem;font-weight:700;">Dispatch →</a>{% endif %}{% if rep.status != 'RESOLVED_CLOSED' %}<a href="/report-status/{{ rep.id }}/RESOLVED_CLOSED/" style="margin-left:6px;background:#16a34a;color:#fff;padding:2px 7px;border-radius:5px;text-decoration:none;font-size:0.74rem;font-weight:700;">Resolve ✓</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="5">No community reports submitted yet.</td></tr>{% endfor %}
-          </tbody></table>
+          {% endif %}
+
+          <div class="section-title"><span>02C. Walk-In / Desk Complete 201 Master Encoder &amp; Household Linker</span></div>
+          <div class="card" style="margin-bottom:18px;">
+            <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="SAVE_CITIZEN_201">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;">
+                <div><label style="font-size:.75rem;font-weight:700;">Edit Existing QR ID (Blank = New)</label><input id="f_qr" name="edit_qr_id" placeholder="CIT-XXXXXX" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Last Name *</label><input id="f_ln" name="last_name" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">First Name *</label><input id="f_fn" name="first_name" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Middle Name</label><input id="f_mn" name="middle_name" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Suffix</label><input id="f_sf" name="suffix" placeholder="Jr., Sr., III" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Sex *</label><select id="f_sx" name="sex" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Birthdate *</label><input id="f_bd" type="date" name="birth_date" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Civil Status</label><select id="f_cs" name="civil_status" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="SINGLE">Single</option><option value="MARRIED">Married</option><option value="WIDOWED">Widowed</option><option value="SEPARATED">Separated</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Purok / Zone</label><select id="f_pk" name="purok" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="Purok I">Purok I</option><option value="Purok II">Purok II</option><option value="Purok III">Purok III</option><option value="Purok IV">Purok IV</option><option value="Purok V">Purok V</option><option value="Purok VI">Purok VI</option><option value="Purok VII">Purok VII</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">House / Street Address</label><input id="f_ad" name="address_line" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Residency Status</label><select name="residency_status" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="PERMANENT">Permanent / Homeowner</option><option value="RENTER">Renter / Boarder</option><option value="SHARER">Sharer</option><option value="TRANSIENT">Transient</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Mobile Number</label><input id="f_mb" name="mobile_number" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
         {% elif module == "CERTIFICATES" %}
           <div class="section-title"><span>03. Certificates & Clearances</span><a href="/admin/documents/certificaterequest/add/">+ Issue Certificate</a></div>
           <table><thead><tr><th>Control No.</th><th>Citizen</th><th>Document</th><th>Status</th><th>Action</th></tr></thead><tbody>
