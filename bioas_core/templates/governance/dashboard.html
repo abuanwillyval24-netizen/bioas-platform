@@ -154,8 +154,11 @@
           </tbody></table>
           {% endif %}
 
-          <div class="section-title"><span>02C. Walk-In / Desk Complete 201 Master Encoder &amp; Household Linker</span></div>
-          <div class="card" style="margin-bottom:18px;">
+          <div class="section-title">
+            <span>02C. Walk-In / Desk Complete 201 Master Encoder &amp; Household Linker</span>
+            <button type="button" id="btnToggle201Form" onclick="const b=document.getElementById('walkin201Box');const open=b.style.display==='none';b.style.display=open?'block':'none';this.innerHTML=open?'Hide 201 Encoder &#9652;':'+ Expand Walk-In 201 Encoder &#9662;';" style="background:#1e3a8a;color:#fff;border:0;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">+ Expand Walk-In 201 Encoder &#9662;</button>
+          </div>
+          <div id="walkin201Box" class="card" style="display:none;margin-bottom:18px;">
             <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="SAVE_CITIZEN_201">
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;">
                 <div><label style="font-size:.75rem;font-weight:700;">Last Name *</label><input name="last_name" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
