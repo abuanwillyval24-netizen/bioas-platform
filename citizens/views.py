@@ -168,3 +168,22 @@ def citizen_home(request):
     recent_certs = CertificateRequest.objects.filter(citizen=citizen)[:5] if citizen else []
     recent_reports = CitizenCommunityReport.objects.filter(citizen=citizen)[:5] if citizen else []
 
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+
+
+@login_required(login_url="/login/")
+def approve_citizen(request, citizen_id):
+    citizen = get_object_or_404(CitizenProfile, id=citizen_id)
+    citizen.status = "ACTIVE_RESIDENT"
+    citizen.save()
+    return redirect("/?tier=BARANGAY&module=CITIZENS")
+
+
+@login_required(login_url="/login/")
+def update_report_status(request, report_id, new_status):
+    report = get_object_or_404(CitizenCommunityReport, id=report_id)
+    if new_status in ("SUBMITTED_OPEN", "DISPATCHED_TANOD_WO", "RESOLVED_CLOSED"):
+        report.status = new_status
+        report.save(update_fields=["status"])
+    return redirect("/?tier=BARANGAY&module=CITIZENS")
