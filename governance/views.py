@@ -244,13 +244,23 @@ def command_dashboard(request):
 @login_required(login_url="/login/")
 def theme_settings(request):
     barangay = BarangayTenant.objects.first()
+    showcase, _ = BarangayPortalShowcase.objects.get_or_create(barangay=barangay) if barangay else (None, False)
     User = get_user_model()
     u = request.user
     notice, error = "", ""
 
     if request.method == "POST":
         act = request.POST.get("action")
-        if act == "UPDATE_THEME" and barangay:
+        if act == "UPDATE_SHOWCASE" and showcase:
+            showcase.hero_tagline = request.POST.get("hero_tagline", showcase.hero_tagline).strip()
+            showcase.background_image_url = request.POST.get("background_image_url", "").strip()
+            showcase.featured_photo_url = request.POST.get("featured_photo_url", "").strip()
+            showcase.accomplishment_1 = request.POST.get("accomplishment_1", showcase.accomplishment_1).strip()
+            showcase.accomplishment_2 = request.POST.get("accomplishment_2", showcase.accomplishment_2).strip()
+            showcase.accomplishment_3 = request.POST.get("accomplishment_3", showcase.accomplishment_3).strip()
+            showcase.save()
+            notice = "Login Portal Background Photo, Seal & Barangay Accomplishments updated!"
+        elif act == "UPDATE_THEME" and barangay:
             barangay.primary_color = request.POST.get("primary_color", "#1E3A8A").strip()
             barangay.secondary_color = request.POST.get("secondary_color", "#F59E0B").strip()
             barangay.save(update_fields=["primary_color", "secondary_color"])
@@ -267,7 +277,8 @@ def theme_settings(request):
                 u.save()
                 notice = "Staff account profile updated!"
         elif act == "UPDATE_PASSWORD":
-            pw1, pw2 = request.POST.get("new_password", ""), request.POST.get("confirm_password", "")
+            pw1 = request.POST.get("new_password", "")
+            pw2 = request.POST.get("confirm_password", "")
             if len(pw1) < 6:
                 error = "Password must be at least 6 characters."
             elif pw1 != pw2:
@@ -281,11 +292,12 @@ def theme_settings(request):
     p_col = getattr(barangay, "primary_color", "#1E3A8A") if barangay else "#1E3A8A"
     s_col = getattr(barangay, "secondary_color", "#F59E0B") if barangay else "#F59E0B"
     tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Command Settings</title>
-<style>*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f3f4f6}.top{background:{{ p_col }};color:#fff;padding:14px 24px;display:flex;justify-content:space-between;border-bottom:4px solid {{ s_col }}}.top a{color:#fff;text-decoration:none;font-weight:700}.wrap{max-width:740px;margin:22px auto;padding:0 16px}.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}label{display:block;font-weight:700;font-size:.82rem;margin:8px 0 4px}input{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px}button.save{margin-top:12px;padding:9px 15px;background:{{ p_col }};color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer}.preset{padding:5px 9px;border:1px solid #d1d5db;border-radius:5px;background:#f9fafb;cursor:pointer;font-size:.78rem;font-weight:700;margin-right:6px}</style></head><body>
-<div class="top"><strong>Command Settings &amp; Account</strong><a href="/">&larr; Dashboard</a></div>
+<style>*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f3f4f6}.top{background:{{ p_col }};color:#fff;padding:14px 24px;display:flex;justify-content:space-between;border-bottom:4px solid {{ s_col }}}.top a{color:#fff;text-decoration:none;font-weight:700;transition:transform .18s ease}.top a:hover{transform:translateX(-4px)}.wrap{max-width:780px;margin:22px auto;padding:0 16px}.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}label{display:block;font-weight:700;font-size:.82rem;margin:8px 0 4px}input{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px}button.save{margin-top:12px;padding:9px 15px;background:{{ p_col }};color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}button.save:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(30,58,138,.25)}.preset{padding:5px 9px;border:1px solid #d1d5db;border-radius:5px;background:#f9fafb;cursor:pointer;font-size:.78rem;font-weight:700;margin-right:6px}</style></head><body>
+<div class="top"><strong>Command Settings, Login Showcase &amp; Account</strong><a href="/">&larr; Dashboard</a></div>
 <div class="wrap">{% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}{% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
-<div class="card"><h3 style="margin-top:0;">1. Staff Profile</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_PROFILE"><label>Username</label><input name="username" value="{{ u.username }}" required><label>Email</label><input type="email" name="email" value="{{ u.email }}"><label>First Name</label><input name="first_name" value="{{ u.first_name }}"><label>Last Name</label><input name="last_name" value="{{ u.last_name }}"><button type="submit" class="save">Save Profile</button></form></div>
-<div class="card"><h3 style="margin-top:0;">2. Change Password</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_PASSWORD"><label>New Password</label><input type="password" name="new_password" required><label>Confirm Password</label><input type="password" name="confirm_password" required><button type="submit" class="save">Update Password</button></form></div>
-<div class="card"><h3 style="margin-top:0;">3. Barangay Colors</h3><div style="margin-bottom:8px;"><button type="button" class="preset" onclick="sc('#1E3A8A','#F59E0B')">DILG Navy &amp; Gold</button><button type="button" class="preset" onclick="sc('#065F46','#FBBF24')">Emerald &amp; Gold</button><button type="button" class="preset" onclick="sc('#7F1D1D','#F59E0B')">Maroon &amp; Amber</button></div><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_THEME"><label>Primary Color</label><input type="color" id="p" name="primary_color" value="{{ p_col }}"><label>Accent Color</label><input type="color" id="s" name="secondary_color" value="{{ s_col }}"><button type="submit" class="save">Apply Colors</button></form></div></div>
+{% if showcase %}<div class="card" style="border-top:4px solid {{ s_col }};"><h3 style="margin-top:0;">1. Login Screen Photos, Official Seal &amp; Barangay Accomplishments</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_SHOWCASE"><label>Hero Tagline</label><input name="hero_tagline" value="{{ showcase.hero_tagline }}"><label>Full-Screen Login Background Photo URL</label><input name="background_image_url" value="{{ showcase.background_image_url }}" placeholder="https://... (Barangay Hall, Community Event, or Landmark Photo)"><label>Official Barangay Seal / Trademark Logo URL</label><input name="featured_photo_url" value="{{ showcase.featured_photo_url }}" placeholder="https://... (Official Seal or Trademark Image)"><label>Accomplishment Highlight 1</label><input name="accomplishment_1" value="{{ showcase.accomplishment_1 }}"><label>Accomplishment Highlight 2</label><input name="accomplishment_2" value="{{ showcase.accomplishment_2 }}"><label>Accomplishment Highlight 3</label><input name="accomplishment_3" value="{{ showcase.accomplishment_3 }}"><button type="submit" class="save">Save Login Showcase &amp; Accomplishments</button></form></div>{% endif %}
+<div class="card"><h3 style="margin-top:0;">2. Barangay Colors</h3><div style="margin-bottom:8px;"><button type="button" class="preset" onclick="sc('#1E3A8A','#F59E0B')">DILG Navy &amp; Gold</button><button type="button" class="preset" onclick="sc('#065F46','#FBBF24')">Emerald &amp; Gold</button><button type="button" class="preset" onclick="sc('#7F1D1D','#F59E0B')">Maroon &amp; Amber</button></div><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_THEME"><label>Primary Color</label><input type="color" id="p" name="primary_color" value="{{ p_col }}"><label>Accent Color</label><input type="color" id="s" name="secondary_color" value="{{ s_col }}"><button type="submit" class="save">Apply Colors</button></form></div>
+<div class="card"><h3 style="margin-top:0;">3. Staff Profile</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_PROFILE"><label>Username</label><input name="username" value="{{ u.username }}" required><label>Email</label><input type="email" name="email" value="{{ u.email }}"><label>First Name</label><input name="first_name" value="{{ u.first_name }}"><label>Last Name</label><input name="last_name" value="{{ u.last_name }}"><button type="submit" class="save">Save Profile</button></form></div>
+<div class="card"><h3 style="margin-top:0;">4. Change Password</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_PASSWORD"><label>New Password</label><input type="password" name="new_password" required><label>Confirm Password</label><input type="password" name="confirm_password" required><button type="submit" class="save">Update Password</button></form></div></div>
 <script>function sc(a,b){document.getElementById('p').value=a;document.getElementById('s').value=b;}</script></div></body></html>"""
-    return HttpResponse(engines["django"].from_string(tpl).render({"u": u, "p_col": p_col, "s_col": s_col, "notice": notice, "error": error}, request))
+    return HttpResponse(engines["django"].from_string(tpl).render({"u": u, "p_col": p_col, "s_col": s_col, "notice": notice, "error": error, "showcase": showcase}, request))

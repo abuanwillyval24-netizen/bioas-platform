@@ -40,6 +40,36 @@
   </style>
 </div>
 
+<style>
+  .layout, .main-grid, .workspace { display: flex !important; align-items: stretch; min-height: calc(100vh - 110px); }
+  aside, .sidebar {
+    width: 60px !important; min-width: 60px !important; max-width: 275px; overflow-x: hidden;
+    transition: width .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
+    position: sticky; top: 0; z-index: 30; background: #0f172a !important; color: #f8fafc !important;
+    box-shadow: 2px 0 12px rgba(15,23,42,.18);
+  }
+  aside:hover, .sidebar:hover { width: 275px !important; box-shadow: 10px 0 30px rgba(15,23,42,.35); }
+  aside a, .sidebar a {
+    display: flex; align-items: center; gap: 12px; white-space: nowrap; position: relative;
+    padding: 11px 16px !important; border-left: 4px solid transparent; border-radius: 0 10px 10px 0;
+    margin: 2px 6px 2px 0;
+    transition: transform .22s cubic-bezier(.34,1.56,.64,1), background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+  }
+  aside a:hover, .sidebar a:hover {
+    transform: translateX(8px) scale(1.02);
+    background: linear-gradient(90deg, rgba(245,158,11,.24), rgba(59,130,246,.18)) !important;
+    border-left-color: #f59e0b !important; color: #fde68a !important;
+    box-shadow: 0 4px 12px rgba(245,158,11,.18);
+  }
+  a, button {
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease, background .18s ease, color .18s ease;
+  }
+  a:hover, button:hover { transform: translateY(-2px); }
+  .tier-tabs a:hover, .btn-group a:hover {
+    box-shadow: 0 4px 14px rgba(15,23,42,.22);
+  }
+</style>
+
 </head>
 <body>
   <header class="topbar">
