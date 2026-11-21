@@ -19,13 +19,35 @@
     .tier-links a { color: #d1d5db; text-decoration: none; padding: 5px 11px; border-radius: 6px; font-size: 0.84rem; font-weight: 600; margin-right: 4px; display: inline-block; }
     .tier-links a.active { background: var(--secondary); color: #111827; }
     .btn-group a { background: #374151; color: #fff; text-decoration: none; padding: 5px 11px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; margin-left: 6px; display: inline-block; }
-    .layout { display: flex; min-height: calc(100vh - 105px); }
-    .sidebar { width: 235px; background: #fff; border-right: 1px solid #e5e7eb; padding: 14px 10px; flex-shrink: 0; }
-    .side-group { font-size: 0.72rem; font-weight: 800; color: #6b7280; text-transform: uppercase; padding: 10px 10px 4px; }
-    .sidebar a { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 6px; color: #374151; text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 2px; }
-    .sidebar a.active { background: #dbeafe; color: #1e3a8a; font-weight: 700; }
-    .pill { background: #e5e7eb; color: #374151; font-size: 0.72rem; padding: 1px 6px; border-radius: 999px; }
-    .main { flex: 1; padding: 20px 24px; max-width: 1100px; display: block; }
+<style>
+  .layout, .main-grid, .workspace { display: flex !important; align-items: stretch; min-height: calc(100vh - 110px); }
+  aside, .sidebar {
+    width: 255px !important; min-width: 255px !important; max-width: 255px !important; flex-shrink: 0 !important;
+    overflow-x: hidden; position: sticky; top: 0; z-index: 30;
+    background: #0f172a !important; color: #f8fafc !important;
+    box-shadow: 2px 0 12px rgba(15,23,42,.16);
+  }
+  main, .content { flex: 1 1 auto; min-width: 0; }
+  aside a, .sidebar a {
+    display: flex; align-items: center; gap: 10px; position: relative;
+    padding: 11px 16px !important; border-left: 4px solid transparent; border-radius: 0 10px 10px 0;
+    margin: 2px 8px 2px 0;
+    transition: transform .2s cubic-bezier(.22,1,.36,1), background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+  }
+  aside a:hover, .sidebar a:hover {
+    transform: translateX(5px);
+    background: linear-gradient(90deg, rgba(245,158,11,.22), rgba(59,130,246,.16)) !important;
+    border-left-color: #f59e0b !important; color: #fde68a !important;
+    box-shadow: 0 4px 12px rgba(245,158,11,.15);
+  }
+  .tier-tabs a, .btn-group a, button {
+    transition: transform .18s cubic-bezier(.22,1,.36,1), box-shadow .18s ease, background .18s ease, color .18s ease;
+  }
+  .tier-tabs a:hover, .btn-group a:hover, button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(15,23,42,.22);
+  }
+</style>
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 12px; margin-bottom: 18px; }
     .card { background: #fff; border-radius: 10px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-top: 4px solid var(--primary); }
     .card h3 { margin: 0 0 4px; font-size: 0.76rem; color: #6b7280; text-transform: uppercase; }
