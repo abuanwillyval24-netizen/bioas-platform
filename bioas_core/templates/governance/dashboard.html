@@ -307,6 +307,87 @@
                   <td data-col="17">{{ c.precinct_number|default:"-" }}</td>
                   <td data-col="18">{% if c.is_senior_citizen %}Yes{% else %}-{% endif %}</td>
                   <td data-col="19">{% if c.is_pwd %}Yes{% else %}-{% endif %}</td>
+                  <td data-col="20">{% if c.is_solo_parent %}Yes{% else %}-{% endif %}</td>
+                  <td data-col="21">{% if c.is_4ps_beneficiary %}Yes{% else %}-{% endif %}</td>
+                  <td data-col="22">{% if c.is_pregnant %}<span class="badge badge-warn">Yes</span>{% else %}-{% endif %}</td>
+                  <td data-col="23" style="white-space:nowrap;"><a href="/citizen-home/?qr_id={{ c.citizen_qr_id }}" target="_blank" style="background:#1e3a8a;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">Portal Edit &rarr;</a></td>
+                </tr>
+                {% endif %}{% empty %}
+                <tr><td colspan="24">No approved residents in the 201 ledger yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <script>
+            const XL_PREF_KEY='bioas_201_hidden_cols';
+            function getHiddenCols(){try{return JSON.parse(localStorage.getItem(XL_PREF_KEY)||'[]');}catch(e){return[];}}
+            function saveHiddenCols(arr){localStorage.setItem(XL_PREF_KEY,JSON.stringify(arr));}
+            (function(){
+              const tbl=document.getElementById('xl201Table');if(!tbl)return;
+              const menu=document.getElementById('xlColMenu');
+              const hidden=getHiddenCols();
+              tbl.querySelectorAll('thead th').forEach((th,idx)=>{
+                const isVis=!hidden.includes(idx);
+                if(!isVis)toggle201Col(idx,false,false);
+                const lbl=document.createElement('label');
+                lbl.style.cssText='display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;padding:4px 8px;border-radius:5px;cursor:pointer;';
+                const cb=document.createElement('input');cb.type='checkbox';cb.checked=isVis;cb.dataset.colIdx=idx;
+                cb.onchange=()=>toggle201Col(idx,cb.checked,true);
+                lbl.appendChild(cb);lbl.appendChild(document.createTextNode(' '+th.innerText.trim()));
+                menu.appendChild(lbl);
+              });
+              filter201Table();
+            })();
+            function toggleColMenu(){const m=document.getElementById('xlColMenu');m.style.display=m.style.display==='none'?'flex':'none';}
+            function toggle201Col(idx,show,persist){
+              document.querySelectorAll('#xl201Table [data-col="'+idx+'"]').forEach(el=>{el.style.display=show?'':'none';});
+              if(persist){
+                let h=getHiddenCols().filter(x=>x!==idx);
+                if(!show)h.push(idx);
+                saveHiddenCols(h);
+              }
+            }
+            function resetColPrefs(){
+              saveHiddenCols([]);
+              document.querySelectorAll('#xlColMenu input[type="checkbox"]').forEach(cb=>{cb.checked=true;toggle201Col(Number(cb.dataset.colIdx),true,false);});
+            }
+            function filter201Table(){
+              const q=document.getElementById('xlSearch').value.toLowerCase();
+              const pk=document.getElementById('xlPurok').value;
+              const sx=document.getElementById('xlSex').value;
+              const vt=document.getElementById('xlVoter').value;
+              const cl=document.getElementById('xlClass').value;
+              let vis=0;
+              document.querySelectorAll('#xl201Table tbody tr.xl-row').forEach(tr=>{
+                const ok=(!q||tr.innerText.toLowerCase().includes(q))&&(!pk||tr.dataset.purok===pk)&&(!sx||tr.dataset.sex===sx)&&(!vt||tr.dataset.voter===vt)&&(!cl||tr.dataset.class.includes(cl));
+                tr.style.display=ok?'':'none';if(ok)vis++;
+              });
+              document.getElementById('xlCount').innerText=vis;
+            }
+            function reset201Filters(){
+              ['xlSearch','xlPurok','xlSex','xlVoter','xlClass'].forEach(id=>document.getElementById(id).value='');filter201Table();
+            }
+            function export201CSV(){
+              const tbl=document.getElementById('xl201Table');const rows=[];
+              tbl.querySelectorAll('tr').forEach(tr=>{
+                if(tr.style.display==='none')return;
+                const cols=[];
+                tr.querySelectorAll('th,td').forEach((cell,i)=>{
+                  if(cell.style.display==='none'||i===23)return;
+                  cols.push('"'+cell.innerText.replace(/\s+/g,' ').trim().replace(/"/g,'""')+'"');
+                });
+                if(cols.length)rows.push(cols.join(','));
+              });
+              const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+              const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Barangay_201_Master_Ledger.csv';a.click();
+            }
+            function print201Ledger(){
+              const w=window.open('','','width=1200,height=800');
+              w.document.write('<html><head><title>Barangay 201 Master Ledger</title><style>body{font-family:Arial,sans-serif;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:4px 6px;text-align:left}th{background:#1e3a8a;color:#fff}@page{size:landscape;margin:10mm}</style></head><body><h2>Official Barangay 201 Master Resident Ledger</h2>'+document.getElementById('xlPrintArea').innerHTML+'</body></html>');
+              w.document.close();w.focus();w.print();
+            }
+          </script>
+
 
         {% elif module == "CERTIFICATES" %}
           <div class="section-title"><span>03. Certificates & Clearances</span><a href="/admin/documents/certificaterequest/add/">+ Issue Certificate</a></div>
