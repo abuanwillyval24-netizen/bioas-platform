@@ -164,7 +164,6 @@ def command_dashboard(request):
     from .models import BarangayStaffProfile
 
     params = request.GET
-        params = request.GET
     if params.get("download_201_template") == "1":
         import csv, io
         buf = io.StringIO()
@@ -174,9 +173,6 @@ def command_dashboard(request):
         resp = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
         resp["Content-Disposition"] = 'attachment; filename="BIOAS_Universal_201_Master_Template.csv"'
         return resp
-    tier = params.get("tier", "BARANGAY").upper()
-    module = params.get("module", "OVERVIEW").upper()
-
     tier = params.get("tier", "BARANGAY").upper()
     module = params.get("module", "OVERVIEW").upper()
 
@@ -454,36 +450,11 @@ def command_dashboard(request):
                     actor_name=actor_name,
                     actor_role=actor_role,
                     reference_code=f"BULK-{imported_count}",
-
-                    hh_code = rec.get("household_code", "").strip().upper()
-                    if hh_code:
-                        hh = Household.objects.filter(barangay=active_barangay, household_code=hh_code).first()
-                        head_nm = rec.get("household_head_name", "").strip() or cit.full_name
-                        if not hh:
-                            hh = Household.objects.create(
-                                barangay=active_barangay,
-                                household_code=hh_code,
-                                household_head_name=head_nm,
-                                purok=cit.purok,
-                                address_line=cit.address_line,
-                            )
-                        cit.household = hh
-                        rel_val = rec.get("relationship_to_head", "HEAD").strip().upper()
-                        cit.relationship_to_head = rel_val if rel_val in ("HEAD", "SPOUSE", "CHILD", "PARENT", "SIBLING", "RELATIVE", "BOARDER") else "HEAD"
-                    cit.save()
-                    imported_count += 1
-
-                SystemAuditLog.objects.create(
-                    barangay=active_barangay,
-                    action_type="PORTAL_SYNC_APPROVED",
-                    actor_name=actor_name,
-                    actor_role=actor_role,
-                    reference_code=f"BULK-{imported_count}",
-                    details=f"Bulk imported {imported_count} citizen 201 records from '{up_file.name}'.",
+                    details=f"Bulk imported {imported_count} citizen 201 records across {sheets_used} sheet(s) from '{up_file.name}'.",
                 )
-                action_notice = f"Successfully bulk-imported {imported_count} resident records & households from '{up_file.name}' into Master 201 Registry!"
+                action_notice = f"Successfully bulk-imported {imported_count} resident records across {sheets_used} sheet(s) from '{up_file.name}' into Master 201 Registry!"
             else:
-                action_notice = "Could not read rows from uploaded file. Please upload a valid .xlsx or .csv 201 template."
+                action_notice = f"No valid citizen rows found in '{up_file.name}'. Ensure sheet headers include last_name, first_name, and birth_date (YYYY-MM-DD)."
 
 
     theme = active_barangay.get_active_theme() if active_barangay else {
