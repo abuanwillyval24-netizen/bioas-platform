@@ -513,7 +513,6 @@ def command_dashboard(request):
                     if len(dd_dt) == 10:
                         cit.date_of_death = date.fromisoformat(dd_dt)
                         cit.date_of_death = dd_dt
-
                     if hh_code:
                         hh = Household.objects.filter(barangay=active_barangay, household_code=hh_code).first()
                         if not hh:
@@ -559,6 +558,64 @@ def command_dashboard(request):
                 action_notice = f"Verified & activated {approved_total} citizen record(s) into the Official 201 Master Registry!"
             else:
                 action_notice = "No pending citizen records were selected for approval."
+        elif act == "BATCH_ZIP_DOCS" and request.FILES.get("docs_zip"):
+            import os, zipfile
+            from django.core.files.base import ContentFile
+            from citizens.models import CitizenSupportingDocument
+            zip_up = request.FILES["docs_zip"]
+            matched_docs = 0
+            matched_photos = 0
+            skipped_files = []
+            try:
+                with zipfile.ZipFile(zip_up) as zf:
+                    for info in zf.infolist():
+                        if info.is_dir():
+                            continue
+                        base_fn = os.path.basename(info.filename).strip()
+                        if not base_fn or base_fn.startswith(".") or "__MACOSX" in info.filename:
+                            continue
+                        stem = os.path.splitext(base_fn).__getitem__(0)
+                        qr_candidate = stem.split("_").__getitem__(0).strip().upper()
+                        cit_target = CitizenProfile.objects.filter(
+                            barangay=active_barangay,
+                            citizen_qr_id__iexact=qr_candidate,
+                        ).first() if qr_candidate else None
+                        if not cit_target:
+                            skipped_files.append(base_fn)
+                            continue
+                        file_bytes = zf.read(info.filename)
+                        if not file_bytes:
+                            skipped_files.append(base_fn)
+                            continue
+                        low_fn = base_fn.lower()
+                        is_photo = ("_2x2" in low_fn or "_photo" in low_fn) and low_fn.endswith((".png", ".jpg", ".jpeg", ".webp"))
+                        if is_photo:
+                            cit_target.photo.save(base_fn, ContentFile(file_bytes), save=True)
+                            matched_photos += 1
+                        else:
+                            cit_target.supporting_document.save(base_fn, ContentFile(file_bytes), save=True)
+                            CitizenSupportingDocument.objects.create(
+                                citizen=cit_target,
+                                document_title=f"Verified Supporting Proof ({base_fn})",
+                                file=ContentFile(file_bytes, name=base_fn),
+                                source_channel="WALKIN_DESK",
+                                uploaded_by=f"{actor_name} (Batch QR ZIP Sync)",
+                            )
+                            matched_docs += 1
+                total_linked = matched_docs + matched_photos
+                if total_linked > 0:
+                    SystemAuditLog.objects.create(
+                        barangay=active_barangay,
+                        action_type="PORTAL_SYNC_APPROVED",
+                        actor_name=actor_name,
+                        actor_role=actor_role,
+                        reference_code=f"ZIP-QR-{total_linked}",
+                        details=f"Batch QR-matched {matched_docs} supporting doc(s) and {matched_photos} 2x2 photo(s) from '{zip_up.name}'. Skipped unmatched: {len(skipped_files)}.",
+                    )
+                skip_msg = f" Skipped {len(skipped_files)} unmatched filename(s): {', '.join(skipped_files[:5])}." if skipped_files else ""
+                action_notice = f"Batch QR ZIP Sync Complete: Attached {matched_docs} supporting doc(s) and {matched_photos} 2x2 photo(s) by exact Citizen QR ID.{skip_msg}"
+            except zipfile.BadZipFile:
+                action_notice = f"'{zip_up.name}' is not a valid .zip archive. Please compress your QR-named files into a standard .zip folder first."
 
 
     theme = active_barangay.get_active_theme() if active_barangay else {
