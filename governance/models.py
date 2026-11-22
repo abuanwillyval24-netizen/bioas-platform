@@ -341,6 +341,7 @@ class BarangayStaffProfile(models.Model):
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="staff_profile")
     barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="staff_profiles")
+    citizen = models.OneToOneField("citizens.CitizenProfile", on_delete=models.SET_NULL, null=True, blank=True, related_name="staff_account", help_text="Optional link to verified 201 Master Resident record")
     seat_code = models.CharField(max_length=40, blank=True, help_text="Persistent official seat ID (e.g., SEAT-CAPTAIN, SEAT-KAGAWAD-1, SEAT-SK-CHAIR)")
     full_name = models.CharField(max_length=150)
     role = models.CharField(max_length=25, choices=ROLE_CHOICES)

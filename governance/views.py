@@ -424,13 +424,17 @@ def theme_settings(request):
         if act == "CREATE_OFFICER" and can_manage_officers and barangay:
             uname = request.POST.get("officer_username", "").strip()
             pwd = request.POST.get("officer_password", "")
-            fname = request.POST.get("officer_full_name", "").strip()
+            cit_id = request.POST.get("citizen_id", "").strip()
+            linked_cit = CitizenProfile.objects.filter(barangay=barangay, id=cit_id, status="ACTIVE_RESIDENT").first() if cit_id else None
+            fname = linked_cit.full_name if linked_cit else request.POST.get("officer_full_name", "").strip()
             role = request.POST.get("officer_role", "COUNCILOR")
             seat_code = request.POST.get("officer_seat_code", "").strip()
             committee = request.POST.get("officer_committee", "").strip()
             chosen_mods = request.POST.getlist("modules") or list(BarangayStaffProfile.ROLE_DEFAULT_MODULES.get(role, ["OVERVIEW", "POLICY"]))
             if not uname or len(pwd) < 6 or not fname:
-                error = "Full name, username, and password (min 6 chars) are required."
+                error = "Full name (from 201 or manual), username, and password (min 6 chars) are required."
+            elif linked_cit and hasattr(linked_cit, "staff_account") and linked_cit.staff_account is not None:
+                error = f"{linked_cit.full_name} ({linked_cit.citizen_qr_id}) already has an officer account."
             elif User.objects.filter(username=uname).exists():
                 error = f"Username '{uname}' already exists."
             else:
@@ -440,6 +444,7 @@ def theme_settings(request):
                 sp = BarangayStaffProfile.objects.create(
                     user=new_user,
                     barangay=barangay,
+                    citizen=linked_cit,
                     seat_code=seat_code,
                     full_name=fname,
                     role=role,
@@ -449,15 +454,16 @@ def theme_settings(request):
                     created_by=u,
                     approved_by=u if auto_status == "ACTIVE" else None,
                 )
+                link_note = f" [Linked to 201: {linked_cit.citizen_qr_id}]" if linked_cit else " [Manual Entry]"
                 SystemAuditLog.objects.create(
                     barangay=barangay,
                     action_type="ROLE_DELEGATION_SET",
                     actor_name=actor_name,
                     actor_role=actor_role,
                     reference_code=f"ACCT-{uname.upper()}",
-                    details=f"Created officer account '{uname}' ({fname} - {sp.get_role_display()}), Status: {sp.get_approval_status_display()}, Visible Modules: {', '.join(chosen_mods)}.",
+                    details=f"Created officer account '{uname}' ({fname} - {sp.get_role_display()}){link_note}, Status: {sp.get_approval_status_display()}, Visible Modules: {', '.join(chosen_mods)}.",
                 )
-                notice = f"Officer account '{uname}' ({sp.get_role_display()}) created with {len(chosen_mods)} configured modules ({sp.get_approval_status_display()})."
+                notice = f"Officer account '{uname}' ({sp.get_role_display()}) created{link_note} with {len(chosen_mods)} configured modules ({sp.get_approval_status_display()})."
         elif act == "UPDATE_OFFICER_MODULES" and can_manage_officers and barangay:
             sp_id = request.POST.get("staff_profile_id")
             sp = BarangayStaffProfile.objects.filter(barangay=barangay, id=sp_id).first()
@@ -517,24 +523,44 @@ def theme_settings(request):
                 update_session_auth_hash(request, u)
                 notice = "Password updated securely!"
 
-    staff_list = BarangayStaffProfile.objects.select_related("user").filter(barangay=barangay) if barangay else []
+    staff_list = BarangayStaffProfile.objects.select_related("user", "citizen").filter(barangay=barangay) if barangay else []
+    available_201 = CitizenProfile.objects.filter(barangay=barangay, status="ACTIVE_RESIDENT", staff_account__isnull=True).order_by("last_name", "first_name") if barangay else []
     p_col = getattr(barangay, "default_primary_color", "#1E3A8A") if barangay else "#1E3A8A"
     s_col = getattr(barangay, "default_secondary_color", "#F59E0B") if barangay else "#F59E0B"
     tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Command Settings &amp; Officer Access</title>
-<style>*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f3f4f6}.top{background:{{ p_col }};color:#fff;padding:14px 24px;display:flex;justify-content:space-between;border-bottom:4px solid {{ s_col }}}.top a{color:#fff;text-decoration:none;font-weight:700;transition:transform .18s ease}.top a:hover{transform:translateX(-4px)}.wrap{max-width:960px;margin:22px auto;padding:0 16px}.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}label{display:block;font-weight:700;font-size:.8rem;margin:8px 0 4px}input,select{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px}.mod-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px;margin-top:8px}.mod-item{display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;padding:6px 8px;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer}.mod-item input{width:auto;margin:0}button.save{margin-top:12px;padding:9px 15px;background:{{ p_col }};color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}button.save:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(30,58,138,.25)}.preset{padding:5px 9px;border:1px solid #d1d5db;border-radius:5px;background:#f9fafb;cursor:pointer;font-size:.78rem;font-weight:700;margin-right:6px}</style></head><body>
+<style>
+*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f3f4f6}
+.top{background:{{ p_col }};color:#fff;padding:14px 24px;display:flex;justify-content:space-between;border-bottom:4px solid {{ s_col }}}
+.top a{color:#fff;text-decoration:none;font-weight:700}.wrap{max-width:960px;margin:22px auto;padding:0 16px}
+.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
+label{display:block;font-weight:700;font-size:.8rem;margin:8px 0 4px}input,select{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px}
+.mod-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px;margin-top:8px}
+.mod-item{display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;padding:6px 8px;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer}
+.mod-item input{width:auto;margin:0}button.save{margin-top:12px;padding:9px 15px;background:{{ p_col }};color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer}
+.preset{padding:5px 9px;border:1px solid #d1d5db;border-radius:5px;background:#f9fafb;cursor:pointer;font-size:.78rem;font-weight:700;margin-right:6px}
+</style></head><body>
 <div class="top"><strong>Command Settings, Officer Access &amp; Account</strong><a href="/">&larr; Dashboard</a></div>
-<div class="wrap">{% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}{% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
+<div class="wrap">
+{% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}
+{% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
 {% if can_manage_officers and barangay %}
 <div class="card" style="border-top:4px solid #16a34a;">
-  <h3 style="margin-top:0;">1. Create Elected / Appointed Officer Account &amp; Configure Visible Modules</h3>
-  <p style="font-size:.82rem;color:#475569;margin-top:-6px;">Select an official role to auto-check its statutory modules, or customize the exact modules shown on that officer's uniform sidebar. Every account action is silently logged in the System Audit Trail.</p>
+  <h3 style="margin-top:0;">1. Create Elected / Appointed Officer Account (From 201 Master File or Manual Input)</h3>
+  <p style="font-size:.82rem;color:#475569;margin-top:-6px;">Pick a verified resident from the <strong>201 Master File</strong> to auto-fill &amp; link their 201 record, or leave on <strong>Manual Input</strong>.</p>
   <form method="post">{% csrf_token %}<input type="hidden" name="action" value="CREATE_OFFICER">
+    <div style="margin-bottom:10px;background:#eff6ff;border:1px solid #bfdbfe;padding:10px 12px;border-radius:8px;">
+      <label style="margin-top:0;color:#1e3a8a;">Select Verified Resident from 201 Master File:</label>
+      <select id="cit201Sel" name="citizen_id" onchange="pick201Resident(this)">
+        <option value="">-- Manual Input (Not Yet in 201 Master File) --</option>
+        {% for c in available_201 %}<option value="{{ c.id }}" data-name="{{ c.full_name }}">[{{ c.citizen_qr_id }}] {{ c.full_name }} &mdash; {{ c.purok }}</option>{% endfor %}
+      </select>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
-      <div><label>Officer Full Name *</label><input name="officer_full_name" placeholder="e.g., Hon. Maria Clara Reyes" required></div>
+      <div><label>Officer Full Name *</label><input id="offFullName" name="officer_full_name" placeholder="e.g., Hon. Maria Clara Reyes" required></div>
       <div><label>Official Role *</label><select id="roleSel" name="officer_role" onchange="applyRolePreset(this.value)">{% for k,v in role_choices %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
-      <div><label>Seat / Designation Code</label><input name="officer_seat_code" placeholder="e.g., SEAT-SECRETARY"></div>
-      <div><label>Committee / Unit</label><input name="officer_committee" placeholder="e.g., Committee on Health"></div>
-      <div><label>Login Username *</label><input name="officer_username" placeholder="e.g., sec.reyes" required></div>
+      <div><label>Seat / Designation Code</label><input name="officer_seat_code" placeholder="e.g., SEAT-CAPTAIN"></div>
+      <div><label>Committee / Unit</label><input name="officer_committee" placeholder="e.g., Executive"></div>
+      <div><label>Login Username *</label><input name="officer_username" placeholder="e.g., capt.reyes" required></div>
       <div><label>Initial Password (min 6 chars) *</label><input type="password" name="officer_password" required></div>
     </div>
     <label style="margin-top:12px;">Configurable Sidebar Modules for This Account:</label>
@@ -545,9 +571,10 @@ def theme_settings(request):
 <div class="card" style="border-top:4px solid {{ p_col }};">
   <h3 style="margin-top:0;">2. Existing Elected &amp; Appointed Officer Accounts (Approve &amp; Customize Modules)</h3>
   {% for sp in staff_list %}
-  <form method="post" style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;background:#f8fafc;">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_OFFICER_MODULES"><input type="hidden" name="staff_profile_id" value="{{ sp.id }}">
+  <form method="post" style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;background:#f8fafc;">{% csrf_token %}
+    <input type="hidden" name="action" value="UPDATE_OFFICER_MODULES"><input type="hidden" name="staff_profile_id" value="{{ sp.id }}">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-      <div><strong>{{ sp.full_name }}</strong> (<code>{{ sp.user.username }}</code>) &mdash; <span style="color:#1e3a8a;font-weight:700;">{{ sp.get_role_display }}</span> {% if sp.committee_or_unit %}<small>({{ sp.committee_or_unit }})</small>{% endif %}</div>
+      <div><strong>{{ sp.full_name }}</strong> (<code>{{ sp.user.username }}</code>) &mdash; <span style="color:#1e3a8a;font-weight:700;">{{ sp.get_role_display }}</span> {% if sp.citizen %}<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:999px;font-size:.72rem;font-weight:700;">201 Linked: {{ sp.citizen.citizen_qr_id }}</span>{% endif %}</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <select name="approval_status" style="width:auto;padding:5px 8px;font-size:.8rem;font-weight:700;">{% for k,v in status_choices %}<option value="{{ k }}" {% if sp.approval_status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
         <button type="submit" class="save" style="margin:0;padding:6px 12px;font-size:.8rem;">Save Access</button>
@@ -558,19 +585,19 @@ def theme_settings(request):
   {% empty %}<p style="font-size:.84rem;color:#64748b;">No officer profiles created yet.</p>{% endfor %}
 </div>
 {% endif %}
-{% if showcase %}<div class="card" style="border-top:4px solid {{ s_col }};"><h3 style="margin-top:0;">3. Login Screen Photos, Official Seal &amp; Barangay Accomplishments</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_SHOWCASE"><label>Hero Tagline</label><input name="hero_tagline" value="{{ showcase.hero_tagline }}"><label>Full-Screen Login Background Photo URL</label><input name="background_image_url" value="{{ showcase.background_image_url }}" placeholder="https://..."><label>Official Barangay Seal / Trademark Logo URL</label><input name="featured_photo_url" value="{{ showcase.featured_photo_url }}" placeholder="https://..."><label>Accomplishment Highlight 1</label><input name="accomplishment_1" value="{{ showcase.accomplishment_1 }}"><label>Accomplishment Highlight 2</label><input name="accomplishment_2" value="{{ showcase.accomplishment_2 }}"><label>Accomplishment Highlight 3</label><input name="accomplishment_3" value="{{ showcase.accomplishment_3 }}"><button type="submit" class="save">Save Login Showcase &amp; Accomplishments</button></form></div>{% endif %}
+{% if showcase %}<div class="card" style="border-top:4px solid {{ s_col }};"><h3 style="margin-top:0;">3. Login Screen Photos &amp; Accomplishments</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_SHOWCASE"><label>Hero Tagline</label><input name="hero_tagline" value="{{ showcase.hero_tagline }}"><label>Background Photo URL</label><input name="background_image_url" value="{{ showcase.background_image_url }}"><label>Seal / Logo URL</label><input name="featured_photo_url" value="{{ showcase.featured_photo_url }}"><label>Accomplishment 1</label><input name="accomplishment_1" value="{{ showcase.accomplishment_1 }}"><label>Accomplishment 2</label><input name="accomplishment_2" value="{{ showcase.accomplishment_2 }}"><label>Accomplishment 3</label><input name="accomplishment_3" value="{{ showcase.accomplishment_3 }}"><button type="submit" class="save">Save Showcase</button></form></div>{% endif %}
 <div class="card"><h3 style="margin-top:0;">4. Barangay Colors</h3><div style="margin-bottom:8px;"><button type="button" class="preset" onclick="sc('#1E3A8A','#F59E0B')">DILG Navy &amp; Gold</button><button type="button" class="preset" onclick="sc('#065F46','#FBBF24')">Emerald &amp; Gold</button><button type="button" class="preset" onclick="sc('#7F1D1D','#F59E0B')">Maroon &amp; Amber</button></div><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_THEME"><label>Primary Color</label><input type="color" id="p" name="primary_color" value="{{ p_col }}"><label>Accent Color</label><input type="color" id="s" name="secondary_color" value="{{ s_col }}"><button type="submit" class="save">Apply Colors</button></form></div>
 <div class="card"><h3 style="margin-top:0;">5. My Staff Profile</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_PROFILE"><label>Username</label><input name="username" value="{{ u.username }}" required><label>Email</label><input type="email" name="email" value="{{ u.email }}"><label>First Name</label><input name="first_name" value="{{ u.first_name }}"><label>Last Name</label><input name="last_name" value="{{ u.last_name }}"><button type="submit" class="save">Save Profile</button></form></div>
-<div class="card"><h3 style="margin-top:0;">6. Change Password</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_PASSWORD"><label>New Password</label><input type="password" name="new_password" required><label>Confirm Password</label><input type="password" name="confirm_password" required><button type="submit" class="save">Update Password</button></form></div></div>
+<div class="card"><h3 style="margin-top:0;">6. Change Password</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_PASSWORD"><label>New Password</label><input type="password" name="new_password" required><label>Confirm Password</label><input type="password" name="confirm_password" required><button type="submit" class="save">Update Password</button></form></div>
+</div>
 <script>
 const ROLE_PRESETS={{ role_presets_json|safe }};
+function pick201Resident(sel){const opt=sel.options[sel.selectedIndex];const inp=document.getElementById('offFullName');if(opt&&opt.dataset.name){inp.value=opt.dataset.name;inp.readOnly=true;inp.style.background='#eff6ff';}else{inp.value='';inp.readOnly=false;inp.style.background='#fff';}}
 function applyRolePreset(r){const list=ROLE_PRESETS[r]||['OVERVIEW','POLICY'];document.querySelectorAll('#newModGrid input[type="checkbox"]').forEach(cb=>{cb.checked=list.includes(cb.value);});}
 if(document.getElementById('roleSel'))applyRolePreset(document.getElementById('roleSel').value);
 function sc(a,b){document.getElementById('p').value=a;document.getElementById('s').value=b;}
-</script></div></body></html>"""
+</script></body></html>"""
     return HttpResponse(engines["django"].from_string(tpl).render({
         "u": u, "p_col": p_col, "s_col": s_col, "notice": notice, "error": error, "showcase": showcase,
-        "barangay": barangay, "can_manage_officers": can_manage_officers, "staff_list": staff_list,
+        "barangay": barangay, "can_manage_officers": can_manage_officers, "staff_list": staff_list, "available_201": available_201,
         "role_choices": BarangayStaffProfile.ROLE_CHOICES, "status_choices": BarangayStaffProfile.STATUS_CHOICES,
-        "module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "role_presets_json": json.dumps(BarangayStaffProfile.ROLE_DEFAULT_MODULES),
-    }, request))
