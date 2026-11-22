@@ -387,37 +387,38 @@ def command_dashboard(request):
             search_index.append({"module_label": "02. Reports", "title": f"{rep.tracking_code} — {rep.get_category_display()}", "detail": f"Resident: {rep.citizen.full_name} | Landmark: {rep.location_landmark} | {rep.description[:80]} | {rep.get_status_display()}", "url": "?tier=BARANGAY&module=CITIZENS"})
     if "CERTIFICATES" in visible_modules:
         for cert in certificates:
-            search_index.append({"module_label": "03. Certificates", "title": f"{cert.control_number} — {cert.get_cert_type_display()}", "detail": f"Citizen: {cert.citizen.full_name} ({cert.citizen.citizen_qr_id}) | Purpose: {cert.purpose} | Fee: P{cert.fee_amount} | {cert.get_status_display()}", "url": "?tier=BARANGAY&module=CERTIFICATES"})
+            search_index.append({"module_label": "03. Certificates", "title": f"{cert.control_number} — {cert.get_cert_type_display()}", "detail": f"Citizen: {cert.citizen.full_name} ({cert.citizen.citizen_qr_id}) | Purpose: {getattr(cert, 'purpose', '-')} | Fee: P{getattr(cert, 'fee_amount', 0)} | {cert.get_status_display()}", "url": "?tier=BARANGAY&module=CERTIFICATES"})
     if "BLOTTER" in visible_modules:
         for b in blotter_cases:
-            search_index.append({"module_label": "04. Blotter/VAWC", "title": f"{b.case_number} — {b.masked_parties}", "detail": f"Stage: {b.get_stage_display()} | Hold Clearance: {'Yes' if b.blocks_clearance else 'No'}", "url": "?tier=BARANGAY&module=BLOTTER"})
+            search_index.append({"module_label": "04. Blotter/VAWC", "title": f"{b.case_number} — {getattr(b, 'masked_parties', b.case_number)}", "detail": f"Stage: {b.get_stage_display()} | Hold Clearance: {'Yes' if getattr(b, 'blocks_clearance', False) else 'No'}", "url": "?tier=BARANGAY&module=BLOTTER"})
     if "TREASURY" in visible_modules:
         for r in receipts:
-            search_index.append({"module_label": "05. Treasury OR", "title": f"OR #{r.or_number} — {r.payor_name}", "detail": f"Amount: P{r.amount_paid} | {r.get_payment_type_display()} | Date: {r.issued_at:%Y-%m-%d}", "url": "?tier=BARANGAY&module=TREASURY"})
+            dt = getattr(r, "issued_date", None) or getattr(r, "created_at", "")
+            search_index.append({"module_label": "05. Treasury OR", "title": f"OR #{r.or_number} — {getattr(r, 'payor_name', '')}", "detail": f"Amount: P{getattr(r, 'amount_paid', 0)} | Date: {str(dt)[:10]}", "url": "?tier=BARANGAY&module=TREASURY"})
         for a in abuloy_sheets:
-            search_index.append({"module_label": "05. Bereavement", "title": f"{a.serial_number} — {a.deceased_name}", "detail": f"Claimant: {a.claimant_name} | Status: {a.get_status_display()}", "url": "?tier=BARANGAY&module=TREASURY"})
+            search_index.append({"module_label": "05. Bereavement", "title": f"{a.serial_number} — {getattr(a, 'deceased_name', '')}", "detail": f"Claimant: {getattr(a, 'claimant_name', '-')} | Status: {a.get_status_display()}", "url": "?tier=BARANGAY&module=TREASURY"})
     if "HEALTH" in visible_modules:
         for h in health_records:
-            search_index.append({"module_label": "06. Health", "title": f"{h.citizen.full_name} — {h.get_program_type_display()}", "detail": f"Date: {h.visit_date} | Diagnosis/Notes: {h.notes[:80]}", "url": "?tier=BARANGAY&module=HEALTH"})
+            search_index.append({"module_label": "06. Health", "title": f"{h.citizen.full_name} — {getattr(h, 'program_type', 'Consultation')}", "detail": f"Date: {getattr(h, 'visit_date', '')} | {str(getattr(h, 'diagnosis_or_notes', '') or getattr(h, 'notes', ''))[:80]}", "url": "?tier=BARANGAY&module=HEALTH"})
         for m in medicines:
-            search_index.append({"module_label": "06. Medicine", "title": f"{m.medicine_name} ({m.batch_number})", "detail": f"Stock: {m.quantity_on_hand} {m.unit} | Expiry: {m.expiry_date}", "url": "?tier=BARANGAY&module=HEALTH"})
+            search_index.append({"module_label": "06. Medicine", "title": f"{getattr(m, 'medicine_name', 'Medicine')}", "detail": f"Stock: {getattr(m, 'stock_quantity', getattr(m, 'quantity_on_hand', 0))}", "url": "?tier=BARANGAY&module=HEALTH"})
     if "WELFARE" in visible_modules:
         for ag in associations:
-            search_index.append({"module_label": "07. Association", "title": f"{ag.group_code} — {ag.group_name}", "detail": f"Head: {ag.display_head} | Members: {ag.member_count}", "url": "?tier=BARANGAY&module=WELFARE"})
+            search_index.append({"module_label": "07. Association", "title": f"{ag.group_code} — {ag.group_name}", "detail": f"Head: {getattr(ag, 'display_head', '-')} | Members: {getattr(ag, 'member_count', 0)}", "url": "?tier=BARANGAY&module=WELFARE"})
         for s in social_aids:
-            search_index.append({"module_label": "07. Social Aid", "title": f"{s.citizen.full_name} — {s.get_aid_program_display()}", "detail": f"Cycle: {s.distribution_cycle} | Amount: P{s.cash_amount}", "url": "?tier=BARANGAY&module=WELFARE"})
+            search_index.append({"module_label": "07. Social Aid", "title": f"{s.citizen.full_name}", "detail": f"Cycle: {getattr(s, 'distribution_cycle', '-')} | Amount: P{getattr(s, 'cash_amount', getattr(s, 'amount_released', 0))}", "url": "?tier=BARANGAY&module=WELFARE"})
     if "FLEET" in visible_modules:
         for v in vehicles:
-            search_index.append({"module_label": "08. Fleet", "title": f"{v.plate_or_body_number} — {v.vehicle_name}", "detail": f"Driver: {v.assigned_driver} | Status: {v.get_status_display()}", "url": "?tier=BARANGAY&module=FLEET"})
+            search_index.append({"module_label": "08. Fleet", "title": f"{v.plate_or_body_number} — {getattr(v, 'vehicle_name', '')}", "detail": f"Driver: {getattr(v, 'assigned_driver', '-')} | Status: {v.get_status_display()}", "url": "?tier=BARANGAY&module=FLEET"})
     if "DRRM" in visible_modules:
         for hz in hazards:
-            search_index.append({"module_label": "09. BDRRMC", "title": f"{hz.alert_code} — {hz.incident_title}", "detail": f"Level: {hz.get_alert_level_display()} | Affected Families: {hz.affected_families}", "url": "?tier=BARANGAY&module=DRRM"})
+            search_index.append({"module_label": "09. BDRRMC", "title": f"{hz.alert_code} — {getattr(hz, 'incident_title', getattr(hz, 'hazard_title', ''))}", "detail": f"Level: {hz.get_alert_level_display()} | Families: {getattr(hz, 'affected_families', 0)}", "url": "?tier=BARANGAY&module=DRRM"})
     if "SK" in visible_modules:
         for sk in sk_projects:
-            search_index.append({"module_label": "10. SK Youth", "title": f"{sk.project_code} — {sk.project_title}", "detail": f"Budget: P{sk.allocated_budget} | Status: {sk.get_status_display()}", "url": "?tier=BARANGAY&module=SK"})
+            search_index.append({"module_label": "10. SK Youth", "title": f"{sk.project_code} — {getattr(sk, 'project_title', '')}", "detail": f"Budget: P{getattr(sk, 'allocated_budget', 0)} | Status: {sk.get_status_display()}", "url": "?tier=BARANGAY&module=SK"})
     if "LEGISLATION" in visible_modules:
         for m in measures:
-            search_index.append({"module_label": "11. Legislation", "title": f"{m.series_number} — {m.title}", "detail": f"Author: {m.sponsor_author} | Status: {m.get_status_display()}", "url": "?tier=BARANGAY&module=LEGISLATION"})
+            search_index.append({"module_label": "11. Legislation", "title": f"{m.series_number} — {m.title}", "detail": f"Author: {getattr(m, 'sponsor_author', getattr(m, 'author_name', '-'))} | Status: {m.get_status_display()}", "url": "?tier=BARANGAY&module=LEGISLATION"})
     if "AUDIT" in visible_modules:
         for ca in coa_audits:
             search_index.append({"module_label": "12. COA Audit", "title": f"{ca.audit_reference} — {ca.get_audit_type_display()}", "detail": f"Period: {ca.period_covered} | Amount: P{ca.amount_involved} | {ca.get_status_display()}", "url": "?tier=BARANGAY&module=AUDIT"})
