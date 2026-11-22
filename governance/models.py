@@ -307,6 +307,37 @@ class BarangayStaffProfile(models.Model):
         ("ACTIVE", "Approved & Active"),
         ("SUSPENDED", "Suspended"),
     ]
+    ALL_MODULE_CHOICES = [
+        ("OVERVIEW", "Command Overview"),
+        ("CITIZENS", "02. Citizens & Reports"),
+        ("LEDGER_201", "02B. Master 201 Excel Ledger"),
+        ("CERTIFICATES", "03. Certificates & Clearances"),
+        ("BLOTTER", "04. Blotter & VAWC"),
+        ("TREASURY", "05. Treasury & Collections"),
+        ("HEALTH", "06. Health Station"),
+        ("WELFARE", "07. Welfare & Associations"),
+        ("FLEET", "08. Fleet & Equipment"),
+        ("DRRM", "09. BDRRMC & Evac"),
+        ("SK", "10. SK & Youth (KK)"),
+        ("LEGISLATION", "11. Ordinances & BDP"),
+        ("AUDIT", "12. COA & DILG Audit"),
+        ("TURNOVER", "13. Governance Turnover"),
+        ("POLICY", "14. Policy & Glossary"),
+    ]
+    ROLE_DEFAULT_MODULES = {
+        "CAPTAIN": ["OVERVIEW", "CITIZENS", "LEDGER_201", "CERTIFICATES", "BLOTTER", "TREASURY", "HEALTH", "WELFARE", "FLEET", "DRRM", "SK", "LEGISLATION", "AUDIT", "TURNOVER", "POLICY"],
+        "COUNCILOR": ["OVERVIEW", "CITIZENS", "LEDGER_201", "WELFARE", "FLEET", "DRRM", "LEGISLATION", "TURNOVER", "POLICY"],
+        "SK_CHAIRMAN": ["OVERVIEW", "LEDGER_201", "SK", "LEGISLATION", "TURNOVER", "POLICY"],
+        "SK_COUNCILOR": ["OVERVIEW", "SK", "POLICY"],
+        "SECRETARY": ["OVERVIEW", "CITIZENS", "LEDGER_201", "CERTIFICATES", "BLOTTER", "LEGISLATION", "AUDIT", "TURNOVER", "POLICY"],
+        "ASST_SECRETARY": ["OVERVIEW", "CITIZENS", "LEDGER_201", "CERTIFICATES", "POLICY"],
+        "TREASURER": ["OVERVIEW", "CERTIFICATES", "TREASURY", "FLEET", "AUDIT", "TURNOVER", "POLICY"],
+        "ASST_TREASURER": ["OVERVIEW", "CERTIFICATES", "TREASURY", "POLICY"],
+        "HEPE": ["OVERVIEW", "CITIZENS", "BLOTTER", "FLEET", "DRRM", "POLICY"],
+        "WAREHOUSE_KEEPER": ["OVERVIEW", "FLEET", "DRRM", "TURNOVER", "POLICY"],
+        "CUSTODIAN": ["OVERVIEW", "FLEET", "AUDIT", "TURNOVER", "POLICY"],
+        "SOCIAL_WORKER": ["OVERVIEW", "CITIZENS", "LEDGER_201", "HEALTH", "WELFARE", "DRRM", "POLICY"],
+    }
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="staff_profile")
     barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="staff_profiles")
@@ -315,10 +346,21 @@ class BarangayStaffProfile(models.Model):
     role = models.CharField(max_length=25, choices=ROLE_CHOICES)
     committee_or_unit = models.CharField(max_length=150, blank=True)
     term_start_date = models.DateField(null=True, blank=True)
+    allowed_modules = models.JSONField(default=list, blank=True, help_text="Configurable list of module codes visible in this officer's sidebar")
     approval_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING_CAPTAIN")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_staff_profiles")
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="approved_staff_profiles")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def get_visible_modules(self):
+        if self.allowed_modules:
+            return list(self.allowed_modules)
+        return self.ROLE_DEFAULT_MODULES.get(self.role, ["OVERVIEW", "POLICY"])
+
+    def save(self, *args, **kwargs):
+        if not self.allowed_modules:
+            self.allowed_modules = list(self.ROLE_DEFAULT_MODULES.get(self.role, ["OVERVIEW", "POLICY"]))
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.full_name} — {self.get_role_display()} ({self.get_approval_status_display()})"

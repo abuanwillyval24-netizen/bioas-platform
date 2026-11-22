@@ -159,6 +159,10 @@ def staff_logout(request):
 
 @login_required(login_url="/login/")
 def command_dashboard(request):
+    import uuid
+    from datetime import date, timedelta
+    from .models import BarangayStaffProfile
+
     params = request.GET
     tier = params.get("tier", "BARANGAY").upper()
     module = params.get("module", "OVERVIEW").upper()
@@ -168,13 +172,125 @@ def command_dashboard(request):
     barangays = BarangayTenant.objects.select_related("city_municipality__province").all()
     active_barangay = barangays.filter(tenant_code=params.get("tenant")).first() or barangays.first()
 
+    staff_profile = getattr(request.user, "staff_profile", None)
+    all_mod_codes = [code for code, _ in BarangayStaffProfile.ALL_MODULE_CHOICES]
+    if request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN"):
+        visible_modules = all_mod_codes
+    elif staff_profile:
+        visible_modules = staff_profile.get_visible_modules()
+    else:
+        visible_modules = all_mod_codes
+
+    if tier == "BARANGAY" and module not in visible_modules:
+        module = "OVERVIEW"
+
+    actor_name = staff_profile.full_name if staff_profile else (request.user.get_full_name() or request.user.username)
+    actor_role = staff_profile.get_role_display() if staff_profile else "System Administrator"
+
+    action_notice = ""
+    if request.method == "POST" and active_barangay:
+        act = request.POST.get("action")
+        if act == "APPROVE_CITIZEN":
+            cid = request.POST.get("citizen_id")
+            target = CitizenProfile.objects.filter(barangay=active_barangay, id=cid).first()
+            if target:
+                target.status = "ACTIVE_RESIDENT"
+                target.save()
+                SystemAuditLog.objects.create(
+                    barangay=active_barangay,
+                    action_type="PORTAL_SYNC_APPROVED",
+                    actor_name=actor_name,
+                    actor_role=actor_role,
+                    reference_code=target.citizen_qr_id,
+                    details=f"Approved citizen portal sign-up for {target.full_name} ({target.citizen_qr_id}).",
+                )
+                action_notice = f"Approved {target.full_name} ({target.citizen_qr_id}) into Master 201 Registry!"
+        elif act == "SAVE_CITIZEN_201":
+            edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
+            cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
+            is_new = cit is None
+            if is_new:
+                cit = CitizenProfile(
+                    barangay=active_barangay,
+                    citizen_qr_id=f"CIT-{uuid.uuid4().hex[:6].upper()}",
+                )
+            cit.last_name = request.POST.get("last_name", cit.last_name).strip()
+            cit.first_name = request.POST.get("first_name", cit.first_name).strip()
+            cit.middle_name = request.POST.get("middle_name", "").strip()
+            cit.suffix = request.POST.get("suffix", "").strip()
+            cit.sex = "FEMALE" if request.POST.get("sex", "MALE").upper().startswith("F") else "MALE"
+            if request.POST.get("birth_date"):
+                cit.birth_date = request.POST["birth_date"]
+            cit.birth_place = request.POST.get("birth_place", "").strip()
+            cit.civil_status = request.POST.get("civil_status", "SINGLE")
+            cit.address_line = request.POST.get("address_line", "").strip()
+            cit.purok = request.POST.get("purok", "Purok I").strip() or "Purok I"
+            cit.residency_status = request.POST.get("residency_status", "PERMANENT")
+            cit.mobile_number = request.POST.get("mobile_number", "").strip()
+            cit.email_address = request.POST.get("email_address", "").strip()
+            cit.emergency_contact_name = request.POST.get("emergency_contact_name", "").strip()
+            cit.emergency_contact_phone = request.POST.get("emergency_contact_phone", "").strip()
+            cit.education_level = request.POST.get("education_level", "")
+            cit.school_or_course = request.POST.get("school_or_course", "").strip()
+            cit.occupation = request.POST.get("occupation", "").strip()
+            cit.employer_or_business = request.POST.get("employer_or_business", "").strip()
+            cit.philsys_id = request.POST.get("philsys_id", "").strip()
+            cit.precinct_number = request.POST.get("precinct_number", "").strip()
+            cit.is_registered_voter = bool(request.POST.get("is_registered_voter"))
+            cit.is_senior_citizen = bool(request.POST.get("is_senior_citizen"))
+            cit.is_pwd = bool(request.POST.get("is_pwd"))
+            cit.is_solo_parent = bool(request.POST.get("is_solo_parent"))
+            cit.is_4ps_beneficiary = bool(request.POST.get("is_4ps_beneficiary"))
+            cit.is_first_time_jobseeker = bool(request.POST.get("is_first_time_jobseeker"))
+            cit.is_ofw = bool(request.POST.get("is_ofw"))
+            cit.is_pregnant = bool(request.POST.get("is_pregnant"))
+            cit.status = request.POST.get("status", "ACTIVE_RESIDENT")
+            if request.POST.get("birth_registered_date"):
+                cit.birth_registered_date = request.POST["birth_registered_date"]
+            if request.POST.get("date_of_death"):
+                cit.date_of_death = request.POST["date_of_death"]
+            if request.FILES.get("photo"):
+                cit.photo = request.FILES["photo"]
+            if request.FILES.get("supporting_document"):
+                cit.supporting_document = request.FILES["supporting_document"]
+
+            hh_code = request.POST.get("household_code", "").strip().upper()
+            if hh_code:
+                hh = Household.objects.filter(barangay=active_barangay, household_code=hh_code).first()
+                head_name = request.POST.get("household_head_name", "").strip() or cit.full_name
+                if not hh:
+                    hh = Household.objects.create(
+                        barangay=active_barangay,
+                        household_code=hh_code,
+                        household_head_name=head_name,
+                        purok=cit.purok,
+                        address_line=cit.address_line,
+                    )
+                elif request.POST.get("household_head_name", "").strip():
+                    hh.household_head_name = request.POST["household_head_name"].strip()
+                    hh.purok = cit.purok
+                    hh.save()
+                cit.household = hh
+                cit.relationship_to_head = request.POST.get("relationship_to_head", "HEAD")
+
+            cit.save()
+            SystemAuditLog.objects.create(
+                barangay=active_barangay,
+                action_type="PORTAL_SYNC_APPROVED",
+                actor_name=actor_name,
+                actor_role=actor_role,
+                reference_code=cit.citizen_qr_id,
+                details=f"{'Encoded walk-in' if is_new else 'Updated'} 201 Master Record for {cit.full_name} ({cit.citizen_qr_id}).",
+            )
+            action_notice = f"{'Encoded new' if is_new else 'Updated'} 201 Master Record: {cit.full_name} ({cit.citizen_qr_id})."
+
     theme = active_barangay.get_active_theme() if active_barangay else {
         "title": "BIOAS Command Portal", "banner_text": "Philippine Barangay Information & Operations System",
         "primary_color": "#1E3A8A", "secondary_color": "#F59E0B", "is_occasion": False,
     }
 
-    citizens = CitizenProfile.objects.filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
-    households = Household.objects.filter(barangay=active_barangay) if active_barangay else Household.objects.none()
+    citizens = CitizenProfile.objects.select_related("household").filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
+    households = Household.objects.prefetch_related("members").filter(barangay=active_barangay) if active_barangay else Household.objects.none()
     citizen_reports = CitizenCommunityReport.objects.filter(barangay=active_barangay) if active_barangay else CitizenCommunityReport.objects.none()
     certificates = CertificateRequest.objects.filter(barangay=active_barangay) if active_barangay else CertificateRequest.objects.none()
     pending_or_certs = certificates.filter(status="PENDING_OR")
@@ -192,112 +308,3 @@ def command_dashboard(request):
     equipment_loans = CommunityEquipmentLoan.objects.filter(barangay=active_barangay) if active_barangay else CommunityEquipmentLoan.objects.none()
     hazards = HazardIncidentAlert.objects.filter(barangay=active_barangay) if active_barangay else HazardIncidentAlert.objects.none()
     evac_centers = EvacuationCenterStatus.objects.filter(barangay=active_barangay) if active_barangay else EvacuationCenterStatus.objects.none()
-    kk_youth = KatipunanKabataanProfile.objects.filter(barangay=active_barangay) if active_barangay else KatipunanKabataanProfile.objects.none()
-    sk_projects = SKProjectActivity.objects.filter(barangay=active_barangay) if active_barangay else SKProjectActivity.objects.none()
-    measures = LegislativeMeasure.objects.filter(barangay=active_barangay) if active_barangay else LegislativeMeasure.objects.none()
-    bdp_projects = DevelopmentPlanProject.objects.filter(barangay=active_barangay) if active_barangay else DevelopmentPlanProject.objects.none()
-    audit_logs = SystemAuditLog.objects.filter(barangay=active_barangay)[:15] if active_barangay else SystemAuditLog.objects.none()
-    dilg_reports = DILGComplianceReport.objects.filter(barangay=active_barangay) if active_barangay else DILGComplianceReport.objects.none()
-    coa_audits = COAAuditCompliance.objects.filter(barangay=active_barangay) if active_barangay else COAAuditCompliance.objects.none()
-    turnovers = OfficialTurnoverRecord.objects.filter(barangay=active_barangay) if active_barangay else OfficialTurnoverRecord.objects.none()
-
-    turnover_summary = {
-        "pending_citizens": citizens.filter(status="PENDING_APPROVAL").count(),
-        "open_citizen_reports": citizen_reports.exclude(status="RESOLVED_CLOSED").count(),
-        "pending_or_certs": pending_or_certs.count(),
-        "active_blotter_holds": blotter_cases.filter(blocks_clearance=True).count(),
-        "open_welfare_sheets": abuloy_sheets.exclude(status="TURNED_OVER_SIGNED").count(),
-        "unreturned_equipment": equipment_loans.filter(status="OUT_ON_LOAN").count(),
-        "pending_coa": coa_audits.exclude(status="CLEARED_LIQUIDATED").count(),
-        "pending_dilg": dilg_reports.exclude(status="TRANSMITTED_VERIFIED").count(),
-    }
-    total_pending_turnover = sum(turnover_summary.values())
-
-    suggestions = [
-        "Barangay Clearance", "Certificate of Indigency", "First-Time Jobseeker Certification",
-        "Bereavement Welfare Sheet", "Official Receipt (OR)", "Health Immunization", "Social Aid",
-        "Senior Citizens Association", "COA Audit", "Governance Turnover (BGTT)", "RA 11261 Policy", "RA 9262 VAWC Policy",
-        "Vehicle Trip Ticket", "Hazard Alert", "SK ABYIP Project", "Barangay Ordinance", "DILG Report",
-    ] + [f"{c.full_name} [{c.citizen_qr_id}]" for c in citizens] + [f"{a.group_name} (Head: {a.display_head})" for a in associations]
-
-    query = params.get("q", "").strip()
-    search_results = [item for item in suggestions if query.lower() in item.lower()] if query else []
-    city_barangays = BarangayTenant.objects.filter(city_municipality=city).annotate(subdivision_count=Count("subdivisions", distinct=True), structure_count=Count("structures", distinct=True)) if city else BarangayTenant.objects.none()
-    province_cities = CityMunicipality.objects.filter(province=province).annotate(barangay_count=Count("barangays", distinct=True)) if province else CityMunicipality.objects.none()
-
-    html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "dashboard.html"
-    template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
-    return HttpResponse(template.render({
-        "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
-        "theme": theme, "citizens": citizens, "households": households, "citizen_reports": citizen_reports,
-        "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
-        "receipts": receipts, "abuloy_sheets": abuloy_sheets, "total_collections": total_collections,
-        "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "associations": associations,
-        "vehicles": vehicles, "trips": trips, "equipment_loans": equipment_loans,
-        "hazards": hazards, "evac_centers": evac_centers, "kk_youth": kk_youth, "sk_projects": sk_projects,
-        "measures": measures, "bdp_projects": bdp_projects, "audit_logs": audit_logs, "dilg_reports": dilg_reports, "coa_audits": coa_audits,
-        "turnovers": turnovers, "turnover_summary": turnover_summary, "total_pending_turnover": total_pending_turnover,
-        "city_barangays": city_barangays, "province_cities": province_cities,
-        "query": query, "search_results": search_results, "suggestions_json": json.dumps(sorted(set(suggestions))),
-    }, request))
-
-@login_required(login_url="/login/")
-def theme_settings(request):
-    barangay = BarangayTenant.objects.first()
-    showcase, _ = BarangayPortalShowcase.objects.get_or_create(barangay=barangay) if barangay else (None, False)
-    User = get_user_model()
-    u = request.user
-    notice, error = "", ""
-
-    if request.method == "POST":
-        act = request.POST.get("action")
-        if act == "UPDATE_SHOWCASE" and showcase:
-            showcase.hero_tagline = request.POST.get("hero_tagline", showcase.hero_tagline).strip()
-            showcase.background_image_url = request.POST.get("background_image_url", "").strip()
-            showcase.featured_photo_url = request.POST.get("featured_photo_url", "").strip()
-            showcase.accomplishment_1 = request.POST.get("accomplishment_1", showcase.accomplishment_1).strip()
-            showcase.accomplishment_2 = request.POST.get("accomplishment_2", showcase.accomplishment_2).strip()
-            showcase.accomplishment_3 = request.POST.get("accomplishment_3", showcase.accomplishment_3).strip()
-            showcase.save()
-            notice = "Login Portal Background Photo, Seal & Barangay Accomplishments updated!"
-        elif act == "UPDATE_THEME" and barangay:
-            barangay.primary_color = request.POST.get("primary_color", "#1E3A8A").strip()
-            barangay.secondary_color = request.POST.get("secondary_color", "#F59E0B").strip()
-            barangay.save(update_fields=["primary_color", "secondary_color"])
-            notice = "Barangay branding colors updated!"
-        elif act == "UPDATE_PROFILE":
-            uname = request.POST.get("username", "").strip()
-            if uname and User.objects.filter(username=uname).exclude(id=u.id).exists():
-                error = f"Username '{uname}' is already taken."
-            elif uname:
-                u.username = uname
-                u.first_name = request.POST.get("first_name", "").strip()
-                u.last_name = request.POST.get("last_name", "").strip()
-                u.email = request.POST.get("email", "").strip()
-                u.save()
-                notice = "Staff account profile updated!"
-        elif act == "UPDATE_PASSWORD":
-            pw1 = request.POST.get("new_password", "")
-            pw2 = request.POST.get("confirm_password", "")
-            if len(pw1) < 6:
-                error = "Password must be at least 6 characters."
-            elif pw1 != pw2:
-                error = "Passwords do not match."
-            else:
-                u.set_password(pw1)
-                u.save()
-                update_session_auth_hash(request, u)
-                notice = "Password updated securely!"
-
-    p_col = getattr(barangay, "primary_color", "#1E3A8A") if barangay else "#1E3A8A"
-    s_col = getattr(barangay, "secondary_color", "#F59E0B") if barangay else "#F59E0B"
-    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Command Settings</title>
-<style>*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f3f4f6}.top{background:{{ p_col }};color:#fff;padding:14px 24px;display:flex;justify-content:space-between;border-bottom:4px solid {{ s_col }}}.top a{color:#fff;text-decoration:none;font-weight:700;transition:transform .18s ease}.top a:hover{transform:translateX(-4px)}.wrap{max-width:780px;margin:22px auto;padding:0 16px}.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}label{display:block;font-weight:700;font-size:.82rem;margin:8px 0 4px}input{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px}button.save{margin-top:12px;padding:9px 15px;background:{{ p_col }};color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}button.save:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(30,58,138,.25)}.preset{padding:5px 9px;border:1px solid #d1d5db;border-radius:5px;background:#f9fafb;cursor:pointer;font-size:.78rem;font-weight:700;margin-right:6px}</style></head><body>
-<div class="top"><strong>Command Settings, Login Showcase &amp; Account</strong><a href="/">&larr; Dashboard</a></div>
-<div class="wrap">{% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}{% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
-{% if showcase %}<div class="card" style="border-top:4px solid {{ s_col }};"><h3 style="margin-top:0;">1. Login Screen Photos, Official Seal &amp; Barangay Accomplishments</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_SHOWCASE"><label>Hero Tagline</label><input name="hero_tagline" value="{{ showcase.hero_tagline }}"><label>Full-Screen Login Background Photo URL</label><input name="background_image_url" value="{{ showcase.background_image_url }}" placeholder="https://... (Barangay Hall, Community Event, or Landmark Photo)"><label>Official Barangay Seal / Trademark Logo URL</label><input name="featured_photo_url" value="{{ showcase.featured_photo_url }}" placeholder="https://... (Official Seal or Trademark Image)"><label>Accomplishment Highlight 1</label><input name="accomplishment_1" value="{{ showcase.accomplishment_1 }}"><label>Accomplishment Highlight 2</label><input name="accomplishment_2" value="{{ showcase.accomplishment_2 }}"><label>Accomplishment Highlight 3</label><input name="accomplishment_3" value="{{ showcase.accomplishment_3 }}"><button type="submit" class="save">Save Login Showcase &amp; Accomplishments</button></form></div>{% endif %}
-<div class="card"><h3 style="margin-top:0;">2. Barangay Colors</h3><div style="margin-bottom:8px;"><button type="button" class="preset" onclick="sc('#1E3A8A','#F59E0B')">DILG Navy &amp; Gold</button><button type="button" class="preset" onclick="sc('#065F46','#FBBF24')">Emerald &amp; Gold</button><button type="button" class="preset" onclick="sc('#7F1D1D','#F59E0B')">Maroon &amp; Amber</button></div><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_THEME"><label>Primary Color</label><input type="color" id="p" name="primary_color" value="{{ p_col }}"><label>Accent Color</label><input type="color" id="s" name="secondary_color" value="{{ s_col }}"><button type="submit" class="save">Apply Colors</button></form></div>
-<div class="card"><h3 style="margin-top:0;">3. Staff Profile</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_PROFILE"><label>Username</label><input name="username" value="{{ u.username }}" required><label>Email</label><input type="email" name="email" value="{{ u.email }}"><label>First Name</label><input name="first_name" value="{{ u.first_name }}"><label>Last Name</label><input name="last_name" value="{{ u.last_name }}"><button type="submit" class="save">Save Profile</button></form></div>
-<div class="card"><h3 style="margin-top:0;">4. Change Password</h3><form method="post">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_PASSWORD"><label>New Password</label><input type="password" name="new_password" required><label>Confirm Password</label><input type="password" name="confirm_password" required><button type="submit" class="save">Update Password</button></form></div></div>
-<script>function sc(a,b){document.getElementById('p').value=a;document.getElementById('s').value=b;}</script></div></body></html>"""
-    return HttpResponse(engines["django"].from_string(tpl).render({"u": u, "p_col": p_col, "s_col": s_col, "notice": notice, "error": error, "showcase": showcase}, request))

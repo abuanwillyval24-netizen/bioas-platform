@@ -78,27 +78,31 @@
   <div class="layout">
     {% if tier == "BARANGAY" %}
     <aside class="sidebar">
+      <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 10px;margin:2px 4px 10px;font-size:.75rem;">
+        <div style="color:#fbbf24;font-weight:800;text-transform:uppercase;letter-spacing:.05em;">Active Officer Seat</div>
+        <div style="color:#fff;font-weight:700;margin-top:2px;">{{ staff_profile.full_name|default:request.user.username }}</div>
+        <div style="color:#94a3b8;font-size:.71rem;">{{ staff_profile.get_role_display|default:"System Administrator" }}</div>
+      </div>
       <div class="side-group">Command</div>
-      <a href="?tier=BARANGAY&module=OVERVIEW" class="{% if module == 'OVERVIEW' %}active{% endif %}"><span>Command Overview</span><span class="pill">12</span></a>
+      <a href="?tier=BARANGAY&module=OVERVIEW" class="{% if module == 'OVERVIEW' %}active{% endif %}"><span>Command Overview</span><span class="pill">{{ visible_modules|length }}</span></a>
       <div class="side-group">Frontline Services</div>
-      <a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02. Citizens & Reports</span><span class="pill">{{ citizens|length }}</span></a>
-            <a href="?tier=BARANGAY&module=LEDGER_201" class="{% if module == 'LEDGER_201' %}active{% endif %}"><span>02B. Master 201 Excel Ledger</span><span class="pill">{{ pop_stats.total_residents }}</span></a>
-
-      <a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>
-      <a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Blotter & VAWC</span><span class="pill">{{ blotter_cases|length }}</span></a>
-      <a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury & Collections</span><span class="pill">{{ receipts|length }}</span></a>
-      <div class="side-group">Community & Care</div>
-      <a href="?tier=BARANGAY&module=HEALTH" class="{% if module == 'HEALTH' %}active{% endif %}"><span>06. Health Station</span><span class="pill">{{ health_records|length }}</span></a>
-      <a href="?tier=BARANGAY&module=WELFARE" class="{% if module == 'WELFARE' %}active{% endif %}"><span>07. Welfare & Associations</span><span class="pill">{{ associations|length }}</span></a>
-      <a href="?tier=BARANGAY&module=SK" class="{% if module == 'SK' %}active{% endif %}"><span>10. SK & Youth</span><span class="pill">{{ kk_youth|length }}</span></a>
-      <div class="side-group">Operations & Governance</div>
-      <a href="?tier=BARANGAY&module=FLEET" class="{% if module == 'FLEET' %}active{% endif %}"><span>08. Fleet & Equipment</span><span class="pill">{{ vehicles|length }}</span></a>
-      <a href="?tier=BARANGAY&module=DRRM" class="{% if module == 'DRRM' %}active{% endif %}"><span>09. BDRRMC & Evac</span><span class="pill">{{ hazards|length }}</span></a>
-      <a href="?tier=BARANGAY&module=LEGISLATION" class="{% if module == 'LEGISLATION' %}active{% endif %}"><span>11. Ordinances & BDP</span><span class="pill">{{ measures|length }}</span></a>
-      <a href="?tier=BARANGAY&module=AUDIT" class="{% if module == 'AUDIT' %}active{% endif %}"><span>12. COA & DILG Audit</span><span class="pill">{{ coa_audits|length }}</span></a>
-      <div class="side-group">Transition & Reference</div>
-      <a href="?tier=BARANGAY&module=TURNOVER" class="{% if module == 'TURNOVER' %}active{% endif %}"><span>13. Governance Turnover</span><span class="pill">{{ total_pending_turnover }}</span></a>
-      <a href="?tier=BARANGAY&module=POLICY" class="{% if module == 'POLICY' %}active{% endif %}"><span>14. Policy & Glossary</span><span class="pill">SOP</span></a>
+      {% if "CITIZENS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02. Citizens &amp; Reports</span><span class="pill">{{ citizens|length }}</span></a>{% endif %}
+      {% if "LEDGER_201" in visible_modules %}<a href="?tier=BARANGAY&module=LEDGER_201" class="{% if module == 'LEDGER_201' %}active{% endif %}"><span>02B. Master 201 Excel Ledger</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
+      {% if "CERTIFICATES" in visible_modules %}<a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>{% endif %}
+      {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Blotter &amp; VAWC</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
+      {% if "TREASURY" in visible_modules %}<a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury &amp; Collections</span><span class="pill">{{ receipts|length }}</span></a>{% endif %}
+      <div class="side-group">Community &amp; Care</div>
+      {% if "HEALTH" in visible_modules %}<a href="?tier=BARANGAY&module=HEALTH" class="{% if module == 'HEALTH' %}active{% endif %}"><span>06. Health Station</span><span class="pill">{{ health_records|length }}</span></a>{% endif %}
+      {% if "WELFARE" in visible_modules %}<a href="?tier=BARANGAY&module=WELFARE" class="{% if module == 'WELFARE' %}active{% endif %}"><span>07. Welfare &amp; Associations</span><span class="pill">{{ associations|length }}</span></a>{% endif %}
+      {% if "SK" in visible_modules %}<a href="?tier=BARANGAY&module=SK" class="{% if module == 'SK' %}active{% endif %}"><span>10. SK &amp; Youth</span><span class="pill">{{ kk_youth|length }}</span></a>{% endif %}
+      <div class="side-group">Operations &amp; Governance</div>
+      {% if "FLEET" in visible_modules %}<a href="?tier=BARANGAY&module=FLEET" class="{% if module == 'FLEET' %}active{% endif %}"><span>08. Fleet &amp; Equipment</span><span class="pill">{{ vehicles|length }}</span></a>{% endif %}
+      {% if "DRRM" in visible_modules %}<a href="?tier=BARANGAY&module=DRRM" class="{% if module == 'DRRM' %}active{% endif %}"><span>09. BDRRMC &amp; Evac</span><span class="pill">{{ hazards|length }}</span></a>{% endif %}
+      {% if "LEGISLATION" in visible_modules %}<a href="?tier=BARANGAY&module=LEGISLATION" class="{% if module == 'LEGISLATION' %}active{% endif %}"><span>11. Ordinances &amp; BDP</span><span class="pill">{{ measures|length }}</span></a>{% endif %}
+      {% if "AUDIT" in visible_modules %}<a href="?tier=BARANGAY&module=AUDIT" class="{% if module == 'AUDIT' %}active{% endif %}"><span>12. COA &amp; DILG Audit</span><span class="pill">{{ coa_audits|length }}</span></a>{% endif %}
+      <div class="side-group">Transition &amp; Reference</div>
+      {% if "TURNOVER" in visible_modules %}<a href="?tier=BARANGAY&module=TURNOVER" class="{% if module == 'TURNOVER' %}active{% endif %}"><span>13. Governance Turnover</span><span class="pill">{{ total_pending_turnover }}</span></a>{% endif %}
+      {% if "POLICY" in visible_modules %}<a href="?tier=BARANGAY&module=POLICY" class="{% if module == 'POLICY' %}active{% endif %}"><span>14. Policy &amp; Glossary</span><span class="pill">SOP</span></a>{% endif %}
     </aside>
     {% endif %}
 
@@ -445,6 +449,36 @@
           <table><thead><tr><th>Series</th><th>Title</th><th>Author</th><th>Status</th></tr></thead><tbody>
             {% for m in measures %}<tr><td><strong>{{ m.series_number }}</strong></td><td>{{ m.title }}</td><td>{{ m.authored_by }}</td><td><span class="badge">{{ m.get_status_display }}</span></td></tr>{% endfor %}
           </tbody></table>
+                  {% elif module == "AUDIT" %}
+          <div class="section-title"><span>12A. COA Audit &amp; Liquidation Packages</span><a href="/admin/audit_analytics/coaauditcompliance/add/">+ Log COA Package</a></div>
+          <table><thead><tr><th>Reference</th><th>Audit Type</th><th>Period</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+            {% for ca in coa_audits %}<tr><td><strong>{{ ca.audit_reference }}</strong></td><td>{{ ca.get_audit_type_display }}</td><td>{{ ca.period_covered }}</td><td>&#8369;{{ ca.amount_involved }}</td><td><span class="badge">{{ ca.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No COA audit packages logged yet.</td></tr>{% endfor %}
+          </tbody></table>
+
+          <div class="section-title"><span>12B. DILG Compliance &amp; Full Disclosure Reports</span><a href="/admin/audit_analytics/dilgcompliancereport/add/">+ Log DILG Report</a></div>
+          <table><thead><tr><th>Category</th><th>Period</th><th>Due Date</th><th>Transmittal Ref</th><th>Status</th></tr></thead><tbody>
+            {% for dr in dilg_reports %}<tr><td><strong>{{ dr.get_report_category_display }}</strong></td><td>{{ dr.reporting_period }}</td><td>{{ dr.due_date }}</td><td>{{ dr.transmittal_reference|default:"-" }}</td><td><span class="badge">{{ dr.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No DILG reports logged yet.</td></tr>{% endfor %}
+          </tbody></table>
+
+          <div class="section-title">
+            <span>12C. Silent System Audit Trail (Account Creation, Permissions &amp; 201 Sync Logs)</span>
+            <button type="button" onclick="const box=document.getElementById('silentAuditBox');const open=box.style.display==='none';box.style.display=open?'block':'none';this.innerHTML=open?'Hide Silent Audit Trail &#9652;':'View Silent Audit Trail ({{ audit_logs|length }} Logs) &#9662;';" style="background:#0f172a;color:#fbbf24;border:1px solid #f59e0b;padding:6px 13px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">View Silent Audit Trail ({{ audit_logs|length }} Logs) &#9662;</button>
+          </div>
+          <div id="silentAuditBox" style="display:none;">
+            <table><thead><tr><th>Timestamp</th><th>Officer / Actor</th><th>Role</th><th>Action</th><th>Ref Code</th><th>Details</th></tr></thead><tbody>
+              {% for log in audit_logs %}
+              <tr>
+                <td style="white-space:nowrap;">{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+                <td><strong>{{ log.actor_name }}</strong></td>
+                <td>{{ log.actor_role }}</td>
+                <td><span class="badge">{{ log.get_action_type_display }}</span></td>
+                <td><code>{{ log.reference_code }}</code></td>
+                <td>{{ log.details }}</td>
+              </tr>
+              {% empty %}<tr><td colspan="6">No system audit events recorded yet.</td></tr>{% endfor %}
+            </tbody></table>
+          </div>
+
         {% elif module == "TURNOVER" %}
           <div class="section-title"><span>13A. Incumbent-to-Incoming Officials Pending Handover Summary (BGTT)</span><a href="/admin/governance/officialturnoverrecord/add/">+ Log Turnover Record</a></div>
           <div class="grid">
