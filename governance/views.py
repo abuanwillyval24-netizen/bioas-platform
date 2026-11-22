@@ -285,6 +285,138 @@ def command_dashboard(request):
                 details=f"{'Encoded walk-in' if is_new else 'Updated'} 201 Master Record for {cit.full_name} ({cit.citizen_qr_id}).",
             )
             action_notice = f"{'Encoded new' if is_new else 'Updated'} 201 Master Record: {cit.full_name} ({cit.citizen_qr_id})."
+        elif act == "BULK_IMPORT_201" and request.FILES.get("excel_file"):
+            import csv, io, zipfile, xml.etree.ElementTree as ET
+            up_file = request.FILES["excel_file"]
+            fname_low = up_file.name.lower()
+            raw_bytes = up_file.read()
+            rows_data = []
+            if fname_low.endswith(".csv"):
+                text = raw_bytes.decode("utf-8-sig", errors="replace")
+                rows_data = list(csv.reader(io.StringIO(text)))
+            elif fname_low.endswith(".xlsx"):
+                with zipfile.ZipFile(io.BytesIO(raw_bytes)) as zf:
+                    shared = []
+                    if "xl/sharedStrings.xml" in zf.namelist():
+                        sroot = ET.fromstring(zf.read("xl/sharedStrings.xml"))
+                        for si in sroot.findall(".//{*}si"):
+                            shared.append("".join(t.text or "" for t in si.findall(".//{*}t")))
+                    sheet_files = sorted([n for n in zf.namelist() if n.startswith("xl/worksheets/sheet") and n.endswith(".xml")])
+                    if sheet_files:
+                        wroot = ET.fromstring(zf.read(sheet_files))
+                        for r_el in wroot.findall(".//{*}row"):
+                            row_vals = []
+                            for c_el in r_el.findall("{*}c"):
+                                ref = c_el.attrib.get("r", "")
+                                col_letters = "".join(ch for ch in ref if ch.isalpha())
+                                col_idx = 0
+                                for ch in col_letters:
+                                    col_idx = col_idx * 26 + (ord(ch.upper()) - 64)
+                                while len(row_vals) < max(col_idx - 1, 0):
+                                    row_vals.append("")
+                                c_type = c_el.attrib.get("t", "")
+                                v_el = c_el.find("{*}v")
+                                is_el = c_el.find(".//{*}t")
+                                val = ""
+                                if c_type == "s" and v_el is not None and v_el.text is not None:
+                                    idx_s = int(v_el.text)
+                                    val = shared[idx_s] if idx_s < len(shared) else ""
+                                elif is_el is not None and is_el.text is not None:
+                                    val = is_el.text
+                                elif v_el is not None and v_el.text is not None:
+                                    val = v_el.text
+                                row_vals.append(str(val).strip())
+                            if any(row_vals):
+                                rows_data.append(row_vals)
+
+            def _yn(v):
+                return str(v or "").strip().lower() in ("yes", "true", "1", "y", "voter")
+
+            if len(rows_data) >= 2:
+                headers = [str(h or "").strip().lower().replace(" ", "_") for h in rows_data]
+                imported_count = 0
+                for r in rows_data[1:]:
+                    rec = {headers[i]: (r[i] if i < len(r) else "") for i in range(len(headers))}
+                    lname = rec.get("last_name", "").strip()
+                    fname_c = rec.get("first_name", "").strip()
+                    bdate = rec.get("birth_date", "").strip()[:10]
+                    if not lname or not fname_c or len(bdate) != 10:
+                        continue
+                    qr_val = rec.get("citizen_qr_id", "").strip().upper()
+                    cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=qr_val).first() if qr_val else None
+                    if not cit:
+                        cit = CitizenProfile(
+                            barangay=active_barangay,
+                            citizen_qr_id=qr_val or f"CIT-{uuid.uuid4().hex[:6].upper()}",
+                        )
+                    cit.last_name = lname
+                    cit.first_name = fname_c
+                    cit.middle_name = rec.get("middle_name", "").strip()
+                    cit.suffix = rec.get("suffix", "").strip()
+                    cit.sex = "FEMALE" if rec.get("sex", "MALE").strip().upper().startswith("F") else "MALE"
+                    cit.birth_date = bdate
+                    cit.birth_place = rec.get("birth_place", "").strip()
+                    cit.civil_status = rec.get("civil_status", "SINGLE").strip().upper() or "SINGLE"
+                    cit.purok = rec.get("purok", "Purok I").strip() or "Purok I"
+                    cit.address_line = rec.get("address_line", "").strip()
+                    cit.residency_status = rec.get("residency_status", "PERMANENT").strip().upper() or "PERMANENT"
+                    cit.mobile_number = rec.get("mobile_number", "").strip()
+                    cit.email_address = rec.get("email_address", "").strip()
+                    cit.emergency_contact_name = rec.get("emergency_contact_name", "").strip()
+                    cit.emergency_contact_phone = rec.get("emergency_contact_phone", "").strip()
+                    cit.education_level = rec.get("education_level", "").strip().upper()
+                    cit.school_or_course = rec.get("school_or_course", "").strip()
+                    cit.occupation = rec.get("occupation", "").strip()
+                    cit.employer_or_business = rec.get("employer_or_business", "").strip()
+                    cit.philsys_id = rec.get("philsys_id", "").strip()
+                    cit.precinct_number = rec.get("precinct_number", "").strip()
+                    cit.is_registered_voter = _yn(rec.get("is_registered_voter"))
+                    cit.is_senior_citizen = _yn(rec.get("is_senior_citizen"))
+                    cit.is_pwd = _yn(rec.get("is_pwd"))
+                    cit.is_solo_parent = _yn(rec.get("is_solo_parent"))
+                    cit.is_4ps_beneficiary = _yn(rec.get("is_4ps_beneficiary"))
+                    cit.is_first_time_jobseeker = _yn(rec.get("is_first_time_jobseeker"))
+                    cit.is_ofw = _yn(rec.get("is_ofw"))
+                    cit.is_pregnant = _yn(rec.get("is_pregnant"))
+                    st_val = rec.get("status", "ACTIVE_RESIDENT").strip().upper()
+                    cit.status = st_val if st_val in ("ACTIVE_RESIDENT", "PENDING_APPROVAL", "MOVED_OUT", "DECEASED") else "ACTIVE_RESIDENT"
+                    br_dt = rec.get("birth_registered_date", "").strip()[:10]
+                    if len(br_dt) == 10:
+                        cit.birth_registered_date = br_dt
+                    dd_dt = rec.get("date_of_death", "").strip()[:10]
+                    if len(dd_dt) == 10:
+                        cit.date_of_death = dd_dt
+
+                    hh_code = rec.get("household_code", "").strip().upper()
+                    if hh_code:
+                        hh = Household.objects.filter(barangay=active_barangay, household_code=hh_code).first()
+                        head_nm = rec.get("household_head_name", "").strip() or cit.full_name
+                        if not hh:
+                            hh = Household.objects.create(
+                                barangay=active_barangay,
+                                household_code=hh_code,
+                                household_head_name=head_nm,
+                                purok=cit.purok,
+                                address_line=cit.address_line,
+                            )
+                        cit.household = hh
+                        rel_val = rec.get("relationship_to_head", "HEAD").strip().upper()
+                        cit.relationship_to_head = rel_val if rel_val in ("HEAD", "SPOUSE", "CHILD", "PARENT", "SIBLING", "RELATIVE", "BOARDER") else "HEAD"
+                    cit.save()
+                    imported_count += 1
+
+                SystemAuditLog.objects.create(
+                    barangay=active_barangay,
+                    action_type="PORTAL_SYNC_APPROVED",
+                    actor_name=actor_name,
+                    actor_role=actor_role,
+                    reference_code=f"BULK-{imported_count}",
+                    details=f"Bulk imported {imported_count} citizen 201 records from '{up_file.name}'.",
+                )
+                action_notice = f"Successfully bulk-imported {imported_count} resident records & households from '{up_file.name}' into Master 201 Registry!"
+            else:
+                action_notice = "Could not read rows from uploaded file. Please upload a valid .xlsx or .csv 201 template."
+
 
     theme = active_barangay.get_active_theme() if active_barangay else {
         "title": "BIOAS Command Portal", "banner_text": "Philippine Barangay Information & Operations System",

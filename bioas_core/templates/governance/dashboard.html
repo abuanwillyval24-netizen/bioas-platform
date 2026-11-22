@@ -136,6 +136,21 @@
       {% if tier == "BARANGAY" %}
         {% if module == "CITIZENS" %}
           <div class="section-title"><span>02A. Live Barangay Population Dashboard (Auto-Calculated)</span><a href="/portal/" target="_blank">+ Open Citizen Sign-Up Portal &rarr;</a></div>
+                    <div class="card" style="margin-bottom:16px;border-top:4px solid #0f766e;background:#f0fdfa;">
+            <form method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="BULK_IMPORT_201">
+              <div>
+                <strong style="color:#0f766e;font-size:.95rem;">&#128229; 1-Click Bulk Excel / CSV 201 Importer</strong>
+                <div style="font-size:.8rem;color:#475569;margin-top:2px;">Upload <code>barangay_lagare_140_citizens_201_master.xlsx</code> (or any <code>.xlsx</code> / <code>.csv</code> 201 file) to auto-populate all residents, households, and sectoral classifications at once.</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                <input type="file" name="excel_file" accept=".xlsx,.csv" required style="background:#fff;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <button type="submit" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Import 201 File &rarr;</button>
+              </div>
+            </form>
+          </div>
+
           <div class="grid">
             <div class="card"><h3>Total Active Residents</h3><div class="stat">{{ pop_stats.total_residents }}</div><small>Verified 201 Registry</small></div>
             <div class="card"><h3>Male / Female</h3><div class="stat">{{ pop_stats.male_count }} / {{ pop_stats.female_count }}</div><small>Male vs. Female</small></div>
