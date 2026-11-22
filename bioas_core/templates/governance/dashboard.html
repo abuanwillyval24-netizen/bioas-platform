@@ -49,13 +49,15 @@
   <header class="topbar">
     <div class="brand"><h1>{{ theme.title }}</h1><small>{{ theme.banner_text }}</small></div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <form method="get">
+      <form id="globalSearchForm" method="get" action="/" style="position:relative;">
         <input type="hidden" name="tier" value="{{ tier }}" /><input type="hidden" name="module" value="{{ module }}" />
-        <div class="search-box">
+        <div class="search-box" style="width:390px;">
           <input type="text" id="ghostInput" class="ghost-input" readonly tabindex="-1" />
-          <input type="text" id="realInput" name="q" value="{{ query }}" class="real-input" placeholder="Search all 14 modules..." autocomplete="off" />
-          <span class="tab-badge">TAB</span>
+          <input type="text" id="realInput" name="q" value="{{ query }}" class="real-input" placeholder="Search tiny details across all 14 modules..." autocomplete="off" />
+          <span class="tab-badge" style="right:42px;">TAB</span>
+          <button type="submit" title="Press Enter to Search" style="position:absolute;right:6px;z-index:3;background:#1e3a8a;color:#fff;border:0;border-radius:5px;padding:4px 8px;font-size:.75rem;font-weight:800;cursor:pointer;">&#8629;</button>
         </div>
+        <div id="liveSearchDrop" style="display:none;position:absolute;top:42px;left:0;right:0;background:#fff;color:#0f172a;border-radius:10px;box-shadow:0 12px 28px rgba(15,23,42,.28);border:1px solid #cbd5e1;max-height:360px;overflow-y:auto;z-index:99;"></div>
       </form>
       <a href="/theme-settings/" title="Create Officer Accounts, Configure Modules & Settings" style="color:#111827;text-decoration:none;background:#fbbf24;padding:8px 13px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:800;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.2);" aria-label="Settings">&#9881; Officer Accounts &amp; Settings</a>
     </div>
@@ -576,24 +578,83 @@
   </div>
   <script>
     const suggestions = {{ suggestions_json|safe }};
+    const searchIndex = {{ search_index_json|safe }};
+    const searchForm = document.getElementById("globalSearchForm");
     const realInput = document.getElementById("realInput");
     const ghostInput = document.getElementById("ghostInput");
+    const liveDrop = document.getElementById("liveSearchDrop");
+    let dropIdx = -1;
+
+    function findShadowMatch(val) {
+      if (!val) return "";
+      const low = val.toLowerCase();
+      const titleHit = suggestions.find(s => s.toLowerCase().startsWith(low));
+      if (titleHit) return val + titleHit.slice(val.length);
+      for (const item of searchIndex) {
+        const words = (item.title + " " + item.detail).split(/[\s|,;:\-\[\]()\/]+/);
+        const w = words.find(tok => tok.length > val.length && tok.toLowerCase().startsWith(low));
+        if (w) return val + w.slice(val.length);
+      }
+      return "";
+    }
+
+    function renderLiveDrop(val) {
+      dropIdx = -1;
+      const trimmed = val.trim();
+      if (!trimmed) { liveDrop.style.display = "none"; liveDrop.innerHTML = ""; return; }
+      const terms = trimmed.toLowerCase().split(/\s+/).filter(Boolean);
+      const hits = searchIndex.filter(it => {
+        const hay = (it.module_label + " " + it.title + " " + it.detail).toLowerCase();
+        return terms.every(t => hay.includes(t));
+      }).slice(0, 8);
+      if (!hits.length) {
+        liveDrop.innerHTML = '<div style="padding:10px 12px;font-size:.8rem;color:#64748b;">Press <strong>Enter</strong> to run full system search for "' + trimmed.replace(/</g, "&lt;") + '"</div>';
+        liveDrop.style.display = "block";
+        return;
+      }
+      liveDrop.innerHTML = hits.map((h, idx) =>
+        '<a class="sdrop-item" data-idx="' + idx + '" href="' + h.url + '" style="display:block;padding:9px 12px;border-bottom:1px solid #f1f5f9;text-decoration:none;color:#0f172a;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;"><strong style="font-size:.82rem;">' + h.title + '</strong><span style="background:#e0e7ff;color:#1e3a8a;font-size:.68rem;font-weight:800;padding:2px 6px;border-radius:999px;white-space:nowrap;">' + h.module_label + '</span></div>' +
+        '<div style="font-size:.74rem;color:#475569;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + h.detail + '</div></a>'
+      ).join("") + '<div style="padding:7px 12px;background:#f8fafc;font-size:.74rem;color:#1e3a8a;font-weight:700;text-align:center;">Press Enter to view all matches across all 14 modules &rarr;</div>';
+      liveDrop.style.display = "block";
+    }
+
+    function highlightDrop() {
+      const items = liveDrop.querySelectorAll(".sdrop-item");
+      items.forEach((el, i) => { el.style.background = i === dropIdx ? "#eff6ff" : "#fff"; });
+    }
+
     function updateGhost() {
       const val = realInput.value;
-      if (!val) { ghostInput.value = ""; return; }
-      const match = suggestions.find(s => s.toLowerCase().startsWith(val.toLowerCase()));
-      ghostInput.value = match ? val + match.slice(val.length) : "";
+      ghostInput.value = findShadowMatch(val);
+      renderLiveDrop(val);
     }
+
     realInput.addEventListener("input", updateGhost);
+    realInput.addEventListener("focus", () => { if (realInput.value.trim()) renderLiveDrop(realInput.value); });
     realInput.addEventListener("keydown", (e) => {
-      if ((e.key === "Tab" || e.key === "ArrowRight") && ghostInput.value && ghostInput.value !== realInput.value) {
-        e.preventDefault(); realInput.value = ghostInput.value; ghostInput.value = "";
-      } else if (e.key === "Escape") { realInput.value = ""; ghostInput.value = ""; }
+      const items = liveDrop.querySelectorAll(".sdrop-item");
+      if ((e.key === "Tab" || (e.key === "ArrowRight" && realInput.selectionStart === realInput.value.length)) && ghostInput.value && ghostInput.value !== realInput.value) {
+        e.preventDefault(); realInput.value = ghostInput.value; updateGhost();
+      } else if (e.key === "ArrowDown" && items.length) {
+        e.preventDefault(); dropIdx = (dropIdx + 1) % items.length; highlightDrop();
+      } else if (e.key === "ArrowUp" && items.length) {
+        e.preventDefault(); dropIdx = (dropIdx - 1 + items.length) % items.length; highlightDrop();
+      } else if (e.key === "Enter") {
+        if (dropIdx >= 0 && items[dropIdx]) { e.preventDefault(); window.location.href = items[dropIdx].href; }
+        else { e.preventDefault(); searchForm.submit(); }
+      } else if (e.key === "Escape") {
+        realInput.value = ""; ghostInput.value = ""; liveDrop.style.display = "none";
+      }
     });
+    document.addEventListener("click", (e) => { if (!searchForm.contains(e.target)) liveDrop.style.display = "none"; });
     document.addEventListener("keydown", (e) => {
-      if ((e.ctrlKey && e.key.toLowerCase() === "k") || (e.key === "/" && document.activeElement !== realInput)) { e.preventDefault(); realInput.focus(); }
+      if ((e.ctrlKey && e.key.toLowerCase() === "k") || (e.key === "/" && document.activeElement !== realInput && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName))) {
+        e.preventDefault(); realInput.focus();
+      }
     });
-    updateGhost();
+    if (realInput.value) ghostInput.value = findShadowMatch(realInput.value);
   </script>
 </body>
 </html>

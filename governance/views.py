@@ -451,7 +451,7 @@ def command_dashboard(request):
         "measures": measures, "bdp_projects": bdp_projects, "audit_logs": audit_logs, "dilg_reports": dilg_reports, "coa_audits": coa_audits,
         "turnovers": turnovers, "turnover_summary": turnover_summary, "total_pending_turnover": total_pending_turnover,
         "city_barangays": city_barangays, "province_cities": province_cities,
-        "query": query, "search_results": search_results, "suggestions_json": json.dumps(sorted(set(suggestions))),
+        "query": query, "search_results": search_results, "suggestions_json": json.dumps(sorted(set(suggestions))), "search_index_json": json.dumps(search_index),
         "pop_stats": pop_stats, "household_rows": household_rows, "action_notice": action_notice,
         "visible_modules": visible_modules, "staff_profile": staff_profile,
     }, request))
