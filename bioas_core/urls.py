@@ -5,7 +5,7 @@ from django.views.static import serve
 from governance.views import command_dashboard, theme_settings, staff_login, staff_logout
 from governance.portal_info import portal_info
 from governance.staff_turnover import staff_roster_and_turnover, approve_staff_account, download_term_archive
-from citizens.views import citizen_portal, citizen_home, approve_citizen, update_report_status, citizen_docs_repository
+from citizens.views import citizen_portal, citizen_home, approve_citizen, update_report_status, citizen_docs_repository, citizen_201_inspect
 from documents.views import issue_certificate_counter, print_certificate
 from treasury.views import export_treasury_excel, issue_or_and_unlock
 
@@ -22,6 +22,8 @@ urlpatterns = [
     path("portal/", citizen_portal, name="citizen_portal"),
     path("citizen-home/", citizen_home, name="citizen_home"),
     path("citizen-docs/<str:qr_id>/", citizen_docs_repository, name="citizen_docs_repository"),
+    path("citizen-inspect/<int:citizen_id>/", citizen_201_inspect, name="citizen_201_inspect"),
+
     path("approve-citizen/<int:citizen_id>/", approve_citizen, name="approve_citizen"),
     path("report-status/<int:report_id>/<str:new_status>/", update_report_status, name="update_report_status"),
     path("issue-certificate/", issue_certificate_counter, name="issue_certificate_counter"),
