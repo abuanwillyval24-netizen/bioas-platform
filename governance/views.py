@@ -424,7 +424,7 @@ def command_dashboard(request):
                     cit.is_ofw = _yn(rec.get("is_ofw"))
                     cit.is_pregnant = _yn(rec.get("is_pregnant"))
                     st_val = rec.get("status", "ACTIVE_RESIDENT").strip().upper()
-                    cit.status = st_val if st_val in ("ACTIVE_RESIDENT", "PENDING_APPROVAL", "MOVED_OUT", "DECEASED") else "ACTIVE_RESIDENT"
+                    cit.status = "PENDING_APPROVAL"
                     br_dt = _parse_dt(rec.get("birth_registered_date", ""))
                     if len(br_dt) == 10:
                         cit.birth_registered_date = br_dt
@@ -456,12 +456,30 @@ def command_dashboard(request):
                     action_type="PORTAL_SYNC_APPROVED",
                     actor_name=actor_name,
                     actor_role=actor_role,
-                    reference_code=f"BULK-{imported_count}",
-                    details=f"Bulk imported {imported_count} citizen 201 records across {sheets_used} sheet(s) from '{up_file.name}'.",
+                    reference_code=f"STAGE-{imported_count}",
+                    details=f"Staged {imported_count} uploaded citizen records across {sheets_used} sheet(s) from '{up_file.name}' into Pending Approval Queue (201 Master File kept strictly intact pending verification).",
                 )
-                action_notice = f"Successfully bulk-imported {imported_count} resident records across {sheets_used} sheet(s) from '{up_file.name}' into Master 201 Registry!"
+                action_notice = f"Staged {imported_count} citizen record(s) across {sheets_used} sheet(s) from '{up_file.name}' into the Pending Citizen Approvals Queue below for individual or mass verification."
             else:
-                action_notice = f"No valid citizen rows found in '{up_file.name}'. Ensure sheet headers include last_name, first_name, and birth_date (YYYY-MM-DD)."
+                action_notice = f"0 rows staged from '{up_file.name}'. Check that your sheet has headers last_name, first_name, and birth_date with valid data rows."
+        elif act == "MASS_APPROVE_201":
+            selected_ids = request.POST.getlist("pending_ids")
+            qs_pend = CitizenProfile.objects.filter(barangay=active_barangay, status="PENDING_APPROVAL")
+            if selected_ids:
+                qs_pend = qs_pend.filter(id__in=selected_ids)
+            approved_total = qs_pend.update(status="ACTIVE_RESIDENT")
+            if approved_total > 0:
+                SystemAuditLog.objects.create(
+                    barangay=active_barangay,
+                    action_type="PORTAL_SYNC_APPROVED",
+                    actor_name=actor_name,
+                    actor_role=actor_role,
+                    reference_code=f"MASS-201-{approved_total}",
+                    details=f"Verified and mass-approved {approved_total} pending citizen record(s) into the official 201 Master Registry.",
+                )
+                action_notice = f"Verified & activated {approved_total} citizen record(s) into the Official 201 Master Registry!"
+            else:
+                action_notice = "No pending citizen records were selected for approval."
 
 
     theme = active_barangay.get_active_theme() if active_barangay else {

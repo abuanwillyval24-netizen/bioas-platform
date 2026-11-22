@@ -136,18 +136,44 @@
       {% if tier == "BARANGAY" %}
         {% if module == "CITIZENS" %}
           <div class="section-title"><span>02A. Live Barangay Population Dashboard (Auto-Calculated)</span><a href="/portal/" target="_blank">+ Open Citizen Sign-Up Portal &rarr;</a></div>
+          {% if action_notice %}
+          <div id="resultOkModal" style="position:fixed;inset:0;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;">
+            <div style="background:#fff;max-width:480px;width:100%;border-radius:12px;padding:22px;box-shadow:0 20px 45px rgba(0,0,0,.3);border-top:5px solid #0f766e;">
+              <h3 style="margin:0 0 8px;color:#0f172a;font-size:1.05rem;">&#9989; System Action Status</h3>
+              <p style="margin:0 0 18px;font-size:.88rem;color:#334155;line-height:1.5;">{{ action_notice }}</p>
+              <div style="text-align:right;">
+                <button type="button" onclick="document.getElementById('resultOkModal').style.display='none'" style="background:#1e3a8a;color:#fff;border:0;padding:9px 26px;border-radius:7px;font-weight:800;font-size:.86rem;cursor:pointer;">OK</button>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div id="confirmUploadModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);align-items:center;justify-content:center;z-index:9998;padding:16px;">
+            <div style="background:#fff;max-width:500px;width:100%;border-radius:12px;padding:22px;box-shadow:0 20px 45px rgba(0,0,0,.3);border-top:5px solid #f59e0b;">
+              <h3 style="margin:0 0 8px;color:#92400e;font-size:1.05rem;">&#9888;&#65039; Confirm 201 File Staging Upload</h3>
+              <p style="margin:0 0 10px;font-size:.85rem;color:#334155;line-height:1.5;">You are about to upload <strong id="confirmFileName">selected file</strong>.</p>
+              <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:.8rem;color:#78350f;margin-bottom:16px;">
+                <strong>201 Master File Protection Rule:</strong> Uploaded records will <u>NOT</u> overwrite or merge directly into the official 201 Master Registry. All valid rows will be staged in the <strong>Pending Citizen Approvals Queue</strong> for individual or mass verification first.
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button type="button" onclick="document.getElementById('confirmUploadModal').style.display='none'" style="background:#e2e8f0;color:#0f172a;border:0;padding:8px 16px;border-radius:7px;font-weight:700;cursor:pointer;">Cancel</button>
+                <button type="button" onclick="document.getElementById('bulk201Form').submit()" style="background:#0f766e;color:#fff;border:0;padding:8px 18px;border-radius:7px;font-weight:800;cursor:pointer;">Confirm &amp; Stage Records &rarr;</button>
+              </div>
+            </div>
+          </div>
+
           <div class="card" style="margin-bottom:16px;border-top:4px solid #0f766e;background:#f0fdfa;">
-            <form method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
+            <form id="bulk201Form" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
               {% csrf_token %}
               <input type="hidden" name="action" value="BULK_IMPORT_201">
               <div style="flex:1;min-width:260px;">
-                <strong style="color:#0f766e;font-size:.95rem;">&#128229; Universal Multi-Sheet Excel / CSV 201 Bulk Importer</strong>
-                <div style="font-size:.8rem;color:#475569;margin-top:2px;">Supports unlimited rows and multi-sheet <code>.xlsx</code> workbooks (including sheets divided by Purok—sheet tab names like <em>Purok I</em>, <em>Purok II</em> auto-assign Purok if omitted).</div>
+                <strong style="color:#0f766e;font-size:.95rem;">&#128229; Universal Multi-Sheet Excel / CSV 201 Staging Importer</strong>
+                <div style="font-size:.8rem;color:#475569;margin-top:2px;">Uploads stage into <strong>Pending Citizen Approvals</strong> first (keeping your verified 201 Master File strictly intact). Supports unlimited rows &amp; multi-sheet workbooks divided by Purok.</div>
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
                 <a href="/?download_201_template=1" style="background:#fff;color:#0f766e;border:1px solid #0f766e;padding:8px 12px;border-radius:6px;font-weight:700;font-size:.8rem;text-decoration:none;white-space:nowrap;">&#11015; Download 201 Template</a>
-                <input type="file" name="excel_file" accept=".xlsx,.csv" required style="background:#fff;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
-                <button type="submit" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Import 201 File &rarr;</button>
+                <input id="bulk201File" type="file" name="excel_file" accept=".xlsx,.csv" required style="background:#fff;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <button type="button" onclick="const f=document.getElementById('bulk201File');if(!f.files.length){alert('Please choose an .xlsx or .csv file first.');return;}document.getElementById('confirmFileName').innerText=f.files[0].name;document.getElementById('confirmUploadModal').style.display='flex';" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Stage for Approval &rarr;</button>
               </div>
             </form>
           </div>
