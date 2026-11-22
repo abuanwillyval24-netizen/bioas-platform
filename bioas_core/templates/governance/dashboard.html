@@ -57,9 +57,8 @@
           <span class="tab-badge">TAB</span>
         </div>
       </form>
-      <a href="/theme-settings/" title="Command & Barangay Color Settings" style="color:#fff;text-decoration:none;background:rgba(255,255,255,0.16);width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;" aria-label="Settings">&#9881;</a>
+      <a href="/theme-settings/" title="Create Officer Accounts, Configure Modules & Settings" style="color:#111827;text-decoration:none;background:#fbbf24;padding:8px 13px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:800;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.2);" aria-label="Settings">&#9881; Officer Accounts &amp; Settings</a>
     </div>
-    </form>
   </header>
 
   <nav class="tier-tabs">
@@ -108,7 +107,28 @@
 
     <main class="main">
       {% if action_notice %}<div class="card" style="background:#dcfce7;border-top-color:#16a34a;color:#166534;font-weight:700;margin-bottom:16px;">{{ action_notice }}</div>{% endif %}
-      {% if query %}<div class="card" style="margin-bottom:16px;"><h3>Search Results ({{ search_results|length }})</h3><ul>{% for item in search_results %}<li><strong>{{ item }}</strong></li>{% empty %}<li>No matches found.</li>{% endfor %}</ul></div>{% endif %}
+      {% if query %}
+      <div class="card" style="margin-bottom:16px;border-top:4px solid #f59e0b;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <h3 style="margin:0;">System-Wide Deep Search Results for "{{ query }}" ({{ search_results|length }} Matches)</h3>
+          <a href="?tier={{ tier }}&module={{ module }}" style="font-size:.8rem;color:#dc2626;font-weight:700;text-decoration:none;">&#10005; Clear Search</a>
+        </div>
+        {% if search_results %}
+        <table style="margin:0;"><thead><tr><th>Module</th><th>Record Title</th><th>Matched Tiny Details</th><th>Action</th></tr></thead><tbody>
+          {% for item in search_results %}
+          <tr>
+            <td><span class="badge">{{ item.module_label }}</span></td>
+            <td><strong>{{ item.title }}</strong></td>
+            <td style="font-size:.82rem;color:#475569;">{{ item.detail }}</td>
+            <td style="white-space:nowrap;"><a href="{{ item.url }}" style="background:#1e3a8a;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">Open &rarr;</a></td>
+          </tr>
+          {% endfor %}
+        </tbody></table>
+        {% else %}
+        <p style="margin:4px 0 0;color:#64748b;font-size:.85rem;">No matching records found across your authorized modules for "<strong>{{ query }}</strong>".</p>
+        {% endif %}
+      </div>
+      {% endif %}
       {% if tier == "BARANGAY" %}
         {% if module == "CITIZENS" %}
           <div class="section-title"><span>02A. Live Barangay Population Dashboard (Auto-Calculated)</span><a href="/portal/" target="_blank">+ Open Citizen Sign-Up Portal &rarr;</a></div>

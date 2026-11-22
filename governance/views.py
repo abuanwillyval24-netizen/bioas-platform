@@ -374,15 +374,66 @@ def command_dashboard(request):
     }
     total_pending_turnover = sum(turnover_summary.values())
 
-    suggestions = [
-        "Barangay Clearance", "Certificate of Indigency", "First-Time Jobseeker Certification",
-        "Bereavement Welfare Sheet", "Official Receipt (OR)", "Health Immunization", "Social Aid",
-        "Senior Citizens Association", "COA Audit", "Governance Turnover (BGTT)", "RA 11261 Policy", "RA 9262 VAWC Policy",
-        "Vehicle Trip Ticket", "Hazard Alert", "SK ABYIP Project", "Barangay Ordinance", "DILG Report",
-    ] + [f"{c.full_name} [{c.citizen_qr_id}]" for c in citizens] + [f"{a.group_name} (Head: {a.display_head})" for a in associations]
+    search_index = []
+    if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules:
+        target_mod = "LEDGER_201" if "LEDGER_201" in visible_modules else "CITIZENS"
+        for c in citizens:
+            hh_code = c.household.household_code if c.household else "No Household"
+            tags = [t for t, flag in [("Voter", c.is_registered_voter), ("Senior", c.is_senior_citizen), ("PWD", c.is_pwd), ("Solo Parent", c.is_solo_parent), ("4Ps", c.is_4ps_beneficiary), ("Pregnant", c.is_pregnant), ("OFW", c.is_ofw)] if flag]
+            detail = f"QR: {c.citizen_qr_id} | {c.purok} | {c.address_line or '-'} | Age {c.age} ({c.get_sex_display()}) | HH: {hh_code} | Job: {c.occupation or '-'} | PhilSys: {c.philsys_id or '-'} | Precinct: {c.precinct_number or '-'} | Mobile: {c.mobile_number or '-'} | {', '.join(tags) or 'General Resident'} | {c.get_status_display()}"
+            search_index.append({"module_label": "02B. 201 Master", "title": f"{c.full_name} [{c.citizen_qr_id}]", "detail": detail, "url": f"?tier=BARANGAY&module={target_mod}&q={c.citizen_qr_id}"})
+    if "CITIZENS" in visible_modules:
+        for rep in citizen_reports:
+            search_index.append({"module_label": "02. Reports", "title": f"{rep.tracking_code} — {rep.get_category_display()}", "detail": f"Resident: {rep.citizen.full_name} | Landmark: {rep.location_landmark} | {rep.description[:80]} | {rep.get_status_display()}", "url": "?tier=BARANGAY&module=CITIZENS"})
+    if "CERTIFICATES" in visible_modules:
+        for cert in certificates:
+            search_index.append({"module_label": "03. Certificates", "title": f"{cert.control_number} — {cert.get_cert_type_display()}", "detail": f"Citizen: {cert.citizen.full_name} ({cert.citizen.citizen_qr_id}) | Purpose: {cert.purpose} | Fee: P{cert.fee_amount} | {cert.get_status_display()}", "url": "?tier=BARANGAY&module=CERTIFICATES"})
+    if "BLOTTER" in visible_modules:
+        for b in blotter_cases:
+            search_index.append({"module_label": "04. Blotter/VAWC", "title": f"{b.case_number} — {b.masked_parties}", "detail": f"Stage: {b.get_stage_display()} | Hold Clearance: {'Yes' if b.blocks_clearance else 'No'}", "url": "?tier=BARANGAY&module=BLOTTER"})
+    if "TREASURY" in visible_modules:
+        for r in receipts:
+            search_index.append({"module_label": "05. Treasury OR", "title": f"OR #{r.or_number} — {r.payor_name}", "detail": f"Amount: P{r.amount_paid} | {r.get_payment_type_display()} | Date: {r.issued_at:%Y-%m-%d}", "url": "?tier=BARANGAY&module=TREASURY"})
+        for a in abuloy_sheets:
+            search_index.append({"module_label": "05. Bereavement", "title": f"{a.serial_number} — {a.deceased_name}", "detail": f"Claimant: {a.claimant_name} | Status: {a.get_status_display()}", "url": "?tier=BARANGAY&module=TREASURY"})
+    if "HEALTH" in visible_modules:
+        for h in health_records:
+            search_index.append({"module_label": "06. Health", "title": f"{h.citizen.full_name} — {h.get_program_type_display()}", "detail": f"Date: {h.visit_date} | Diagnosis/Notes: {h.notes[:80]}", "url": "?tier=BARANGAY&module=HEALTH"})
+        for m in medicines:
+            search_index.append({"module_label": "06. Medicine", "title": f"{m.medicine_name} ({m.batch_number})", "detail": f"Stock: {m.quantity_on_hand} {m.unit} | Expiry: {m.expiry_date}", "url": "?tier=BARANGAY&module=HEALTH"})
+    if "WELFARE" in visible_modules:
+        for ag in associations:
+            search_index.append({"module_label": "07. Association", "title": f"{ag.group_code} — {ag.group_name}", "detail": f"Head: {ag.display_head} | Members: {ag.member_count}", "url": "?tier=BARANGAY&module=WELFARE"})
+        for s in social_aids:
+            search_index.append({"module_label": "07. Social Aid", "title": f"{s.citizen.full_name} — {s.get_aid_program_display()}", "detail": f"Cycle: {s.distribution_cycle} | Amount: P{s.cash_amount}", "url": "?tier=BARANGAY&module=WELFARE"})
+    if "FLEET" in visible_modules:
+        for v in vehicles:
+            search_index.append({"module_label": "08. Fleet", "title": f"{v.plate_or_body_number} — {v.vehicle_name}", "detail": f"Driver: {v.assigned_driver} | Status: {v.get_status_display()}", "url": "?tier=BARANGAY&module=FLEET"})
+    if "DRRM" in visible_modules:
+        for hz in hazards:
+            search_index.append({"module_label": "09. BDRRMC", "title": f"{hz.alert_code} — {hz.incident_title}", "detail": f"Level: {hz.get_alert_level_display()} | Affected Families: {hz.affected_families}", "url": "?tier=BARANGAY&module=DRRM"})
+    if "SK" in visible_modules:
+        for sk in sk_projects:
+            search_index.append({"module_label": "10. SK Youth", "title": f"{sk.project_code} — {sk.project_title}", "detail": f"Budget: P{sk.allocated_budget} | Status: {sk.get_status_display()}", "url": "?tier=BARANGAY&module=SK"})
+    if "LEGISLATION" in visible_modules:
+        for m in measures:
+            search_index.append({"module_label": "11. Legislation", "title": f"{m.series_number} — {m.title}", "detail": f"Author: {m.sponsor_author} | Status: {m.get_status_display()}", "url": "?tier=BARANGAY&module=LEGISLATION"})
+    if "AUDIT" in visible_modules:
+        for ca in coa_audits:
+            search_index.append({"module_label": "12. COA Audit", "title": f"{ca.audit_reference} — {ca.get_audit_type_display()}", "detail": f"Period: {ca.period_covered} | Amount: P{ca.amount_involved} | {ca.get_status_display()}", "url": "?tier=BARANGAY&module=AUDIT"})
+        for dr in dilg_reports:
+            search_index.append({"module_label": "12. DILG Report", "title": f"{dr.get_report_category_display()} ({dr.reporting_period})", "detail": f"Ref: {dr.transmittal_reference or '-'} | {dr.get_status_display()}", "url": "?tier=BARANGAY&module=AUDIT"})
 
+    suggestions = [item["title"] for item in search_index]
     query = params.get("q", "").strip()
-    search_results = [item for item in suggestions if query.lower() in item.lower()] if query else []
+    if query:
+        terms = [t for t in query.lower().split() if t]
+        search_results = [
+            item for item in search_index
+            if all(t in f"{item['module_label']} {item['title']} {item['detail']}".lower() for t in terms)
+        ][:50]
+    else:
+        search_results = []
     city_barangays = BarangayTenant.objects.filter(city_municipality=city).annotate(subdivision_count=Count("subdivisions", distinct=True), structure_count=Count("structures", distinct=True)) if city else BarangayTenant.objects.none()
     province_cities = CityMunicipality.objects.filter(province=province).annotate(barangay_count=Count("barangays", distinct=True)) if province else CityMunicipality.objects.none()
 
