@@ -285,7 +285,7 @@ def command_dashboard(request):
                 details=f"{'Encoded walk-in' if is_new else 'Updated'} 201 Master Record for {cit.full_name} ({cit.citizen_qr_id}).",
             )
             action_notice = f"{'Encoded new' if is_new else 'Updated'} 201 Master Record: {cit.full_name} ({cit.citizen_qr_id})."
-        elif act == "BULK_IMPORT_201" and request.FILES.get("excel_file"):
+            headers = [str(h or "").strip().lower().replace(" ", "_") for h in rows_data[0]]
             import csv, io, zipfile, xml.etree.ElementTree as ET
             up_file = request.FILES["excel_file"]
             fname_low = up_file.name.lower()
