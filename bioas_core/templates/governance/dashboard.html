@@ -136,15 +136,16 @@
       {% if tier == "BARANGAY" %}
         {% if module == "CITIZENS" %}
           <div class="section-title"><span>02A. Live Barangay Population Dashboard (Auto-Calculated)</span><a href="/portal/" target="_blank">+ Open Citizen Sign-Up Portal &rarr;</a></div>
-                    <div class="card" style="margin-bottom:16px;border-top:4px solid #0f766e;background:#f0fdfa;">
+          <div class="card" style="margin-bottom:16px;border-top:4px solid #0f766e;background:#f0fdfa;">
             <form method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
               {% csrf_token %}
               <input type="hidden" name="action" value="BULK_IMPORT_201">
-              <div>
-                <strong style="color:#0f766e;font-size:.95rem;">&#128229; 1-Click Bulk Excel / CSV 201 Importer</strong>
-                <div style="font-size:.8rem;color:#475569;margin-top:2px;">Upload <code>barangay_lagare_140_citizens_201_master.xlsx</code> (or any <code>.xlsx</code> / <code>.csv</code> 201 file) to auto-populate all residents, households, and sectoral classifications at once.</div>
+              <div style="flex:1;min-width:260px;">
+                <strong style="color:#0f766e;font-size:.95rem;">&#128229; Universal Multi-Sheet Excel / CSV 201 Bulk Importer</strong>
+                <div style="font-size:.8rem;color:#475569;margin-top:2px;">Supports unlimited rows and multi-sheet <code>.xlsx</code> workbooks (including sheets divided by Purok—sheet tab names like <em>Purok I</em>, <em>Purok II</em> auto-assign Purok if omitted).</div>
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                <a href="/?download_201_template=1" style="background:#fff;color:#0f766e;border:1px solid #0f766e;padding:8px 12px;border-radius:6px;font-weight:700;font-size:.8rem;text-decoration:none;white-space:nowrap;">&#11015; Download 201 Template</a>
                 <input type="file" name="excel_file" accept=".xlsx,.csv" required style="background:#fff;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <button type="submit" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Import 201 File &rarr;</button>
               </div>

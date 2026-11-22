@@ -164,6 +164,19 @@ def command_dashboard(request):
     from .models import BarangayStaffProfile
 
     params = request.GET
+        params = request.GET
+    if params.get("download_201_template") == "1":
+        import csv, io
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["citizen_qr_id", "household_code", "household_head_name", "relationship_to_head", "last_name", "first_name", "middle_name", "suffix", "sex", "birth_date", "birth_place", "civil_status", "purok", "address_line", "residency_status", "mobile_number", "email_address", "emergency_contact_name", "emergency_contact_phone", "education_level", "school_or_course", "occupation", "employer_or_business", "philsys_id", "precinct_number", "is_registered_voter", "is_senior_citizen", "is_pwd", "is_solo_parent", "is_4ps_beneficiary", "is_first_time_jobseeker", "is_ofw", "is_pregnant", "status", "birth_registered_date", "date_of_death"])
+        w.writerow(["", "HH-LAG-001", "Juan Dela Cruz", "HEAD", "Dela Cruz", "Juan", "Santos", "", "MALE", "1985-05-14", "Cabanatuan City", "MARRIED", "Purok I", "House 1, Purok I", "PERMANENT", "09171234567", "juan@lagare.gov.ph", "Maria Dela Cruz", "09181234567", "COLLEGE", "BS Agriculture", "Farmer", "Self-Employed", "4401-0001-1001-2001", "0141A", "Yes", "No", "No", "No", "No", "No", "No", "No", "ACTIVE_RESIDENT", "", ""])
+        resp = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = 'attachment; filename="BIOAS_Universal_201_Master_Template.csv"'
+        return resp
+    tier = params.get("tier", "BARANGAY").upper()
+    module = params.get("module", "OVERVIEW").upper()
+
     tier = params.get("tier", "BARANGAY").upper()
     module = params.get("module", "OVERVIEW").upper()
 
@@ -285,15 +298,15 @@ def command_dashboard(request):
                 details=f"{'Encoded walk-in' if is_new else 'Updated'} 201 Master Record for {cit.full_name} ({cit.citizen_qr_id}).",
             )
             action_notice = f"{'Encoded new' if is_new else 'Updated'} 201 Master Record: {cit.full_name} ({cit.citizen_qr_id})."
-            headers = [str(h or "").strip().lower().replace(" ", "_") for h in rows_data[0]]
+        elif act == "BULK_IMPORT_201" and request.FILES.get("excel_file"):
             import csv, io, zipfile, xml.etree.ElementTree as ET
             up_file = request.FILES["excel_file"]
             fname_low = up_file.name.lower()
             raw_bytes = up_file.read()
-            rows_data = []
+            sheets_collected = []
             if fname_low.endswith(".csv"):
                 text = raw_bytes.decode("utf-8-sig", errors="replace")
-                rows_data = list(csv.reader(io.StringIO(text)))
+                sheets_collected.append(("Sheet1", list(csv.reader(io.StringIO(text)))))
             elif fname_low.endswith(".xlsx"):
                 with zipfile.ZipFile(io.BytesIO(raw_bytes)) as zf:
                     shared = []
@@ -301,10 +314,19 @@ def command_dashboard(request):
                         sroot = ET.fromstring(zf.read("xl/sharedStrings.xml"))
                         for si in sroot.findall(".//{*}si"):
                             shared.append("".join(t.text or "" for t in si.findall(".//{*}t")))
-                    sheet_files = sorted([n for n in zf.namelist() if n.startswith("xl/worksheets/sheet") and n.endswith(".xml")])
-                    target_sheet = "xl/worksheets/sheet1.xml" if "xl/worksheets/sheet1.xml" in sheet_files else (sheet_files.__getitem__(0) if sheet_files else "")
-                    if target_sheet:
-                        wroot = ET.fromstring(zf.read(target_sheet))
+                    sheet_names = []
+                    if "xl/workbook.xml" in zf.namelist():
+                        wb_root = ET.fromstring(zf.read("xl/workbook.xml"))
+                        for sh_el in wb_root.findall(".//{*}sheet"):
+                            sheet_names.append(sh_el.attrib.get("name", ""))
+                    sheet_files = sorted(
+                        [n for n in zf.namelist() if n.startswith("xl/worksheets/sheet") and n.endswith(".xml")],
+                        key=lambda x: int("".join(ch for ch in x if ch.isdigit()) or 0)
+                    )
+                    for idx_sh, sh_path in enumerate(sheet_files):
+                        tab_name = sheet_names.__getitem__(idx_sh) if idx_sh < len(sheet_names) else f"Sheet{idx_sh+1}"
+                        wroot = ET.fromstring(zf.read(sh_path))
+                        sh_rows = []
                         for r_el in wroot.findall(".//{*}row"):
                             row_vals = []
                             for c_el in r_el.findall("{*}c"):
@@ -328,7 +350,9 @@ def command_dashboard(request):
                                     val = v_el.text
                                 row_vals.append(str(val).strip())
                             if any(row_vals):
-                                rows_data.append(row_vals)
+                                sh_rows.append(row_vals)
+                        if len(sh_rows) >= 2:
+                            sheets_collected.append((tab_name, sh_rows))
 
             def _yn(v):
                 return str(v or "").strip().lower() in ("yes", "true", "1", "y", "voter")
@@ -337,13 +361,22 @@ def command_dashboard(request):
                 s = str(v or "").strip()
                 if len(s) >= 10 and s.__getitem__(4) == "-":
                     return s.__getitem__(slice(0, 10))
+                if len(s) >= 10 and "/" in s:
+                    parts_d = s.__getitem__(slice(0, 10)).split("/")
+                    if len(parts_d) == 3 and len(parts_d.__getitem__(2)) == 4:
+                        return f"{parts_d.__getitem__(2)}-{int(parts_d.__getitem__(0)):02d}-{int(parts_d.__getitem__(1)):02d}"
                 if s.replace(".", "", 1).isdigit():
                     return (date(1899, 12, 30) + timedelta(days=int(float(s)))).isoformat()
                 return ""
 
-            if len(rows_data) >= 2:
+            imported_count = 0
+            sheets_used = 0
+            for tab_name, rows_data in sheets_collected:
                 headers = [str(h or "").strip().lower().replace(" ", "_") for h in rows_data.__getitem__(0)]
-                imported_count = 0
+                if "last_name" not in headers or "first_name" not in headers or "birth_date" not in headers:
+                    continue
+                sheets_used += 1
+                default_purok = tab_name.strip() if any(k in tab_name.lower() for k in ("purok", "zone", "sitio")) else "Purok I"
                 for r in rows_data.__getitem__(slice(1, None)):
                     rec = {headers.__getitem__(i): (r.__getitem__(i) if i < len(r) else "") for i in range(len(headers))}
                     lname = rec.get("last_name", "").strip()
@@ -366,7 +399,7 @@ def command_dashboard(request):
                     cit.birth_date = bdate
                     cit.birth_place = rec.get("birth_place", "").strip()
                     cit.civil_status = rec.get("civil_status", "SINGLE").strip().upper() or "SINGLE"
-                    cit.purok = rec.get("purok", "Purok I").strip() or "Purok I"
+                    cit.purok = rec.get("purok", "").strip() or default_purok
                     cit.address_line = rec.get("address_line", "").strip()
                     cit.residency_status = rec.get("residency_status", "PERMANENT").strip().upper() or "PERMANENT"
                     cit.mobile_number = rec.get("mobile_number", "").strip()
@@ -395,6 +428,32 @@ def command_dashboard(request):
                     dd_dt = _parse_dt(rec.get("date_of_death", ""))
                     if len(dd_dt) == 10:
                         cit.date_of_death = dd_dt
+
+                    hh_code = rec.get("household_code", "").strip().upper()
+                    if hh_code:
+                        hh = Household.objects.filter(barangay=active_barangay, household_code=hh_code).first()
+                        head_nm = rec.get("household_head_name", "").strip() or cit.full_name
+                        if not hh:
+                            hh = Household.objects.create(
+                                barangay=active_barangay,
+                                household_code=hh_code,
+                                household_head_name=head_nm,
+                                purok=cit.purok,
+                                address_line=cit.address_line,
+                            )
+                        cit.household = hh
+                        rel_val = rec.get("relationship_to_head", "HEAD").strip().upper()
+                        cit.relationship_to_head = rel_val if rel_val in ("HEAD", "SPOUSE", "CHILD", "PARENT", "SIBLING", "RELATIVE", "BOARDER") else "HEAD"
+                    cit.save()
+                    imported_count += 1
+
+            if imported_count > 0:
+                SystemAuditLog.objects.create(
+                    barangay=active_barangay,
+                    action_type="PORTAL_SYNC_APPROVED",
+                    actor_name=actor_name,
+                    actor_role=actor_role,
+                    reference_code=f"BULK-{imported_count}",
 
                     hh_code = rec.get("household_code", "").strip().upper()
                     if hh_code:
