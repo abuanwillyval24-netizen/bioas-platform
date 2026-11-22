@@ -302,8 +302,9 @@ def command_dashboard(request):
                         for si in sroot.findall(".//{*}si"):
                             shared.append("".join(t.text or "" for t in si.findall(".//{*}t")))
                     sheet_files = sorted([n for n in zf.namelist() if n.startswith("xl/worksheets/sheet") and n.endswith(".xml")])
-                    if sheet_files:
-                        wroot = ET.fromstring(zf.read(sheet_files.__getitem__(0)))
+                    target_sheet = "xl/worksheets/sheet1.xml" if "xl/worksheets/sheet1.xml" in sheet_files else (sheet_files.__getitem__(0) if sheet_files else "")
+                    if target_sheet:
+                        wroot = ET.fromstring(zf.read(target_sheet))
                         for r_el in wroot.findall(".//{*}row"):
                             row_vals = []
                             for c_el in r_el.findall("{*}c"):
@@ -388,10 +389,10 @@ def command_dashboard(request):
                     cit.is_pregnant = _yn(rec.get("is_pregnant"))
                     st_val = rec.get("status", "ACTIVE_RESIDENT").strip().upper()
                     cit.status = st_val if st_val in ("ACTIVE_RESIDENT", "PENDING_APPROVAL", "MOVED_OUT", "DECEASED") else "ACTIVE_RESIDENT"
-                    br_dt = rec.get("birth_registered_date", "").strip()[:10]
+                    br_dt = _parse_dt(rec.get("birth_registered_date", ""))
                     if len(br_dt) == 10:
                         cit.birth_registered_date = br_dt
-                    dd_dt = rec.get("date_of_death", "").strip()[:10]
+                    dd_dt = _parse_dt(rec.get("date_of_death", ""))
                     if len(dd_dt) == 10:
                         cit.date_of_death = dd_dt
 
