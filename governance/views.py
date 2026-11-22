@@ -601,3 +601,6 @@ function sc(a,b){document.getElementById('p').value=a;document.getElementById('s
         "u": u, "p_col": p_col, "s_col": s_col, "notice": notice, "error": error, "showcase": showcase,
         "barangay": barangay, "can_manage_officers": can_manage_officers, "staff_list": staff_list, "available_201": available_201,
         "role_choices": BarangayStaffProfile.ROLE_CHOICES, "status_choices": BarangayStaffProfile.STATUS_CHOICES,
+
+        "module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "role_presets_json": json.dumps(BarangayStaffProfile.ROLE_DEFAULT_MODULES),
+    }, request))
