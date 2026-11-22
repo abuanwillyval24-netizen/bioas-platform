@@ -303,7 +303,7 @@ def command_dashboard(request):
                             shared.append("".join(t.text or "" for t in si.findall(".//{*}t")))
                     sheet_files = sorted([n for n in zf.namelist() if n.startswith("xl/worksheets/sheet") and n.endswith(".xml")])
                     if sheet_files:
-                        wroot = ET.fromstring(zf.read(sheet_files))
+                        wroot = ET.fromstring(zf.read(sheet_files.__getitem__(0)))
                         for r_el in wroot.findall(".//{*}row"):
                             row_vals = []
                             for c_el in r_el.findall("{*}c"):
@@ -320,7 +320,7 @@ def command_dashboard(request):
                                 val = ""
                                 if c_type == "s" and v_el is not None and v_el.text is not None:
                                     idx_s = int(v_el.text)
-                                    val = shared[idx_s] if idx_s < len(shared) else ""
+                                    val = shared.__getitem__(idx_s) if idx_s < len(shared) else ""
                                 elif is_el is not None and is_el.text is not None:
                                     val = is_el.text
                                 elif v_el is not None and v_el.text is not None:
@@ -332,14 +332,22 @@ def command_dashboard(request):
             def _yn(v):
                 return str(v or "").strip().lower() in ("yes", "true", "1", "y", "voter")
 
+            def _parse_dt(v):
+                s = str(v or "").strip()
+                if len(s) >= 10 and s.__getitem__(4) == "-":
+                    return s.__getitem__(slice(0, 10))
+                if s.replace(".", "", 1).isdigit():
+                    return (date(1899, 12, 30) + timedelta(days=int(float(s)))).isoformat()
+                return ""
+
             if len(rows_data) >= 2:
-                headers = [str(h or "").strip().lower().replace(" ", "_") for h in rows_data]
+                headers = [str(h or "").strip().lower().replace(" ", "_") for h in rows_data.__getitem__(0)]
                 imported_count = 0
-                for r in rows_data[1:]:
-                    rec = {headers[i]: (r[i] if i < len(r) else "") for i in range(len(headers))}
+                for r in rows_data.__getitem__(slice(1, None)):
+                    rec = {headers.__getitem__(i): (r.__getitem__(i) if i < len(r) else "") for i in range(len(headers))}
                     lname = rec.get("last_name", "").strip()
                     fname_c = rec.get("first_name", "").strip()
-                    bdate = rec.get("birth_date", "").strip()[:10]
+                    bdate = _parse_dt(rec.get("birth_date", ""))
                     if not lname or not fname_c or len(bdate) != 10:
                         continue
                     qr_val = rec.get("citizen_qr_id", "").strip().upper()
