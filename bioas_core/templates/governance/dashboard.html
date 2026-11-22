@@ -89,6 +89,8 @@
       <div class="side-group">Frontline Services</div>
       {% if "CITIZENS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02. Citizens &amp; Reports</span><span class="pill">{{ citizens|length }}</span></a>{% endif %}
       {% if "LEDGER_201" in visible_modules %}<a href="?tier=BARANGAY&module=LEDGER_201" class="{% if module == 'LEDGER_201' %}active{% endif %}"><span>02B. Master 201 Excel Ledger</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
+            {% if "DOCS_REPO" in visible_modules %}<a href="?tier=BARANGAY&module=DOCS_REPO" class="{% if module == 'DOCS_REPO' %}active{% endif %}"><span>02C. Supporting Docs Repository</span><span class="pill">{{ all_repo_docs|length }}</span></a>{% endif %}
+
       {% if "CERTIFICATES" in visible_modules %}<a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>{% endif %}
       {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Blotter &amp; VAWC</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
       {% if "TREASURY" in visible_modules %}<a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury &amp; Collections</span><span class="pill">{{ receipts|length }}</span></a>{% endif %}
@@ -502,6 +504,53 @@
               {% empty %}<tr><td colspan="6">No system audit events recorded yet.</td></tr>{% endfor %}
             </tbody></table>
           </div>
+        {% elif module == "DOCS_REPO" %}
+          <div class="section-title">
+            <span>02C. Entire Barangay Supporting Docs Repository (<span id="repoDocCount">{{ all_repo_docs|length }}</span> Uploaded Files)</span>
+            <a href="?tier=BARANGAY&module=LEDGER_201">&larr; Back to 201 Excel Ledger</a>
+          </div>
+          <div class="card" style="padding:12px;margin-bottom:14px;">
+            <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:center;">
+              <input id="repoSearch" oninput="filterRepoDocs()" placeholder="Search by Citizen Name, QR ID (CIT-...), Document Title, or Uploader..." style="padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.84rem;">
+              <select id="repoSource" onchange="filterRepoDocs()" style="padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.84rem;">
+                <option value="">All Submission Sources</option>
+                <option value="PORTAL_SIGNUP">Online Citizen Portal Sign-Up</option>
+                <option value="WALKIN_DESK">Walk-In / Desk Encoding</option>
+                <option value="CERTIFICATE_REQ">Certificate Attachment</option>
+                <option value="STAFF_REPOSITORY">Direct Repository Upload</option>
+              </select>
+              <button type="button" onclick="document.getElementById('repoSearch').value='';document.getElementById('repoSource').value='';filterRepoDocs();" style="background:#e2e8f0;color:#0f172a;border:0;padding:8px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Reset</button>
+            </div>
+          </div>
+          <table><thead><tr><th>Uploaded Date</th><th>Citizen Name &amp; QR ID</th><th>Document Title</th><th>Source Channel</th><th>Uploaded By</th><th>Actions</th></tr></thead><tbody>
+            {% for d in all_repo_docs %}
+            <tr class="repo-row" data-src="{{ d.source_channel }}">
+              <td style="white-space:nowrap;">{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
+              <td><strong>{{ d.citizen.full_name }}</strong><br><small><code>{{ d.citizen.citizen_qr_id }}</code> &bull; {{ d.citizen.purok }}</small></td>
+              <td><strong>{{ d.document_title }}</strong></td>
+              <td><span class="badge">{{ d.get_source_channel_display }}</span></td>
+              <td>{{ d.uploaded_by|default:"System" }}</td>
+              <td style="white-space:nowrap;">
+                <a href="{{ d.file.url }}" target="_blank" style="background:#0f766e;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">View File &#8599;</a>
+                <a href="/citizen-docs/{{ d.citizen.citizen_qr_id }}/" target="_blank" style="margin-left:4px;background:#1e3a8a;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">Citizen Vault &#8599;</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">No supporting documents uploaded across the Barangay yet. Upload via Citizen Sign-Up Portal or Walk-In 201 Encoder.</td></tr>
+            {% endfor %}
+          </tbody></table>
+          <script>
+            function filterRepoDocs(){
+              const q=document.getElementById('repoSearch').value.toLowerCase();
+              const src=document.getElementById('repoSource').value;
+              let vis=0;
+              document.querySelectorAll('tr.repo-row').forEach(tr=>{
+                const ok=(!q||tr.innerText.toLowerCase().includes(q))&&(!src||tr.dataset.src===src);
+                tr.style.display=ok?'':'none';if(ok)vis++;
+              });
+              document.getElementById('repoDocCount').innerText=vis;
+            }
+          </script>
 
         {% elif module == "TURNOVER" %}
           <div class="section-title"><span>13A. Incumbent-to-Incoming Officials Pending Handover Summary (BGTT)</span><a href="/admin/governance/officialturnoverrecord/add/">+ Log Turnover Record</a></div>

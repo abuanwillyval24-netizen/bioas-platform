@@ -311,6 +311,7 @@ class BarangayStaffProfile(models.Model):
         ("OVERVIEW", "Command Overview"),
         ("CITIZENS", "02. Citizens & Reports"),
         ("LEDGER_201", "02B. Master 201 Excel Ledger"),
+        ("DOCS_REPO", "02C. Supporting Docs Repository"),
         ("CERTIFICATES", "03. Certificates & Clearances"),
         ("BLOTTER", "04. Blotter & VAWC"),
         ("TREASURY", "05. Treasury & Collections"),

@@ -178,6 +178,8 @@ def command_dashboard(request):
         visible_modules = all_mod_codes
     elif staff_profile:
         visible_modules = staff_profile.get_visible_modules()
+        if ("CITIZENS" in visible_modules or "LEDGER_201" in visible_modules) and "DOCS_REPO" not in visible_modules:
+            visible_modules.append("DOCS_REPO")
     else:
         visible_modules = all_mod_codes
 
@@ -289,7 +291,9 @@ def command_dashboard(request):
         "primary_color": "#1E3A8A", "secondary_color": "#F59E0B", "is_occasion": False,
     }
 
+    from citizens.models import CitizenSupportingDocument
     citizens = CitizenProfile.objects.select_related("household").filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
+    all_repo_docs = CitizenSupportingDocument.objects.select_related("citizen").filter(citizen__barangay=active_barangay) if active_barangay else CitizenSupportingDocument.objects.none()
     households = Household.objects.prefetch_related("members").filter(barangay=active_barangay) if active_barangay else Household.objects.none()
     citizen_reports = CitizenCommunityReport.objects.filter(barangay=active_barangay) if active_barangay else CitizenCommunityReport.objects.none()
     certificates = CertificateRequest.objects.filter(barangay=active_barangay) if active_barangay else CertificateRequest.objects.none()
@@ -442,7 +446,7 @@ def command_dashboard(request):
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
-        "theme": theme, "citizens": citizens, "households": households, "citizen_reports": citizen_reports,
+        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "households": households, "citizen_reports": citizen_reports,
         "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "receipts": receipts, "abuloy_sheets": abuloy_sheets, "total_collections": total_collections,
         "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "associations": associations,
