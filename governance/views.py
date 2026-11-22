@@ -308,3 +308,148 @@ def command_dashboard(request):
     equipment_loans = CommunityEquipmentLoan.objects.filter(barangay=active_barangay) if active_barangay else CommunityEquipmentLoan.objects.none()
     hazards = HazardIncidentAlert.objects.filter(barangay=active_barangay) if active_barangay else HazardIncidentAlert.objects.none()
     evac_centers = EvacuationCenterStatus.objects.filter(barangay=active_barangay) if active_barangay else EvacuationCenterStatus.objects.none()
+
+    kk_youth = KatipunanKabataanProfile.objects.filter(barangay=active_barangay) if active_barangay else KatipunanKabataanProfile.objects.none()
+    sk_projects = SKProjectActivity.objects.filter(barangay=active_barangay) if active_barangay else SKProjectActivity.objects.none()
+    measures = LegislativeMeasure.objects.filter(barangay=active_barangay) if active_barangay else LegislativeMeasure.objects.none()
+    bdp_projects = DevelopmentPlanProject.objects.filter(barangay=active_barangay) if active_barangay else DevelopmentPlanProject.objects.none()
+    audit_logs = SystemAuditLog.objects.filter(barangay=active_barangay)[:50] if active_barangay else SystemAuditLog.objects.none()
+    dilg_reports = DILGComplianceReport.objects.filter(barangay=active_barangay) if active_barangay else DILGComplianceReport.objects.none()
+    coa_audits = COAAuditCompliance.objects.filter(barangay=active_barangay) if active_barangay else COAAuditCompliance.objects.none()
+    turnovers = OfficialTurnoverRecord.objects.filter(barangay=active_barangay) if active_barangay else OfficialTurnoverRecord.objects.none()
+
+    active_citizens = list(citizens.filter(status="ACTIVE_RESIDENT"))
+    one_year_ago = date.today() - timedelta(days=365)
+    purok_names = ["Purok I", "Purok II", "Purok III", "Purok IV", "Purok V", "Purok VI", "Purok VII"]
+    for c in active_citizens:
+        if c.purok and c.purok not in purok_names:
+            purok_names.append(c.purok)
+    purok_rows = [{"name": p, "count": sum(1 for c in active_citizens if (c.purok or "Purok I") == p)} for p in purok_names]
+
+    children_list = [c for c in active_citizens if c.relationship_to_head == "CHILD" or c.age < 18]
+    pop_stats = {
+        "total_residents": len(active_citizens),
+        "male_count": sum(1 for c in active_citizens if c.sex == "MALE"),
+        "female_count": sum(1 for c in active_citizens if c.sex == "FEMALE"),
+        "registered_voters": sum(1 for c in active_citizens if c.is_registered_voter),
+        "non_voters": sum(1 for c in active_citizens if not c.is_registered_voter),
+        "purok_rows": purok_rows,
+        "children_total": len(children_list),
+        "unmarried_children": sum(1 for c in children_list if c.civil_status == "SINGLE"),
+        "married_children": sum(1 for c in children_list if c.civil_status == "MARRIED"),
+        "senior_count": sum(1 for c in active_citizens if c.is_senior_citizen or c.age >= 60),
+        "pwd_count": sum(1 for c in active_citizens if c.is_pwd),
+        "solo_parent_count": sum(1 for c in active_citizens if c.is_solo_parent),
+        "pregnant_count": sum(1 for c in active_citizens if c.is_pregnant),
+        "recent_births_count": sum(1 for c in active_citizens if c.age == 0 or (c.birth_registered_date and c.birth_registered_date >= one_year_ago)),
+        "deaths_count": citizens.filter(status="DECEASED").count(),
+    }
+
+    household_rows = []
+    for hh in households:
+        members = [m for m in hh.members.all() if m.status == "ACTIVE_RESIDENT"]
+        hh_children = [m for m in members if m.relationship_to_head == "CHILD" or m.age < 18]
+        household_rows.append({
+            "household": hh,
+            "members": members,
+            "total_members": len(members),
+            "children_count": len(hh_children),
+            "unmarried_children": sum(1 for m in hh_children if m.civil_status == "SINGLE"),
+            "married_children": sum(1 for m in hh_children if m.civil_status == "MARRIED"),
+            "seniors": sum(1 for m in members if m.is_senior_citizen or m.age >= 60),
+            "pwds": sum(1 for m in members if m.is_pwd),
+            "solo_parents": sum(1 for m in members if m.is_solo_parent),
+            "pregnant": sum(1 for m in members if m.is_pregnant),
+        })
+
+    turnover_summary = {
+        "pending_citizens": citizens.filter(status="PENDING_APPROVAL").count(),
+        "open_citizen_reports": citizen_reports.exclude(status="RESOLVED_CLOSED").count(),
+        "pending_or_certs": pending_or_certs.count(),
+        "active_blotter_holds": blotter_cases.filter(blocks_clearance=True).count(),
+        "open_welfare_sheets": abuloy_sheets.exclude(status="TURNED_OVER_SIGNED").count(),
+        "unreturned_equipment": equipment_loans.filter(status="OUT_ON_LOAN").count(),
+        "pending_coa": coa_audits.exclude(status="CLEARED_LIQUIDATED").count(),
+        "pending_dilg": dilg_reports.exclude(status="TRANSMITTED_VERIFIED").count(),
+    }
+    total_pending_turnover = sum(turnover_summary.values())
+
+    suggestions = [
+        "Barangay Clearance", "Certificate of Indigency", "First-Time Jobseeker Certification",
+        "Bereavement Welfare Sheet", "Official Receipt (OR)", "Health Immunization", "Social Aid",
+        "Senior Citizens Association", "COA Audit", "Governance Turnover (BGTT)", "RA 11261 Policy", "RA 9262 VAWC Policy",
+        "Vehicle Trip Ticket", "Hazard Alert", "SK ABYIP Project", "Barangay Ordinance", "DILG Report",
+    ] + [f"{c.full_name} [{c.citizen_qr_id}]" for c in citizens] + [f"{a.group_name} (Head: {a.display_head})" for a in associations]
+
+    query = params.get("q", "").strip()
+    search_results = [item for item in suggestions if query.lower() in item.lower()] if query else []
+    city_barangays = BarangayTenant.objects.filter(city_municipality=city).annotate(subdivision_count=Count("subdivisions", distinct=True), structure_count=Count("structures", distinct=True)) if city else BarangayTenant.objects.none()
+    province_cities = CityMunicipality.objects.filter(province=province).annotate(barangay_count=Count("barangays", distinct=True)) if province else CityMunicipality.objects.none()
+
+    html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "dashboard.html"
+    template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
+    return HttpResponse(template.render({
+        "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
+        "theme": theme, "citizens": citizens, "households": households, "citizen_reports": citizen_reports,
+        "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
+        "receipts": receipts, "abuloy_sheets": abuloy_sheets, "total_collections": total_collections,
+        "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "associations": associations,
+        "vehicles": vehicles, "trips": trips, "equipment_loans": equipment_loans,
+        "hazards": hazards, "evac_centers": evac_centers, "kk_youth": kk_youth, "sk_projects": sk_projects,
+        "measures": measures, "bdp_projects": bdp_projects, "audit_logs": audit_logs, "dilg_reports": dilg_reports, "coa_audits": coa_audits,
+        "turnovers": turnovers, "turnover_summary": turnover_summary, "total_pending_turnover": total_pending_turnover,
+        "city_barangays": city_barangays, "province_cities": province_cities,
+        "query": query, "search_results": search_results, "suggestions_json": json.dumps(sorted(set(suggestions))),
+        "pop_stats": pop_stats, "household_rows": household_rows, "action_notice": action_notice,
+        "visible_modules": visible_modules, "staff_profile": staff_profile,
+    }, request))
+
+
+@login_required(login_url="/login/")
+def theme_settings(request):
+    from .models import BarangayStaffProfile
+
+    barangay = BarangayTenant.objects.first()
+    showcase, _ = BarangayPortalShowcase.objects.get_or_create(barangay=barangay) if barangay else (None, False)
+    User = get_user_model()
+    u = request.user
+    current_prof = getattr(u, "staff_profile", None)
+    can_manage_officers = u.is_superuser or (current_prof and current_prof.role in ("CAPTAIN", "SECRETARY"))
+    actor_name = current_prof.full_name if current_prof else (u.get_full_name() or u.username)
+    actor_role = current_prof.get_role_display() if current_prof else "System Administrator"
+    notice, error = "", ""
+
+    if request.method == "POST":
+        act = request.POST.get("action")
+        if act == "CREATE_OFFICER" and can_manage_officers and barangay:
+            uname = request.POST.get("officer_username", "").strip()
+            pwd = request.POST.get("officer_password", "")
+            fname = request.POST.get("officer_full_name", "").strip()
+            role = request.POST.get("officer_role", "COUNCILOR")
+            seat_code = request.POST.get("officer_seat_code", "").strip()
+            committee = request.POST.get("officer_committee", "").strip()
+            chosen_mods = request.POST.getlist("modules") or list(BarangayStaffProfile.ROLE_DEFAULT_MODULES.get(role, ["OVERVIEW", "POLICY"]))
+            if not uname or len(pwd) < 6 or not fname:
+                error = "Full name, username, and password (min 6 chars) are required."
+            elif User.objects.filter(username=uname).exists():
+                error = f"Username '{uname}' already exists."
+            else:
+                parts = fname.split()
+                new_user = User.objects.create_user(username=uname, password=pwd, first_name=parts[0], last_name=" ".join(parts[1:]))
+                auto_status = "ACTIVE" if (u.is_superuser or (current_prof and current_prof.role == "CAPTAIN")) else "PENDING_CAPTAIN"
+                sp = BarangayStaffProfile.objects.create(
+                    user=new_user,
+                    barangay=barangay,
+                    seat_code=seat_code,
+                    full_name=fname,
+                    role=role,
+                    committee_or_unit=committee,
+                    allowed_modules=chosen_mods,
+                    approval_status=auto_status,
+                    created_by=u,
+                    approved_by=u if auto_status == "ACTIVE" else None,
+                )
+                SystemAuditLog.objects.create(
+                    barangay=barangay,
+                    action_type="ROLE_DELEGATION_SET",
+
