@@ -392,12 +392,67 @@ def command_dashboard(request):
                 default_purok = tab_name.strip() if any(k in tab_name.lower() for k in ("purok", "zone", "sitio")) else "Purok I"
                 for r in rows_data.__getitem__(slice(hdr_idx + 1, None)):
                     rec = {headers.__getitem__(i): (r.__getitem__(i) if i < len(r) else "") for i in range(len(headers))}
-                    lname = rec.get("last_name", "").strip()
-                    fname_c = rec.get("first_name", "").strip()
-                    bdate = _parse_dt(rec.get("birth_date", ""))
+                    if len(r) >= 11 and rec.get("birth_date", "").strip().lower() in ("male", "female") and len(_parse_dt(r.__getitem__(10))) == 10:
+                        g = lambda idx: (r.__getitem__(idx).strip() if idx < len(r) else "")
+                        qr_val = g(1).upper() or g(0).upper()
+                        hh_code = g(2).upper()
+                        rel_raw = g(3).upper()
+                        rel_val = "HEAD" if "HEAD" in rel_raw else ("SPOUSE" if "SPOUSE" in rel_raw else ("CHILD" if "CHILD" in rel_raw else ("PARENT" if "PARENT" in rel_raw else ("SIBLING" if "SIBLING" in rel_raw else "RELATIVE"))))
+                        purok_val = g(4) or default_purok
+                        lname = g(5)
+                        fname_c = g(6)
+                        mname_c = g(7)
+                        suf_c = g(8)
+                        sex_val = "FEMALE" if g(9).upper().startswith("F") else "MALE"
+                        bdate = _parse_dt(g(10))
+                        cstat_val = g(13).upper() or "SINGLE"
+                        occ_val = g(14)
+                        is_voter = _yn(g(16))
+                        prec_val = g(17)
+                        is_sr = _yn(g(18))
+                        is_pwd = _yn(g(19))
+                        is_solo = _yn(g(21))
+                        vital = g(22).lower()
+                        is_4ps = _yn(g(24))
+                        is_ofw = _yn(g(25))
+                        is_preg = _yn(g(26))
+                        is_ftj = _yn(g(27))
+                        mob_val = g(28)
+                        em_val = g(29)
+                        br_dt = date.today().isoformat() if "birth" in vital else ""
+                        dd_dt = date.today().isoformat() if "death" in vital or "deceased" in vital else ""
+                        head_nm = f"{fname_c} {lname}"
+                    else:
+                        lname = rec.get("last_name", "").strip()
+                        fname_c = rec.get("first_name", "").strip()
+                        mname_c = rec.get("middle_name", "").strip()
+                        suf_c = rec.get("suffix", "").strip()
+                        sex_val = "FEMALE" if rec.get("sex", "MALE").strip().upper().startswith("F") else "MALE"
+                        bdate = _parse_dt(rec.get("birth_date", ""))
+                        cstat_val = rec.get("civil_status", "SINGLE").strip().upper() or "SINGLE"
+                        purok_val = rec.get("purok", "").strip() or default_purok
+                        occ_val = rec.get("occupation", "").strip()
+                        is_voter = _yn(rec.get("is_registered_voter"))
+                        prec_val = rec.get("precinct_number", "").strip()
+                        is_sr = _yn(rec.get("is_senior_citizen"))
+                        is_pwd = _yn(rec.get("is_pwd"))
+                        is_solo = _yn(rec.get("is_solo_parent"))
+                        is_4ps = _yn(rec.get("is_4ps_beneficiary"))
+                        is_ofw = _yn(rec.get("is_ofw"))
+                        is_preg = _yn(rec.get("is_pregnant"))
+                        is_ftj = _yn(rec.get("is_first_time_jobseeker"))
+                        mob_val = rec.get("mobile_number", "").strip()
+                        em_val = rec.get("email_address", "").strip()
+                        qr_val = rec.get("citizen_qr_id", "").strip().upper()
+                        hh_code = rec.get("household_code", "").strip().upper()
+                        head_nm = rec.get("household_head_name", "").strip() or f"{fname_c} {lname}"
+                        rel_raw = rec.get("relationship_to_head", "HEAD").strip().upper()
+                        rel_val = rel_raw if rel_raw in ("HEAD", "SPOUSE", "CHILD", "PARENT", "SIBLING", "RELATIVE", "BOARDER") else "HEAD"
+                        br_dt = _parse_dt(rec.get("birth_registered_date", ""))
+                        dd_dt = _parse_dt(rec.get("date_of_death", ""))
+
                     if not lname or not fname_c or len(bdate) != 10:
                         continue
-                    qr_val = rec.get("citizen_qr_id", "").strip().upper()
                     cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=qr_val).first() if qr_val else None
                     if not cit:
                         cit = CitizenProfile(
@@ -406,46 +461,41 @@ def command_dashboard(request):
                         )
                     cit.last_name = lname
                     cit.first_name = fname_c
-                    cit.middle_name = rec.get("middle_name", "").strip()
-                    cit.suffix = rec.get("suffix", "").strip()
-                    cit.sex = "FEMALE" if rec.get("sex", "MALE").strip().upper().startswith("F") else "MALE"
+                    cit.middle_name = mname_c
+                    cit.suffix = suf_c
+                    cit.sex = sex_val
                     cit.birth_date = bdate
                     cit.birth_place = rec.get("birth_place", "").strip()
-                    cit.civil_status = rec.get("civil_status", "SINGLE").strip().upper() or "SINGLE"
-                    cit.purok = rec.get("purok", "").strip() or default_purok
+                    cit.civil_status = cstat_val if cstat_val in ("SINGLE", "MARRIED", "WIDOWED", "SEPARATED", "LIVE_IN") else "SINGLE"
+                    cit.purok = purok_val
                     cit.address_line = rec.get("address_line", "").strip()
                     cit.residency_status = rec.get("residency_status", "PERMANENT").strip().upper() or "PERMANENT"
-                    cit.mobile_number = rec.get("mobile_number", "").strip()
-                    cit.email_address = rec.get("email_address", "").strip()
+                    cit.mobile_number = mob_val
+                    cit.email_address = em_val
                     cit.emergency_contact_name = rec.get("emergency_contact_name", "").strip()
                     cit.emergency_contact_phone = rec.get("emergency_contact_phone", "").strip()
                     cit.education_level = rec.get("education_level", "").strip().upper()
                     cit.school_or_course = rec.get("school_or_course", "").strip()
-                    cit.occupation = rec.get("occupation", "").strip()
+                    cit.occupation = occ_val
                     cit.employer_or_business = rec.get("employer_or_business", "").strip()
                     cit.philsys_id = rec.get("philsys_id", "").strip()
-                    cit.precinct_number = rec.get("precinct_number", "").strip()
-                    cit.is_registered_voter = _yn(rec.get("is_registered_voter"))
-                    cit.is_senior_citizen = _yn(rec.get("is_senior_citizen"))
-                    cit.is_pwd = _yn(rec.get("is_pwd"))
-                    cit.is_solo_parent = _yn(rec.get("is_solo_parent"))
-                    cit.is_4ps_beneficiary = _yn(rec.get("is_4ps_beneficiary"))
-                    cit.is_first_time_jobseeker = _yn(rec.get("is_first_time_jobseeker"))
-                    cit.is_ofw = _yn(rec.get("is_ofw"))
-                    cit.is_pregnant = _yn(rec.get("is_pregnant"))
-                    st_val = rec.get("status", "ACTIVE_RESIDENT").strip().upper()
+                    cit.precinct_number = prec_val
+                    cit.is_registered_voter = is_voter
+                    cit.is_senior_citizen = is_sr
+                    cit.is_pwd = is_pwd
+                    cit.is_solo_parent = is_solo
+                    cit.is_4ps_beneficiary = is_4ps
+                    cit.is_first_time_jobseeker = is_ftj
+                    cit.is_ofw = is_ofw
+                    cit.is_pregnant = is_preg
                     cit.status = "PENDING_APPROVAL"
-                    br_dt = _parse_dt(rec.get("birth_registered_date", ""))
                     if len(br_dt) == 10:
                         cit.birth_registered_date = br_dt
-                    dd_dt = _parse_dt(rec.get("date_of_death", ""))
                     if len(dd_dt) == 10:
                         cit.date_of_death = dd_dt
 
-                    hh_code = rec.get("household_code", "").strip().upper()
                     if hh_code:
                         hh = Household.objects.filter(barangay=active_barangay, household_code=hh_code).first()
-                        head_nm = rec.get("household_head_name", "").strip() or cit.full_name
                         if not hh:
                             hh = Household.objects.create(
                                 barangay=active_barangay,
@@ -455,8 +505,7 @@ def command_dashboard(request):
                                 address_line=cit.address_line,
                             )
                         cit.household = hh
-                        rel_val = rec.get("relationship_to_head", "HEAD").strip().upper()
-                        cit.relationship_to_head = rel_val if rel_val in ("HEAD", "SPOUSE", "CHILD", "PARENT", "SIBLING", "RELATIVE", "BOARDER") else "HEAD"
+                        cit.relationship_to_head = rel_val
                     cit.save()
                     imported_count += 1
 
