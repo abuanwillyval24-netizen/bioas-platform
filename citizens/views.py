@@ -1,13 +1,18 @@
 import base64
 from io import BytesIO
+import os
+import re
 import uuid
 import qrcode
+from datetime import date
 from pathlib import Path
+from PIL import Image
+from django.core.files.base import ContentFile
 from django.http import HttpResponse
 from django.template import engines
 from governance.models import BarangayTenant
 from documents.models import CertificateRequest
-from .models import CitizenProfile, Household, CitizenCommunityReport
+from .models import CitizenProfile, Household, CitizenCommunityReport, CitizenSupportingDocument
 
 
 def make_citizen_qr_uri(payload):
@@ -20,8 +25,83 @@ def make_citizen_qr_uri(payload):
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
+def _geo_code(raw_name, fallback="GEN"):
+    cleaned = re.sub(r"^(barangay|brgy\.?|city of|municipality of|province of)\s+", "", str(raw_name or "").strip(), flags=re.I)
+    words = [w for w in re.split(r"[^A-Za-z0-9]+", cleaned) if w]
+    if not words:
+        return fallback
+    if len(words) >= 2 and len(words.__getitem__(0)) <= 4:
+        return "".join(w.__getitem__(0) for w in words[:3]).upper()
+    return words.__getitem__(0)[:3].upper()
+
+
+def generate_national_citizen_id(barangay):
+    city = getattr(barangay, "city_municipality", None)
+    prov = getattr(city, "province", None)
+    p_code = _geo_code(getattr(prov, "name", ""), "NE")
+    c_code = _geo_code(getattr(city, "name", ""), "CAB")
+    b_code = _geo_code(getattr(barangay, "name", ""), "LAG")
+    yr = date.today().year
+    prefix = f"{p_code}-{c_code}-{b_code}-{yr}-"
+    existing_ids = CitizenProfile.objects.filter(
+        barangay=barangay,
+        citizen_qr_id__startswith=prefix,
+    ).values_list("citizen_qr_id", flat=True)
+    max_seq = 0
+    for cid in existing_ids:
+        tail = cid.replace(prefix, "").strip()
+        if tail.isdigit():
+            max_seq = max(max_seq, int(tail))
+    return f"{prefix}{max_seq + 1:05d}"
+
+
+def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source_channel="SELF_PORTAL", uploaded_by=""):
+    cid = cit.citizen_qr_id.strip().upper()
+    if photo_file:
+        ext = os.path.splitext(photo_file.name).__getitem__(1).lower() or ".png"
+        if ext not in (".png", ".jpg", ".jpeg", ".webp"):
+            ext = ".png"
+        photo_name = f"{cid}_2x2{ext}"
+        cit.photo.save(photo_name, photo_file, save=True)
+
+    valid_docs = [f for f in (doc_files or []) if f]
+    if valid_docs:
+        pdf_bytes = None
+        img_pages = []
+        for fobj in valid_docs:
+            fn_low = fobj.name.lower()
+            raw = fobj.read()
+            if not raw:
+                continue
+            if fn_low.endswith(".pdf"):
+                pdf_bytes = raw
+                break
+            else:
+                try:
+                    im = Image.open(BytesIO(raw)).convert("RGB")
+                    img_pages.append(im)
+                except Exception:
+                    continue
+        if pdf_bytes is None and img_pages:
+            out_buf = BytesIO()
+            first_im = img_pages.__getitem__(0)
+            rest_ims = img_pages.__getitem__(slice(1, None))
+            first_im.save(out_buf, format="PDF", resolution=150.0, save_all=True, append_images=rest_ims)
+            pdf_bytes = out_buf.getvalue()
+        if pdf_bytes:
+            std_pdf_name = f"{cid}_supporting_doc.pdf"
+            cit.supporting_document.save(std_pdf_name, ContentFile(pdf_bytes), save=True)
+            CitizenSupportingDocument.objects.create(
+                citizen=cit,
+                document_title=f"Standardized Supporting Proof ({std_pdf_name})",
+                file=ContentFile(pdf_bytes, name=std_pdf_name),
+                source_channel=source_channel,
+                uploaded_by=uploaded_by or cit.full_name,
+            )
+
+
 def citizen_portal(request):
-    barangays = BarangayTenant.objects.all()
+    barangays = BarangayTenant.objects.select_related("city_municipality__province").all()
     active_barangay = barangays.first()
     submitted_citizen = None
     submitted_email = ""
@@ -34,7 +114,7 @@ def citizen_portal(request):
 
         submitted_citizen = CitizenProfile.objects.create(
             barangay=target_brgy,
-            citizen_qr_id=f"CIT-{uuid.uuid4().hex[:6].upper()}",
+            citizen_qr_id=generate_national_citizen_id(target_brgy),
             last_name=request.POST["last_name"].strip(),
             first_name=request.POST["first_name"].strip(),
             middle_name=request.POST.get("middle_name", "").strip(),
@@ -53,9 +133,15 @@ def citizen_portal(request):
             is_solo_parent=bool(request.POST.get("is_solo_parent")),
             is_4ps_beneficiary=bool(request.POST.get("is_4ps_beneficiary")),
             is_first_time_jobseeker=bool(request.POST.get("is_first_time_jobseeker")),
-            supporting_document=request.FILES.get("supporting_document"),
             electronic_signature=request.POST.get("applicant_electronic_signature", "").strip(),
             status="PENDING_APPROVAL",
+        )
+        save_standardized_citizen_files(
+            submitted_citizen,
+            photo_file=request.FILES.get("photo"),
+            doc_files=request.FILES.getlist("supporting_document"),
+            source_channel="SELF_PORTAL",
+            uploaded_by=submitted_citizen.full_name,
         )
 
     html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "portal.html"
@@ -130,12 +216,14 @@ def citizen_home(request):
                     )
                 citizen.household = hh
                 citizen.relationship_to_head = request.POST.get("relationship_to_head", citizen.relationship_to_head)
-            if request.FILES.get("photo"):
-                citizen.photo = request.FILES["photo"]
-            if request.FILES.get("supporting_document"):
-                citizen.supporting_document = request.FILES["supporting_document"]
             citizen.save()
-            notice = f"201 Master Profile synced! Completion: {citizen.profile_completion_pct}%."
+            save_standardized_citizen_files(
+                citizen,
+                photo_file=request.FILES.get("photo"),
+                doc_files=request.FILES.getlist("supporting_document"),
+                source_channel="SELF_PORTAL",
+                uploaded_by=citizen.full_name,
+            )
 
         elif act == "SUBMIT_REPORT":
             rep = CitizenCommunityReport.objects.create(
