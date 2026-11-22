@@ -303,6 +303,11 @@ def command_dashboard(request):
             if fname_low.endswith(".csv"):
                 text = raw_bytes.decode("utf-8-sig", errors="replace")
                 sheets_collected.append(("Sheet1", list(csv.reader(io.StringIO(text)))))
+            if fname_low.endswith(".csv"):
+                text = raw_bytes.decode("utf-8-sig", errors="replace")
+                first_line = text.splitlines().__getitem__(0) if text.splitlines() else ""
+                delim = ";" if first_line.count(";") > first_line.count(",") else ("\t" if first_line.count("\t") > first_line.count(",") else ",")
+                sheets_collected.append(("Sheet1", list(csv.reader(io.StringIO(text), delimiter=delim))))
             elif fname_low.endswith(".xlsx"):
                 with zipfile.ZipFile(io.BytesIO(raw_bytes)) as zf:
                     shared = []
@@ -354,15 +359,17 @@ def command_dashboard(request):
                 return str(v or "").strip().lower() in ("yes", "true", "1", "y", "voter")
 
             def _parse_dt(v):
-                s = str(v or "").strip()
-                if len(s) >= 10 and s.__getitem__(4) == "-":
-                    return s.__getitem__(slice(0, 10))
-                if len(s) >= 10 and "/" in s:
-                    parts_d = s.__getitem__(slice(0, 10)).split("/")
-                    if len(parts_d) == 3 and len(parts_d.__getitem__(2)) == 4:
-                        return f"{parts_d.__getitem__(2)}-{int(parts_d.__getitem__(0)):02d}-{int(parts_d.__getitem__(1)):02d}"
+                from datetime import datetime
+                s = str(v or "").strip().split(" ").__getitem__(0)
+                if not s:
+                    return ""
                 if s.replace(".", "", 1).isdigit():
                     return (date(1899, 12, 30) + timedelta(days=int(float(s)))).isoformat()
+                for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d", "%m-%d-%Y", "%d-%b-%Y", "%d-%b-%y"):
+                    try:
+                        return datetime.strptime(s, fmt).date().isoformat()
+                    except ValueError:
+                        continue
                 return ""
 
             imported_count = 0
