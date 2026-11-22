@@ -213,19 +213,51 @@
           </div>
 
           {% if turnover_summary.pending_citizens > 0 %}
-          <div class="section-title"><span>02B. Pending Citizen Portal Sign-Ups (1-Click Secretary Approval)</span></div>
-          <table><thead><tr><th>QR ID</th><th>Applicant Name</th><th>Sex / Age</th><th>Purok</th><th>Supporting Doc</th><th>Action</th></tr></thead><tbody>
-            {% for c in citizens %}{% if c.status == "PENDING_APPROVAL" %}
-            <tr>
-              <td><strong>{{ c.citizen_qr_id }}</strong></td>
-              <td>{{ c.full_name }}</td>
-              <td>{{ c.get_sex_display }} / {{ c.age }} yrs</td>
-              <td>{{ c.purok }}</td>
-              <td>{% if c.supporting_document %}<a href="{{ c.supporting_document.url }}" target="_blank">View Proof</a>{% else %}Uploaded{% endif %}</td>
-              <td><form method="post" style="margin:0;">{% csrf_token %}<input type="hidden" name="action" value="APPROVE_CITIZEN"><input type="hidden" name="citizen_id" value="{{ c.id }}"><button type="submit" style="background:#16a34a;color:#fff;border:0;padding:5px 12px;border-radius:6px;font-weight:700;cursor:pointer;">Approve &amp; Sync 201 &rarr;</button></form></td>
-            </tr>
-            {% endif %}{% endfor %}
-          </tbody></table>
+          <form method="post" id="massApproveForm" style="margin-bottom:18px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="MASS_APPROVE_201">
+            <div class="section-title" style="flex-wrap:wrap;gap:8px;">
+              <span>02B. Pending Citizen Verification Queue ({{ turnover_summary.pending_citizens }} Awaiting Official Check)</span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button type="submit" onclick="return confirm('Approve ONLY the checked citizen records into the official 201 Master File?')" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">&#9989; Approve Checked Rows</button>
+                <button type="submit" onclick="document.querySelectorAll('.pend-chk').forEach(c=>c.checked=false);return confirm('Mass-approve ALL {{ turnover_summary.pending_citizens }} pending records into the official 201 Master File?')" style="background:#16a34a;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&#9889; Mass Approve All ({{ turnover_summary.pending_citizens }})</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table><thead><tr>
+                <th style="width:32px;"><input type="checkbox" onclick="document.querySelectorAll('.pend-chk').forEach(c=>c.checked=this.checked)"></th>
+                <th>QR ID</th><th>Applicant Full Name</th><th>Sex / Age</th><th>Purok &amp; Address</th><th>Household</th><th>PhilSys / Precinct</th><th>Sectors</th><th>Supporting Doc</th><th>Verify &amp; Decide</th>
+              </tr></thead><tbody>
+                {% for c in citizens %}{% if c.status == "PENDING_APPROVAL" %}
+                <tr>
+                  <td><input type="checkbox" class="pend-chk" name="pending_ids" value="{{ c.id }}"></td>
+                  <td><strong>{{ c.citizen_qr_id }}</strong></td>
+                  <td><strong>{{ c.full_name }}</strong><br><small style="color:#64748b;">{{ c.occupation|default:"-" }}</small></td>
+                  <td style="white-space:nowrap;">{{ c.get_sex_display }} / {{ c.age }} yrs</td>
+                  <td><strong>{{ c.purok }}</strong><br><small style="color:#64748b;">{{ c.address_line|default:"-" }}</small></td>
+                  <td>{% if c.household %}<code>{{ c.household.household_code }}</code> ({{ c.get_relationship_to_head_display }}){% else %}-{% endif %}</td>
+                  <td><small>PhilSys: {{ c.philsys_id|default:"-" }}<br>Precinct: {{ c.precinct_number|default:"-" }}</small></td>
+                  <td><small>{% if c.is_registered_voter %}Voter {% endif %}{% if c.is_senior_citizen %}Senior {% endif %}{% if c.is_pwd %}PWD {% endif %}{% if c.is_solo_parent %}SoloParent {% endif %}{% if c.is_4ps_beneficiary %}4Ps {% endif %}{% if c.is_ofw %}OFW{% endif %}</small></td>
+                  <td style="white-space:nowrap;">
+                    {% if c.supporting_document %}
+                      <a href="{{ c.supporting_document.url }}" target="_blank" style="background:#0f766e;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">View Proof &#8599;</a>
+                    {% elif c.repository_docs.all|length > 0 %}
+                      <a href="/citizen-docs/{{ c.citizen_qr_id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">View Docs ({{ c.repository_docs.all|length }}) &#8599;</a>
+                    {% else %}
+                      <span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:999px;font-size:.72rem;font-weight:800;">&#9888; No File Attached</span>
+                    {% endif %}
+                  </td>
+                  <td style="white-space:nowrap;">
+                    <button type="button" onclick="const f=document.getElementById('singleAppForm');f.citizen_id.value='{{ c.id }}';f.submit();" style="background:#16a34a;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;">Approve &rarr;</button>
+                    <button type="button" onclick="const r=prompt('Enter rejection / return remarks for {{ c.full_name|escapejs }}:','Incomplete supporting proof / mismatched 201 details');if(r!==null){const f=document.getElementById('singleRejForm');f.citizen_id.value='{{ c.id }}';f.reject_reason.value=r;f.submit();}" style="margin-left:4px;background:#dc2626;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;">Reject &#10005;</button>
+                  </td>
+                </tr>
+                {% endif %}{% endfor %}
+              </tbody></table>
+            </div>
+          </form>
+          <form id="singleAppForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="APPROVE_CITIZEN"><input type="hidden" name="citizen_id" value=""></form>
+          <form id="singleRejForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_CITIZEN"><input type="hidden" name="citizen_id" value=""><input type="hidden" name="reject_reason" value=""></form>
           {% endif %}
 
           <div class="section-title">

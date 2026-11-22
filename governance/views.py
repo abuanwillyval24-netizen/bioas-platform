@@ -184,13 +184,13 @@ def command_dashboard(request):
     staff_profile = getattr(request.user, "staff_profile", None)
     all_mod_codes = [code for code, _ in BarangayStaffProfile.ALL_MODULE_CHOICES]
     if request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN"):
-        visible_modules = all_mod_codes
+        visible_modules = list(all_mod_codes)
     elif staff_profile:
-        visible_modules = staff_profile.get_visible_modules()
-        if ("CITIZENS" in visible_modules or "LEDGER_201" in visible_modules) and "DOCS_REPO" not in visible_modules:
-            visible_modules.append("DOCS_REPO")
+        visible_modules = list(staff_profile.get_visible_modules())
     else:
-        visible_modules = all_mod_codes
+        visible_modules = list(all_mod_codes)
+    if ("CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or request.user.is_superuser) and "DOCS_REPO" not in visible_modules:
+        visible_modules.append("DOCS_REPO")
 
     if tier == "BARANGAY" and module not in visible_modules:
         module = "OVERVIEW"
@@ -216,6 +216,23 @@ def command_dashboard(request):
                     details=f"Approved citizen portal sign-up for {target.full_name} ({target.citizen_qr_id}).",
                 )
                 action_notice = f"Approved {target.full_name} ({target.citizen_qr_id}) into Master 201 Registry!"
+        elif act == "REJECT_CITIZEN":
+            target = CitizenProfile.objects.filter(id=request.POST.get("citizen_id"), barangay=active_barangay).first()
+            reason = request.POST.get("reject_reason", "").strip() or "Incomplete or unverified supporting documents"
+            if target:
+                qr_ref = target.citizen_qr_id
+                full_nm = target.full_name
+                target.delete()
+                SystemAuditLog.objects.create(
+                    barangay=active_barangay,
+                    action_type="PORTAL_SYNC_APPROVED",
+                    actor_name=actor_name,
+                    actor_role=actor_role,
+                    reference_code=qr_ref,
+                    details=f"Rejected & returned 201 application for {full_nm} ({qr_ref}). Reason: {reason}",
+                )
+                action_notice = f"Rejected 201 submission for {full_nm} ({qr_ref}). Reason: {reason}"
+
         elif act == "SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
