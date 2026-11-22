@@ -302,10 +302,8 @@ def command_dashboard(request):
             sheets_collected = []
             if fname_low.endswith(".csv"):
                 text = raw_bytes.decode("utf-8-sig", errors="replace")
-                sheets_collected.append(("Sheet1", list(csv.reader(io.StringIO(text)))))
-            if fname_low.endswith(".csv"):
-                text = raw_bytes.decode("utf-8-sig", errors="replace")
-                first_line = text.splitlines().__getitem__(0) if text.splitlines() else ""
+                lines_nonempty = [ln for ln in text.splitlines() if ln.strip()]
+                first_line = lines_nonempty.__getitem__(0) if lines_nonempty else ""
                 delim = ";" if first_line.count(";") > first_line.count(",") else ("\t" if first_line.count("\t") > first_line.count(",") else ",")
                 sheets_collected.append(("Sheet1", list(csv.reader(io.StringIO(text), delimiter=delim))))
             elif fname_low.endswith(".xlsx"):
@@ -360,27 +358,39 @@ def command_dashboard(request):
 
             def _parse_dt(v):
                 from datetime import datetime
-                s = str(v or "").strip().split(" ").__getitem__(0)
-                if not s:
+                raw_s = str(v or "").strip()
+                if not raw_s:
                     return ""
+                s = raw_s.split(" ").__getitem__(0)
                 if s.replace(".", "", 1).isdigit():
                     return (date(1899, 12, 30) + timedelta(days=int(float(s)))).isoformat()
-                for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d", "%m-%d-%Y", "%d-%b-%Y", "%d-%b-%y"):
-                    try:
-                        return datetime.strptime(s, fmt).date().isoformat()
-                    except ValueError:
-                        continue
+                for cand in (s, raw_s):
+                    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d", "%m-%d-%Y", "%d-%m-%Y", "%d-%b-%Y", "%d-%b-%y", "%b %d, %Y", "%B %d, %Y", "%m/%d/%y"):
+                        try:
+                            return datetime.strptime(cand, fmt).date().isoformat()
+                        except ValueError:
+                            continue
                 return ""
 
             imported_count = 0
             sheets_used = 0
+            diag_note = ""
             for tab_name, rows_data in sheets_collected:
-                headers = [str(h or "").strip().lower().replace(" ", "_") for h in rows_data.__getitem__(0)]
-                if "last_name" not in headers or "first_name" not in headers or "birth_date" not in headers:
+                hdr_idx = None
+                headers = []
+                for scan_i in range(min(5, len(rows_data))):
+                    cand_h = [str(h or "").strip().lower().replace(" ", "_") for h in rows_data.__getitem__(scan_i)]
+                    if "last_name" in cand_h and "first_name" in cand_h:
+                        hdr_idx = scan_i
+                        headers = cand_h
+                        break
+                if hdr_idx is None:
+                    if not diag_note and rows_data:
+                        diag_note = f"Row 1 columns seen: {', '.join(rows_data.__getitem__(0)[:6])}"
                     continue
                 sheets_used += 1
                 default_purok = tab_name.strip() if any(k in tab_name.lower() for k in ("purok", "zone", "sitio")) else "Purok I"
-                for r in rows_data.__getitem__(slice(1, None)):
+                for r in rows_data.__getitem__(slice(hdr_idx + 1, None)):
                     rec = {headers.__getitem__(i): (r.__getitem__(i) if i < len(r) else "") for i in range(len(headers))}
                     lname = rec.get("last_name", "").strip()
                     fname_c = rec.get("first_name", "").strip()
@@ -461,7 +471,7 @@ def command_dashboard(request):
                 )
                 action_notice = f"Staged {imported_count} citizen record(s) across {sheets_used} sheet(s) from '{up_file.name}' into the Pending Citizen Approvals Queue below for individual or mass verification."
             else:
-                action_notice = f"0 rows staged from '{up_file.name}'. Check that your sheet has headers last_name, first_name, and birth_date with valid data rows."
+                action_notice = f"0 rows staged from '{up_file.name}'. {diag_note or 'Ensure last_name, first_name, and birth_date (YYYY-MM-DD or MM/DD/YYYY) are filled in.'}"
         elif act == "MASS_APPROVE_201":
             selected_ids = request.POST.getlist("pending_ids")
             qs_pend = CitizenProfile.objects.filter(barangay=active_barangay, status="PENDING_APPROVAL")
