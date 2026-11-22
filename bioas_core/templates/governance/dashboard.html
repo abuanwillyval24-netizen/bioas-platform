@@ -309,7 +309,8 @@
                   <th data-col="20" style="background:#0f172a;color:#fff;">Solo Parent</th>
                   <th data-col="21" style="background:#0f172a;color:#fff;">4Ps</th>
                   <th data-col="22" style="background:#0f172a;color:#fff;">Pregnant</th>
-                  <th data-col="23" style="background:#0f172a;color:#fff;">Portal Edit (Approval)</th>
+                  <th data-col="23" style="background:#0f172a;color:#fff;">Supporting Docs Repository</th>
+                  <th data-col="24" style="background:#0f172a;color:#fff;">Portal Edit (Approval)</th>
                 </tr>
               </thead>
               <tbody>
@@ -338,10 +339,11 @@
                   <td data-col="20">{% if c.is_solo_parent %}Yes{% else %}-{% endif %}</td>
                   <td data-col="21">{% if c.is_4ps_beneficiary %}Yes{% else %}-{% endif %}</td>
                   <td data-col="22">{% if c.is_pregnant %}<span class="badge badge-warn">Yes</span>{% else %}-{% endif %}</td>
-                  <td data-col="23" style="white-space:nowrap;"><a href="/citizen-home/?qr_id={{ c.citizen_qr_id }}" target="_blank" style="background:#1e3a8a;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">Portal Edit &rarr;</a></td>
+                  <td data-col="23" style="white-space:nowrap;"><a href="/citizen-docs/{{ c.citizen_qr_id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">View Docs ({{ c.repository_docs.count }}) &#8599;</a></td>
+                  <td data-col="24" style="white-space:nowrap;"><a href="/citizen-home/?qr_id={{ c.citizen_qr_id }}" target="_blank" style="background:#1e3a8a;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">Portal Edit &rarr;</a></td>
                 </tr>
                 {% endif %}{% empty %}
-                <tr><td colspan="24">No approved residents in the 201 ledger yet.</td></tr>
+                <tr><td colspan="25">No approved residents in the 201 ledger yet.</td></tr>
                 {% endfor %}
               </tbody>
             </table>

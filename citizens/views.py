@@ -187,3 +187,113 @@ def update_report_status(request, report_id, new_status):
         report.status = new_status
         report.save(update_fields=["status"])
     return redirect("/?tier=BARANGAY&module=CITIZENS")
+@login_required(login_url="/login/")
+def citizen_docs_repository(request, qr_id):
+    from .models import CitizenSupportingDocument
+
+    citizen = get_object_or_404(CitizenProfile, citizen_qr_id=qr_id.strip().upper())
+    if citizen.supporting_document and citizen.supporting_document.name:
+        if not CitizenSupportingDocument.objects.filter(citizen=citizen, file=citizen.supporting_document.name).exists():
+            CitizenSupportingDocument.objects.create(
+                citizen=citizen,
+                document_title=f"201 Supporting Document ({citizen.full_name})",
+                source_channel="WALKIN_DESK",
+                file=citizen.supporting_document.name,
+                uploaded_by="201 Master Record",
+            )
+
+    notice, error = "", ""
+    if request.method == "POST":
+        doc_title = request.POST.get("document_title", "").strip()
+        uploaded_file = request.FILES.get("repo_file")
+        if not doc_title or not uploaded_file:
+            error = "Document title and file (PDF, JPG, PNG) are required."
+        else:
+            staff_prof = getattr(request.user, "staff_profile", None)
+            uploader = staff_prof.full_name if staff_prof else request.user.username
+            CitizenSupportingDocument.objects.create(
+                citizen=citizen,
+                document_title=doc_title,
+                source_channel="STAFF_REPOSITORY",
+                file=uploaded_file,
+                uploaded_by=uploader,
+            )
+            notice = f"Uploaded '{doc_title}' into {citizen.full_name}'s Supporting Docs Repository."
+
+    repo_docs = list(citizen.repository_docs.all())
+    cert_docs = [c for c in citizen.certificates.all() if getattr(c, "supporting_document", None)]
+    p_col = citizen.barangay.default_primary_color if citizen.barangay else "#1E3A8A"
+    s_col = citizen.barangay.default_secondary_color if citizen.barangay else "#F59E0B"
+
+    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Supporting Docs Repository — {{ citizen.full_name }}</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f1f5f9;color:#0f172a}
+.top{background:{{ p_col }};color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid {{ s_col }}}
+.wrap{max-width:980px;margin:22px auto;padding:0 16px}
+.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
+.badge{background:#dbeafe;color:#1e40af;padding:3px 9px;border-radius:999px;font-size:.74rem;font-weight:700}
+table{width:100%;border-collapse:collapse}th,td{padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:.85rem}
+th{background:#f8fafc;color:#475569;font-size:.74rem;text-transform:uppercase}
+input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px}
+button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}
+</style></head><body>
+<div class="top">
+  <div><strong>201 Supporting Documents Repository</strong> &mdash; {{ citizen.barangay.name }}</div>
+  <button type="button" onclick="window.close()" style="background:rgba(255,255,255,.18);">Close Tab &#10005;</button>
+</div>
+<div class="wrap">
+  {% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}
+  {% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
+
+  <div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;border-top:4px solid {{ p_col }};">
+    {% if citizen.photo %}
+      <img src="{{ citizen.photo.url }}" alt="2x2 Photo" style="width:76px;height:76px;object-fit:cover;border-radius:8px;border:2px solid {{ s_col }};">
+    {% else %}
+      <div style="width:76px;height:76px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#475569;text-align:center;">No 2x2 Photo</div>
+    {% endif %}
+    <div style="flex:1;min-width:220px;">
+      <div style="font-size:1.15rem;font-weight:800;">{{ citizen.full_name }} <span class="badge">{{ citizen.citizen_qr_id }}</span></div>
+      <div style="font-size:.84rem;color:#475569;margin-top:3px;">{{ citizen.purok }} &bull; {{ citizen.address_line|default:"No street address" }} &bull; Age {{ citizen.age }} ({{ citizen.get_sex_display }})</div>
+      <div style="font-size:.8rem;color:#166534;font-weight:700;margin-top:3px;">Status: {{ citizen.get_status_display }} {% if citizen.photo %}&bull; <a href="{{ citizen.photo.url }}" target="_blank" style="color:#1e3a8a;">Open Full 2x2 Photo &nearr;</a>{% endif %}</div>
+    </div>
+  </div>
+
+  <div class="card" style="border-top:4px solid #16a34a;">
+    <h3 style="margin-top:0;">Upload Additional Supporting Document to Citizen Repository</h3>
+    <form method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:2fr 2fr auto;gap:10px;align-items:end;">{% csrf_token %}
+      <div><label style="font-size:.76rem;font-weight:700;">Document Label / Description *</label><input name="document_title" placeholder="e.g., PSA Birth Certificate / PhilSys ID / Voter Stub" required></div>
+      <div><label style="font-size:.76rem;font-weight:700;">Attach File (PDF, JPG, PNG) *</label><input type="file" name="repo_file" required style="padding:5px;"></div>
+      <button type="submit">+ Upload File</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Attached Supporting Documents ({{ repo_docs|length }} Files)</h3>
+    <table><thead><tr><th>Document Title</th><th>Submission Source</th><th>Uploaded By</th><th>Date &amp; Time</th><th>Action</th></tr></thead><tbody>
+      {% for d in repo_docs %}
+      <tr>
+        <td><strong>{{ d.document_title }}</strong></td>
+        <td><span class="badge">{{ d.get_source_channel_display }}</span></td>
+        <td>{{ d.uploaded_by|default:"System" }}</td>
+        <td style="white-space:nowrap;">{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
+        <td><a href="{{ d.file.url }}" target="_blank" style="background:#1e3a8a;color:#fff;padding:5px 11px;border-radius:5px;text-decoration:none;font-size:.76rem;font-weight:700;">View / Download &nearr;</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="color:#64748b;">No supporting documents uploaded for this citizen yet.</td></tr>
+      {% endfor %}
+      {% for cd in cert_docs %}
+      <tr>
+        <td><strong>Certificate Attachment ({{ cd.control_number }})</strong></td>
+        <td><span class="badge">Certificate Request</span></td>
+        <td>{{ citizen.full_name }}</td>
+        <td style="white-space:nowrap;">{{ cd.requested_at|date:"Y-m-d H:i" }}</td>
+        <td><a href="{{ cd.supporting_document.url }}" target="_blank" style="background:#1e3a8a;color:#fff;padding:5px 11px;border-radius:5px;text-decoration:none;font-size:.76rem;font-weight:700;">View / Download &nearr;</a></td>
+      </tr>
+      {% endfor %}
+    </tbody></table>
+  </div>
+</div></body></html>"""
+    return HttpResponse(engines["django"].from_string(tpl).render({
+        "citizen": citizen, "repo_docs": repo_docs, "cert_docs": cert_docs,
+        "p_col": p_col, "s_col": s_col, "notice": notice, "error": error,
+    }, request))

@@ -238,3 +238,40 @@ class CitizenCommunityReport(models.Model):
 
     def __str__(self):
         return f"{self.tracking_code} - {self.citizen.full_name} ({self.get_status_display()})"
+class CitizenSupportingDocument(models.Model):
+    SOURCE_CHOICES = [
+        ("PORTAL_SIGNUP", "Online Citizen Portal Sign-Up / Update"),
+        ("WALKIN_DESK", "Barangay Hall Walk-In / Desk Encoding"),
+        ("CERTIFICATE_REQ", "Certificate / Clearance Supporting Attachment"),
+        ("STAFF_REPOSITORY", "Direct Staff Repository Upload"),
+    ]
+    citizen = models.ForeignKey(CitizenProfile, on_delete=models.CASCADE, related_name="repository_docs")
+    document_title = models.CharField(max_length=160)
+    source_channel = models.CharField(max_length=25, choices=SOURCE_CHOICES, default="WALKIN_DESK")
+    file = models.FileField(upload_to="citizens/repository_docs/")
+    uploaded_by = models.CharField(max_length=120, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+
+    def __str__(self):
+        return f"{self.citizen.citizen_qr_id} — {self.document_title}"
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+@receiver(post_save, sender=CitizenProfile)
+def archive_citizen_supporting_doc(sender, instance, **kwargs):
+    if instance.supporting_document and instance.supporting_document.name:
+        if not CitizenSupportingDocument.objects.filter(citizen=instance, file=instance.supporting_document.name).exists():
+            source = "PORTAL_SIGNUP" if instance.status == "PENDING_APPROVAL" else "WALKIN_DESK"
+            CitizenSupportingDocument.objects.create(
+                citizen=instance,
+                document_title=f"201 Supporting Document ({instance.full_name})",
+                source_channel=source,
+                file=instance.supporting_document.name,
+                uploaded_by="Citizen Portal" if source == "PORTAL_SIGNUP" else "Barangay Staff",
+            )
