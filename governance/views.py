@@ -464,7 +464,7 @@ def command_dashboard(request):
                     cit.middle_name = mname_c
                     cit.suffix = suf_c
                     cit.sex = sex_val
-                    cit.birth_date = bdate
+                    cit.birth_date = date.fromisoformat(bdate)
                     cit.birth_place = rec.get("birth_place", "").strip()
                     cit.civil_status = cstat_val if cstat_val in ("SINGLE", "MARRIED", "WIDOWED", "SEPARATED", "LIVE_IN") else "SINGLE"
                     cit.purok = purok_val
@@ -490,8 +490,9 @@ def command_dashboard(request):
                     cit.is_pregnant = is_preg
                     cit.status = "PENDING_APPROVAL"
                     if len(br_dt) == 10:
-                        cit.birth_registered_date = br_dt
+                        cit.birth_registered_date = date.fromisoformat(br_dt)
                     if len(dd_dt) == 10:
+                        cit.date_of_death = date.fromisoformat(dd_dt)
                         cit.date_of_death = dd_dt
 
                     if hh_code:
