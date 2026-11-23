@@ -12,9 +12,9 @@
     .card { background: #fff; border-radius: 12px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(15,23,42,.06); border: 1px solid #cbd5e1; margin-bottom: 16px; }
     .sec-title { margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; font-size: .92rem; font-weight: 800; color: {{ p_col }}; text-transform: uppercase; letter-spacing: .04em; display: flex; justify-content: space-between; align-items: center; }
     .grid-3 { display: grid; grid-template-columns: {% if view_mode == 'mobile' %}1fr{% else %}repeat(3, minmax(0, 1fr)){% endif %}; gap: 13px; }
-    .item { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 13px; }
-    .lbl { font-size: .67rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: .04em; }
-    .val { font-size: .9rem; font-weight: 700; color: #0f172a; margin-top: 3px; word-break: break-word; line-height: 1.35; }
+    .item { background: #ffffff; border: 1px solid #cbd5e1; border-left: 3px solid #94a3b8; border-radius: 8px; padding: 10px 13px; }
+    .lbl { font-size: .64rem; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: .06em; }
+    .val { font-size: .98rem; font-weight: 800; color: #020617; margin-top: 4px; word-break: break-word; line-height: 1.35; }
     .badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 3px 10px; border-radius: 999px; font-size: .74rem; font-weight: 800; margin: 2px 5px 2px 0; }
     .sys-footer { text-align: center; padding: 12px; font-size: .74rem; font-weight: 800; letter-spacing: .06em; color: #475569; border-top: 2px dashed #cbd5e1; margin-top: 14px; text-transform: uppercase; }
     @page { size: 8.5in 13in; margin: 7mm; }
@@ -26,9 +26,9 @@
       .card img { width: 76px !important; height: 76px !important; border-width: 2px !important; }
       .sec-title { margin-bottom: 4px; padding-bottom: 2px; font-size: .72rem; }
       .grid-3 { grid-template-columns: repeat(4, 1fr) !important; gap: 4px; }
-      .item { padding: 3px 6px; border-radius: 4px; background: #fff; }
-      .lbl { font-size: .53rem; letter-spacing: .02em; }
-      .val { font-size: .68rem; margin-top: 1px; line-height: 1.2; }
+      .item { padding: 3px 6px; border-radius: 4px; background: #fff; border-left: 2px solid #64748b; }
+      .lbl { font-size: .49rem; font-weight: 500; color: #64748b; letter-spacing: .04em; }
+      .val { font-size: .75rem; font-weight: 800; color: #000000; margin-top: 1px; line-height: 1.2; }
       .sys-footer { margin-top: 5px; padding: 4px; font-size: .6rem; }
     }
   </style>
