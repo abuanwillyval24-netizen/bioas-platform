@@ -414,7 +414,9 @@
           </div>
           <div class="card" style="padding:16px 18px;border-top:4px solid var(--primary);margin-bottom:20px;">
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-              <input id="galSearchInput" oninput="updateSharedGallery()" placeholder="Search approved resident by Full Name, Citizen ID, Purok / Sitio / Street..." style="flex:1;min-width:230px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:.83rem;">
+              <input id="galSearchInput" oninput="updateSharedGallery()" onkeydown="if(event.key==='Enter'){event.preventDefault();updateSharedGallery(true);}" placeholder="Search approved resident by Full Name, Citizen ID, Purok / Sitio / Street..." style="flex:1;min-width:230px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:.83rem;">
+              <button type="button" onclick="updateSharedGallery(true)" style="background:var(--primary);color:#fff;border:0;padding:8px 14px;border-radius:7px;font-size:.82rem;font-weight:800;cursor:pointer;">Search</button>
+              <span id="galMatchBadge" style="background:#dbeafe;color:#1e40af;padding:6px 10px;border-radius:7px;font-size:.78rem;font-weight:800;white-space:nowrap;"></span>
               <select id="galPurokFilter" onchange="updateSharedGallery()" style="padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:600;background:#f8fafc;">
                 <option value="">All Puroks / Sitios / Streets</option>
                 {% for pr in pop_stats.purok_rows %}
@@ -461,7 +463,7 @@
             </div>
           </div>
           <script>
-            function updateSharedGallery() {
+            function updateSharedGallery(onEnter = false) {
               const grid = document.getElementById('sharedProfileGrid');
               if (!grid) return;
               const q = (document.getElementById('galSearchInput')?.value || '').trim().toLowerCase();
@@ -482,6 +484,12 @@
                 el.style.display = (matchQ && matchP) ? 'flex' : 'none';
                 grid.appendChild(el);
               });
+              const vis = cards.filter(c => c.style.display !== 'none');
+              const badge = document.getElementById('galMatchBadge');
+              if (badge) badge.textContent = `Showing ${vis.length} of ${cards.length}`;
+              if (onEnter && vis.length === 1 && vis.href) {
+                window.open(vis.href, '_blank');
+              }
             }
             updateSharedGallery();
           </script>
