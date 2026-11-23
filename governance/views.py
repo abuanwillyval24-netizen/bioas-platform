@@ -189,8 +189,10 @@ def command_dashboard(request):
         visible_modules = list(staff_profile.get_visible_modules())
     else:
         visible_modules = list(all_mod_codes)
-    if ("CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or request.user.is_superuser) and "DOCS_REPO" not in visible_modules:
-        visible_modules.append("DOCS_REPO")
+    if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or request.user.is_superuser:
+        for extra_sub in ("CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "DOCS_REPO", "CITIZEN_REPORTS"):
+            if extra_sub not in visible_modules:
+                visible_modules.append(extra_sub)
 
     if tier == "BARANGAY" and module not in visible_modules:
         module = "OVERVIEW"
