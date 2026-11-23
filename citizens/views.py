@@ -61,8 +61,13 @@ def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source
         ext = os.path.splitext(photo_file.name).__getitem__(1).lower() or ".png"
         if ext not in (".png", ".jpg", ".jpeg", ".webp"):
             ext = ".png"
-        photo_name = f"{cid}_2x2{ext}"
-        cit.photo.save(photo_name, photo_file, save=True)
+        mime = "image/jpeg" if ext in (".jpg", ".jpeg") else ("image/webp" if ext == ".webp" else "image/png")
+        photo_bytes = photo_file.read()
+        if photo_bytes:
+            photo_name = f"{cid}_2x2{ext}"
+            cit.photo.save(photo_name, ContentFile(photo_bytes), save=False)
+            cit.photo_data_uri = f"data:{mime};base64," + base64.b64encode(photo_bytes).decode("ascii")
+            cit.save(update_fields=["photo", "photo_data_uri"])
 
     valid_docs = [f for f in (doc_files or []) if f]
     if valid_docs:
@@ -90,15 +95,18 @@ def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source
             pdf_bytes = out_buf.getvalue()
         if pdf_bytes:
             std_pdf_name = f"{cid}_supporting_doc.pdf"
-            cit.supporting_document.save(std_pdf_name, ContentFile(pdf_bytes), save=True)
+            pdf_uri = "data:application/pdf;base64," + base64.b64encode(pdf_bytes).decode("ascii")
+            cit.supporting_document.save(std_pdf_name, ContentFile(pdf_bytes), save=False)
+            cit.supporting_doc_data_uri = pdf_uri
+            cit.save(update_fields=["supporting_document", "supporting_doc_data_uri"])
             CitizenSupportingDocument.objects.create(
                 citizen=cit,
                 document_title=f"Standardized Supporting Proof ({std_pdf_name})",
                 file=ContentFile(pdf_bytes, name=std_pdf_name),
+                file_data_uri=pdf_uri,
                 source_channel=source_channel,
                 uploaded_by=uploaded_by or cit.full_name,
             )
-
 
 def citizen_portal(request):
     barangays = BarangayTenant.objects.select_related("city_municipality__province").all()
@@ -486,3 +494,17 @@ def citizen_201_inspect(request, citizen_id):
     return HttpResponse(engines["django"].from_string(tpl).render({
         "c": c, "p_col": p_col, "s_col": s_col, "repo_docs": repo_docs,
     }, request))
+
+
+def citizen_proof_pdf(request, citizen_id):
+    c = get_object_or_404(CitizenProfile, id=citizen_id)
+    if c.supporting_doc_data_uri and "," in c.supporting_doc_data_uri:
+        b64_part = c.supporting_doc_data_uri.split(",", 1).__getitem__(1)
+        raw_pdf = base64.b64decode(b64_part)
+        resp = HttpResponse(raw_pdf, content_type="application/pdf")
+        resp["Content-Disposition"] = f'inline; filename="{c.citizen_qr_id}_supporting_doc.pdf"'
+        return resp
+    if c.supporting_document:
+        from django.shortcuts import redirect
+        return redirect(c.supporting_document.url)
+    return HttpResponse("No supporting document attached for this citizen record.", status=404)

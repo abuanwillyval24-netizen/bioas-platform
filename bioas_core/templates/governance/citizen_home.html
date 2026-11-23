@@ -40,7 +40,9 @@
     {% else %}
     <div class="card" style="border-top:4px solid #16a34a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
       <div style="display:flex;gap:14px;align-items:center;">
-        {% if citizen.photo %}
+        {% if citizen.photo_data_uri %}
+          <img src="{{ citizen.photo_data_uri }}" alt="2x2 Photo" style="width:86px;height:86px;object-fit:cover;border-radius:10px;border:3px solid #f59e0b;">
+        {% elif citizen.photo %}
           <img src="{{ citizen.photo.url }}" alt="2x2 Photo" style="width:86px;height:86px;object-fit:cover;border-radius:10px;border:3px solid #f59e0b;">
         {% endif %}
         <div>

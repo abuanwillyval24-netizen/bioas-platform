@@ -297,8 +297,8 @@
                   </td>
                   <td style="white-space:nowrap;"><strong>{{ c.purok }}</strong></td>
                   <td style="white-space:nowrap;">
-                    {% if c.supporting_document %}
-                      <a href="{{ c.supporting_document.url }}" target="_blank" style="background:#0f766e;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">View Proof &#8599;</a>
+                    {% if c.supporting_doc_data_uri or c.supporting_document %}
+                      <a href="/citizen-proof/{{ c.id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">View Proof &#8599;</a>
                     {% elif c.repository_docs.all|length > 0 %}
                       <a href="/citizen-docs/{{ c.citizen_qr_id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">View Docs ({{ c.repository_docs.all|length }}) &#8599;</a>
                     {% else %}
