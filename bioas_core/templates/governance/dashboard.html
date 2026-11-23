@@ -408,24 +408,83 @@
           </tbody></table>
 
         {% elif module == "SHARED_GALLERY" %}
-          <div class="section-title" style="margin-top:22px;"><span>02E. Shared Citizen Profiles Gallery (Official &amp; Citizen Synchronized View &mdash; {{ pop_stats.total_residents }})</span><a href="/citizen-home/" target="_blank" style="font-size:.78rem;font-weight:700;color:var(--primary);text-decoration:none;">Citizen Self-Service View &#8599;</a></div>
+          <div class="section-title" style="margin-top:8px;">
+            <span>02E. Shared Citizen Profiles Gallery (Official &amp; Citizen Synchronized View &mdash; {{ pop_stats.total_residents }})</span>
+            <a href="/citizen-home/" target="_blank" style="background:var(--primary);color:#ffffff !important;padding:7px 14px;border-radius:7px;font-size:.78rem;font-weight:800;text-decoration:none;">Open Citizen Self-Service View &#8599;</a>
+          </div>
           <div class="card" style="padding:16px 18px;border-top:4px solid var(--primary);margin-bottom:20px;">
-            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-              <input id="galSearchInput" oninput="filterSharedGallery()" placeholder="Search approved resident by Full Name, Citizen ID, or Purok..." style="flex:1;min-width:240px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:.83rem;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+              <input id="galSearchInput" oninput="updateSharedGallery()" placeholder="Search approved resident by Full Name, Citizen ID, Purok / Sitio / Street..." style="flex:1;min-width:230px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:.83rem;">
+              <select id="galPurokFilter" onchange="updateSharedGallery()" style="padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:600;background:#f8fafc;">
+                <option value="">All Puroks / Sitios / Streets</option>
+                {% for pr in pop_stats.purok_rows %}
+                  <option value="{{ pr.name|lower }}">{{ pr.name }} ({{ pr.count }})</option>
+                {% endfor %}
+              </select>
+              <select id="galSortSelect" onchange="updateSharedGallery()" style="padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:700;background:#f8fafc;color:#0f172a;">
+                <option value="purok" selected>Sort: Purok / Sitio / Street (Default)</option>
+                <option value="name">Sort: Full Name (A &rarr; Z)</option>
+                <option value="date_desc">Sort: Date Registered (Newest)</option>
+                <option value="date_asc">Sort: Date Registered (Oldest)</option>
+                <option value="status">Sort: Residency Status</option>
+              </select>
             </div>
-            <div id="sharedProfileGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;">
+            <div id="sharedProfileGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px;">
               {% for c in citizens %}{% if c.status == 'ACTIVE_RESIDENT' %}
-              <a href="/citizen-inspect/{{ c.id }}/" target="_blank" class="gal-card" data-search="{{ c.full_name|lower }} {{ c.citizen_qr_id|lower }} {{ c.purok|lower }}" style="display:flex;flex-direction:column;align-items:center;text-align:center;background:#f8fafc;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:12px;padding:14px 12px;text-decoration:none;color:inherit;transition:transform .2s ease,box-shadow .2s ease;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 20px rgba(30,58,138,.14)';" onmouseout="this.style.transform='none';this.style.boxShadow='none';">
-                {% if c.photo_data_uri %}<img src="{{ c.photo_data_uri }}" alt="2x2" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:3px solid #f59e0b;margin-bottom:8px;">{% elif c.photo %}<img src="{{ c.photo.url }}" alt="2x2" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:3px solid #f59e0b;margin-bottom:8px;">{% else %}<div style="width:76px;height:76px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:#475569;margin-bottom:8px;">2x2 Photo</div>{% endif %}
+              <a
+                href="/citizen-inspect/{{ c.id }}/"
+                target="_blank"
+                class="gal-card"
+                data-purok="{{ c.purok|lower }} {{ c.street_name|lower }}"
+                data-name="{{ c.last_name|lower }}, {{ c.first_name|lower }}"
+                data-date="{{ c.created_at|date:'YmdHis' }}"
+                data-status="{{ c.get_residency_status_display|lower }}"
+                data-search="{{ c.full_name|lower }} {{ c.citizen_qr_id|lower }} {{ c.purok|lower }} {{ c.street_name|lower }}"
+                style="display:flex;flex-direction:column;align-items:center;text-align:center;background:#f8fafc;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:12px;padding:15px 12px;text-decoration:none;color:inherit;transition:transform .2s ease,box-shadow .2s ease;"
+                onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 20px rgba(30,58,138,.14)';"
+                onmouseout="this.style.transform='none';this.style.boxShadow='none';"
+              >
+                {% if c.photo_data_uri %}
+                  <img src="{{ c.photo_data_uri }}" alt="2x2" style="width:78px;height:78px;object-fit:cover;border-radius:50%;border:3px solid #f59e0b;margin-bottom:8px;">
+                {% elif c.photo %}
+                  <img src="{{ c.photo.url }}" alt="2x2" style="width:78px;height:78px;object-fit:cover;border-radius:50%;border:3px solid #f59e0b;margin-bottom:8px;">
+                {% else %}
+                  <div style="width:78px;height:78px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:#475569;margin-bottom:8px;">2x2 Photo</div>
+                {% endif %}
                 <div style="font-weight:800;font-size:.9rem;color:#0f172a;line-height:1.25;">{{ c.full_name }}</div>
                 <span class="badge" style="margin-top:5px;font-size:.72rem;background:#dbeafe;color:#1e40af;">{{ c.citizen_qr_id }}</span>
-                <div style="font-size:.75rem;color:#475569;margin-top:4px;">{{ c.purok }} &bull; {{ c.age }} yrs</div>
-                <div style="font-size:.72rem;font-weight:800;color:var(--primary);margin-top:6px;">Open Shared 201 Profile &#8599;</div>
+                <div style="font-size:.76rem;font-weight:700;color:#334155;margin-top:5px;">{{ c.purok }}{% if c.street_name %} &bull; {{ c.street_name }}{% endif %}</div>
+                <div style="font-size:.72rem;color:#64748b;margin-top:2px;">{{ c.get_residency_status_display }} &bull; {{ c.age }} yrs</div>
+                <div style="font-size:.72rem;font-weight:800;color:var(--primary);margin-top:7px;">Open Shared 201 Profile &#8599;</div>
               </a>
               {% endif %}{% endfor %}
             </div>
           </div>
-          <script>function filterSharedGallery(){const q=(document.getElementById('galSearchInput')?.value||'').trim().toLowerCase();document.querySelectorAll('#sharedProfileGrid .gal-card').forEach(el=>{el.style.display=(!q||(el.dataset.search||'').includes(q))?'flex':'none';});}</script>
+          <script>
+            function updateSharedGallery() {
+              const grid = document.getElementById('sharedProfileGrid');
+              if (!grid) return;
+              const q = (document.getElementById('galSearchInput')?.value || '').trim().toLowerCase();
+              const pf = (document.getElementById('galPurokFilter')?.value || '').trim().toLowerCase();
+              const mode = document.getElementById('galSortSelect')?.value || 'purok';
+              const cards = Array.from(grid.querySelectorAll('.gal-card'));
+              cards.sort((a, b) => {
+                if (mode === 'name') return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+                if (mode === 'date_desc') return (b.dataset.date || '').localeCompare(a.dataset.date || '');
+                if (mode === 'date_asc') return (a.dataset.date || '').localeCompare(b.dataset.date || '');
+                if (mode === 'status') return (a.dataset.status || '').localeCompare(b.dataset.status || '');
+                const cmpP = (a.dataset.purok || '').localeCompare(b.dataset.purok || '', undefined, {numeric: true});
+                return cmpP !== 0 ? cmpP : (a.dataset.name || '').localeCompare(b.dataset.name || '');
+              });
+              cards.forEach(el => {
+                const matchQ = !q || (el.dataset.search || '').includes(q);
+                const matchP = !pf || (el.dataset.purok || '').includes(pf);
+                el.style.display = (matchQ && matchP) ? 'flex' : 'none';
+                grid.appendChild(el);
+              });
+            }
+            updateSharedGallery();
+          </script>
         {% elif module == "LEDGER_201" %}
           <style>
             .main{max-width:100% !important;}
