@@ -474,7 +474,7 @@ def citizen_201_inspect(request, citizen_id):
 
     action_banner = ""
     if request.method == "POST" and is_official:
-        from governance.models import SystemAuditLog
+        from audit_analytics.models import SystemAuditLog, DILGComplianceReport, COAAuditCompliance
         staff_p = getattr(request.user, "staff_profile", None)
         act_nm = staff_p.full_name if staff_p else (request.user.get_full_name() or request.user.username)
         act_rl = staff_p.get_role_display() if staff_p else "System Administrator"
@@ -553,7 +553,7 @@ def citizen_201_inspect(request, citizen_id):
 
     if is_owner_citizen:
         try:
-            from governance.models import SystemAuditLog
+            from audit_analytics.models import SystemAuditLog, DILGComplianceReport, COAAuditCompliance
             SystemAuditLog.objects.create(
                 barangay=c.barangay,
                 action_type="PORTAL_SYNC_APPROVED",
