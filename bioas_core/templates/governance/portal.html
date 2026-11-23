@@ -25,13 +25,37 @@
     button:disabled { background: #9ca3af; cursor: not-allowed; }
     .ack-box { text-align: center; padding: 20px 12px; }
     .ack-icon { font-size: 3rem; color: #16a34a; margin-bottom: 8px; }
+    .view-switch { display: inline-flex; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); border-radius: 999px; padding: 3px; gap: 4px; }
+    .view-switch button { margin: 0; width: auto; padding: 5px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; background: transparent; color: #e2e8f0; border: 0; cursor: pointer; }
+    .view-switch button.active { background: #f59e0b; color: #0f172a; }
+    body.mobile-preview .card { max-width: 412px; margin: 18px auto; padding: 18px 16px; border-radius: 18px; box-shadow: 0 12px 32px rgba(15,23,42,0.18); border: 2px solid #cbd5e1; border-top: 5px solid #1e3a8a; }
+    body.mobile-preview .row, body.mobile-preview .row-3 { grid-template-columns: 1fr; gap: 8px; }
+    @media (max-width: 640px) {
+      .topbar { flex-wrap: wrap; gap: 8px; padding: 12px 14px; }
+      .card { margin: 14px 10px; padding: 16px; }
+      .row, .row-3 { grid-template-columns: 1fr; gap: 8px; }
+    }
   </style>
 </head>
 <body>
   <header class="topbar">
     <strong>BIOAS Online Citizen Portal (Auto-Syncs to 201 Master)</strong>
-    <a href="/">← Back to Command Dashboard</a>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div class="view-switch" role="group" aria-label="Viewport Switcher">
+        <button type="button" id="btnDesktopView" class="active" onclick="setPortalView('desktop')">&#128421; Desktop View</button>
+        <button type="button" id="btnMobileView" onclick="setPortalView('mobile')">&#128241; Mobile View</button>
+      </div>
+      <a href="/">&larr; Back to Command Dashboard</a>
+    </div>
   </header>
+  <script>
+    function setPortalView(mode) {
+      const isMob = mode === 'mobile';
+      document.body.classList.toggle('mobile-preview', isMob);
+      document.getElementById('btnDesktopView').classList.toggle('active', !isMob);
+      document.getElementById('btnMobileView').classList.toggle('active', isMob);
+    }
+  </script>
   <div class="card">
     {% if submitted_citizen or success_msg %}
       <div class="ack-box" style="text-align:center;padding:32px 24px;background:#ffffff;border:1px solid #e2e8f0;border-top:5px solid #1e3a8a;border-radius:12px;max-width:520px;margin:12px auto;">

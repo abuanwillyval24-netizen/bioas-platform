@@ -140,7 +140,7 @@ def citizen_portal(request):
             alias_nickname=(request.POST.get("alias_nickname") or request.POST.get("alias") or "").strip(),
             sex=norm_sex,
             gender_identity=g_id,
-            birth_date=request.POST["birth_date"],
+            birth_date=date.fromisoformat(request.POST["birth_date"].strip()),
             birth_place=request.POST.get("birth_place", "").strip(),
             civil_status=request.POST.get("civil_status", "SINGLE"),
             citizenship=request.POST.get("citizenship", "Filipino").strip() or "Filipino",
