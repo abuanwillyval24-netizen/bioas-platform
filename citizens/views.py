@@ -233,7 +233,8 @@ def citizen_home(request):
     elif top_act == "SEND_RECOVERY_OTP":
         cand = CitizenProfile.objects.filter(email_address__iexact=rec_email).order_by("-id").first() if rec_email else None
         if not cand:
-            error, otp_stage = "No citizen account is registered under that Email Address. If you lost access to your email, please visit the Barangay Hall for Walk-In Assisted Account Recovery.", "FORM"
+            otp_stage = "VERIFY"
+            notice = "If an account is registered under that email address, your Citizen Reference ID, Username, and 6-digit OTP have been sent discreetly to your email inbox."
         else:
             code = f"{random.randint(100000, 999999)}"
             request.session["citizen_otp_code"], request.session["citizen_otp_cid"], otp_stage = code, cand.id, "VERIFY"
@@ -258,10 +259,7 @@ def citizen_home(request):
                         sent_live = resp.status in (200, 201)
                 except Exception:
                     sent_live = False
-            if sent_live:
-                notice = f"We emailed your Reference ID, Username, and 6-digit OTP to {cand.email_address}."
-            else:
-                notice = f"[Testing OTP Preview] Reference ID: {cand.citizen_qr_id} | Username: {cand.portal_username or '(Not set)'} | 6-Digit OTP: {code} (Add free RESEND_API_KEY on Render to deliver directly to Gmail)"
+            notice = "If an account is registered under that email address, your Citizen Reference ID, Username, and 6-digit OTP have been sent discreetly to your email inbox."
     elif top_act == "RESET_PASSWORD_OTP":
         if not request.session.get("citizen_otp_code") or request.POST.get("otp_code", "").strip() != request.session.get("citizen_otp_code"):
             error, otp_stage = "Invalid or expired 6-digit OTP code.", "VERIFY"
