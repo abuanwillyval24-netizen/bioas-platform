@@ -88,3 +88,5 @@ import dj_database_url
 
 if os.environ.get("DATABASE_URL"):
     DATABASES["default"] = dj_database_url.config(conn_max_age=600, ssl_require=True)
+DATA_UPLOAD_MAX_NUMBER_FILES = 25000
+DATA_UPLOAD_MAX_MEMORY_SIZE = 524288000

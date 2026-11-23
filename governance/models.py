@@ -48,9 +48,17 @@ class BarangayTenant(models.Model):
         ("FULL_ACTIVE", "Fully Operational"),
         ("SUSPENDED", "Suspended"),
     ]
+    BARANGAY_CLASSIFICATIONS = [
+        ("RURAL", "Rural Barangay"),
+        ("URBAN", "Urban Barangay"),
+    ]
     city_municipality = models.ForeignKey(CityMunicipality, on_delete=models.PROTECT, related_name="barangays")
     tenant_code = models.CharField(max_length=30, unique=True)
     name = models.CharField(max_length=120)
+    barangay_classification = models.CharField(max_length=15, choices=BARANGAY_CLASSIFICATIONS, default="RURAL")
+    classification_supporting_doc = models.FileField(upload_to="classification_docs/", blank=True, null=True)
+    classification_updated_at = models.DateTimeField(blank=True, null=True)
+    classification_updated_by = models.CharField(max_length=150, blank=True)
     zip_code = models.CharField(max_length=10, default="3100")
     hall_address = models.CharField(max_length=255, blank=True)
     official_email = models.EmailField(blank=True)

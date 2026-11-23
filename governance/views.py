@@ -918,6 +918,73 @@ def theme_settings(request):
                 u.save()
                 update_session_auth_hash(request, u)
                 notice = "Password updated securely!"
+        elif act == "REGISTER_BARANGAY_TENANT" and u.is_superuser:
+            from django.utils import timezone
+            prov_nm = request.POST.get("province_name", "").strip()
+            city_nm = request.POST.get("city_name", "").strip()
+            brgy_nm = request.POST.get("barangay_name", "").strip()
+            b_class = request.POST.get("barangay_classification", "").strip().upper()
+            if not prov_nm or not city_nm or not brgy_nm or b_class not in ("URBAN", "RURAL"):
+                error = "Province, City/Municipality, Barangay Name, and mandatory Classification (Urban or Rural) are all required."
+            else:
+                prov_obj, _ = Province.objects.get_or_create(
+                    name__iexact=prov_nm,
+                    defaults={"code": prov_nm[:3].upper(), "name": prov_nm},
+                )
+                city_obj, _ = CityMunicipality.objects.get_or_create(
+                    province=prov_obj,
+                    name__iexact=city_nm,
+                    defaults={"code": f"{prov_obj.code}-{city_nm[:3].upper()}", "name": city_nm},
+                )
+                t_code = f"{prov_obj.code}-{city_nm[:3].upper()}-{brgy_nm[:3].upper()}-{BarangayTenant.objects.count() + 1:03d}"
+                new_b = BarangayTenant.objects.create(
+                    city_municipality=city_obj,
+                    tenant_code=t_code,
+                    name=brgy_nm,
+                    barangay_classification=b_class,
+                    classification_supporting_doc=request.FILES.get("classification_supporting_doc"),
+                    classification_updated_at=timezone.now(),
+                    classification_updated_by=u.get_full_name() or u.username,
+                    status="FULL_ACTIVE",
+                )
+                SystemAuditLog.objects.create(
+                    barangay=new_b,
+                    action_type="PORTAL_SYNC_APPROVED",
+                    actor_name=u.get_full_name() or u.username,
+                    actor_role="SUPERUSER_ADMIN",
+                    reference_code=t_code,
+                    details=f"Registered live Barangay '{brgy_nm}' ({city_nm}, {prov_nm}) with mandatory classification: {new_b.get_barangay_classification_display()}.",
+                )
+                notice = f"Live Barangay '{brgy_nm}' registered as {new_b.get_barangay_classification_display()} (Tenant Code: {t_code})!"
+        elif act == "RECLASSIFY_BARANGAY":
+            if not u.is_superuser:
+                error = "Access Denied: Only an Administrator account can process Rural-to-Urban or Urban-to-Rural Barangay reclassification."
+            elif not barangay:
+                error = "No active Barangay selected."
+            else:
+                new_class = request.POST.get("new_classification", "").strip().upper()
+                sup_doc = request.FILES.get("classification_supporting_doc")
+                if new_class not in ("URBAN", "RURAL"):
+                    error = "Please select a valid PSA classification (Urban Barangay or Rural Barangay)."
+                elif not sup_doc:
+                    error = "Complete supporting reclassification document (PSA Certification / Sanggunian Ordinance) is required before upgrading classification."
+                else:
+                    old_label = barangay.get_barangay_classification_display()
+                    barangay.barangay_classification = new_class
+                    barangay.classification_supporting_doc = sup_doc
+                    barangay.classification_updated_at = timezone.now()
+                    barangay.classification_updated_by = u.get_full_name() or u.username
+                    barangay.save()
+                    SystemAuditLog.objects.create(
+                        barangay=barangay,
+                        action_type="PORTAL_SYNC_APPROVED",
+                        actor_name=u.get_full_name() or u.username,
+                        actor_role="SUPERUSER_ADMIN",
+                        reference_code=barangay.tenant_code,
+                        details=f"Admin reclassified {barangay.name} from {old_label} to {barangay.get_barangay_classification_display()} with verified supporting document.",
+                    )
+                    notice = f"Classification updated immediately: {barangay.name} is now officially classified as {barangay.get_barangay_classification_display()}!"
+
 
     staff_list = BarangayStaffProfile.objects.select_related("user", "citizen").filter(barangay=barangay) if barangay else []
     available_201 = CitizenProfile.objects.filter(barangay=barangay, status="ACTIVE_RESIDENT", staff_account__isnull=True).order_by("last_name", "first_name") if barangay else []
@@ -939,6 +1006,66 @@ label{display:block;font-weight:700;font-size:.8rem;margin:8px 0 4px}input,selec
 <div class="wrap">
 {% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}
 {% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
+<div class="card" style="border-top:4px solid #0f766e;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div>
+      <h3 style="margin:0;">0. Official PSA Barangay Classification &amp; Live Setup Status</h3>
+      {% if barangay %}
+      <div style="font-size:.84rem;color:#334155;margin-top:4px;">
+        <strong>{{ barangay.name }}</strong>, {{ barangay.city_municipality.name }}, {{ barangay.city_municipality.province.name }} &bull; Current Status:
+        {% if barangay.barangay_classification == "URBAN" %}
+          <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:999px;font-weight:800;font-size:.76rem;">&#127961; URBAN BARANGAY</span>
+        {% else %}
+          <span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:999px;font-weight:800;font-size:.76rem;">&#127806; RURAL BARANGAY</span>
+        {% endif %}
+        {% if barangay.classification_supporting_doc %}&bull; <a href="{{ barangay.classification_supporting_doc.url }}" target="_blank" style="color:#0f766e;font-weight:700;">View Verified Proof &#8599;</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% if u.is_superuser and barangay %}
+  <form method="post" enctype="multipart/form-data" style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;align-items:end;">
+    {% csrf_token %}<input type="hidden" name="action" value="RECLASSIFY_BARANGAY">
+    <div>
+      <label style="margin-top:0;">Admin-Only Reclassification *</label>
+      <select name="new_classification" required>
+        <option value="RURAL" {% if barangay.barangay_classification == "RURAL" %}selected{% endif %}>Rural Barangay</option>
+        <option value="URBAN" {% if barangay.barangay_classification == "URBAN" %}selected{% endif %}>Urban Barangay (Reclassified / HUC / Urbanized)</option>
+      </select>
+    </div>
+    <div>
+      <label style="margin-top:0;">Verified Supporting Reclassification Proof *</label>
+      <input type="file" name="classification_supporting_doc" accept=".pdf,.png,.jpg,.jpeg" required style="padding:6px;">
+    </div>
+    <div>
+      <button type="submit" class="save" style="margin:0;width:100%;background:#0f766e;">Verify &amp; Update Classification Immediately</button>
+    </div>
+  </form>
+  {% elif barangay %}
+  <p style="font-size:.78rem;color:#64748b;margin:8px 0 0;"><em>Note: Reclassification between Rural and Urban Barangay is restricted strictly to Administrator accounts upon submission and verification of supporting documents.</em></p>
+  {% endif %}
+  {% if u.is_superuser %}
+  <details style="margin-top:12px;">
+    <summary style="cursor:pointer;font-weight:700;font-size:.82rem;color:#1e3a8a;">+ Register New Live Barangay Tenant (Mandatory Province, City/Municipality, Barangay &amp; Urban/Rural Classification)</summary>
+    <form method="post" enctype="multipart/form-data" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;align-items:end;">
+      {% csrf_token %}<input type="hidden" name="action" value="REGISTER_BARANGAY_TENANT">
+      <div><label style="margin-top:0;">Province *</label><input name="province_name" placeholder="e.g., Nueva Ecija" required></div>
+      <div><label style="margin-top:0;">City / Municipality *</label><input name="city_name" placeholder="e.g., Cabanatuan City" required></div>
+      <div><label style="margin-top:0;">Barangay Name *</label><input name="barangay_name" placeholder="e.g., Barangay Lagare" required></div>
+      <div>
+        <label style="margin-top:0;">Barangay Classification *</label>
+        <select name="barangay_classification" required>
+          <option value="RURAL">Rural Barangay</option>
+          <option value="URBAN">Urban Barangay</option>
+        </select>
+      </div>
+      <div><label style="margin-top:0;">Supporting Proof (Optional)</label><input type="file" name="classification_supporting_doc" accept=".pdf,.png,.jpg,.jpeg" style="padding:6px;"></div>
+      <div><button type="submit" class="save" style="margin:0;width:100%;">Activate Live Barangay</button></div>
+    </form>
+  </details>
+  {% endif %}
+</div>
+
 {% if can_manage_officers and barangay %}
 <div class="card" style="border-top:4px solid #16a34a;">
   <h3 style="margin-top:0;">1. Create Elected / Appointed Officer Account (From 201 Master File or Manual Input)</h3>
