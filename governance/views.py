@@ -242,7 +242,28 @@ def command_dashboard(request):
             if target:
                 qr_ref = target.citizen_qr_id
                 full_nm = target.full_name
-                target.delete()
+                target.status = "REJECTED_RETURNED"
+                target.rejection_reason = reason
+                target.save(update_fields=["status", "rejection_reason"])
+                if target.email_address:
+                    try:
+                        from django.core.mail import send_mail
+                        from django.conf import settings as dj_settings
+                        send_mail(
+                            subject=f"[{active_barangay.name}] 201 Registration Returned for Revision",
+                            message=(
+                                f"Good day {full_nm},\n\n"
+                                f"Your Barangay 201 registration ({qr_ref}) was returned for revision.\n"
+                                f"Reason: {reason}\n\n"
+                                f"Please log in at /citizen-home/ using your Citizen ID ({qr_ref}) to update your details or supporting documents and resubmit.\n\n"
+                                f"? {active_barangay.name} Office of the Barangay Secretary"
+                            ),
+                            from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                            recipient_list=[target.email_address],
+                            fail_silently=True,
+                        )
+                    except Exception:
+                        pass
                 SystemAuditLog.objects.create(
                     barangay=active_barangay,
                     action_type="PORTAL_SYNC_APPROVED",
