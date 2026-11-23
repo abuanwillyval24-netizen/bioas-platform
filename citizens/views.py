@@ -404,7 +404,6 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
 def citizen_201_inspect(request, citizen_id):
     from django.shortcuts import redirect
     from django.utils import timezone
-    from governance.models import SystemAuditLog
     c = get_object_or_404(CitizenProfile, id=citizen_id)
     qr_param = request.GET.get("qr", "").strip().upper()
     is_official = request.user.is_authenticated
@@ -420,14 +419,18 @@ def citizen_201_inspect(request, citizen_id):
     device_label = "Mobile Phone" if is_mobile_ua else "Desktop Computer"
 
     if is_owner_citizen:
-        SystemAuditLog.objects.create(
-            barangay=c.barangay,
-            action_type="PORTAL_SYNC_APPROVED",
-            actor_name=c.full_name,
-            actor_role=f"CITIZEN_SELF_SERVICE ({device_label})",
-            reference_code=c.citizen_qr_id,
-            details=f"Resident viewed synchronized 201 profile ({view_mode.upper()} mode) via {device_label}.",
-        )
+        try:
+            from audit.models import SystemAuditLog
+            SystemAuditLog.objects.create(
+                barangay=c.barangay,
+                action_type="PORTAL_SYNC_APPROVED",
+                actor_name=c.full_name,
+                actor_role=f"CITIZEN_SELF_SERVICE ({device_label})",
+                reference_code=c.citizen_qr_id,
+                details=f"Resident viewed synchronized 201 profile ({view_mode.upper()} mode) via {device_label}.",
+            )
+        except Exception:
+            pass
 
     p_col = c.barangay.default_primary_color if c.barangay else "#1E3A8A"
     s_col = c.barangay.default_secondary_color if c.barangay else "#F59E0B"
