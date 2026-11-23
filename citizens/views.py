@@ -116,41 +116,91 @@ def citizen_portal(request):
 
     if request.method == "POST" and active_barangay:
         target_brgy = barangays.filter(id=request.POST.get("barangay_id")).first() or active_barangay
-        raw_sex = (request.POST.get("sex") or request.POST.get("gender") or "MALE").strip().upper()
-        norm_sex = "FEMALE" if raw_sex.startswith("F") else "MALE"
-        submitted_email = request.POST.get("email_address", "").strip()
+        raw_sex = (request.POST.get("sex") or request.POST.get("gender_choice") or request.POST.get("gender") or "MALE").strip().upper()
+        norm_sex = "FEMALE" if ("FEMALE" in raw_sex or raw_sex.startswith("F")) else "MALE"
+        g_id = raw_sex if raw_sex in ("LGBTQ_MALE", "LGBTQ_FEMALE") else norm_sex
+        submitted_email = (request.POST.get("email_address") or request.POST.get("email") or "").strip()
+        h_lot = request.POST.get("house_lot_no", "").strip()
+        st_nm = request.POST.get("street_name", "").strip()
+        purok_val = request.POST.get("purok", "Purok I").strip() or "Purok I"
+        full_addr = request.POST.get("address_line", "").strip() or ", ".join(p for p in [h_lot, st_nm, purok_val] if p)
+        try:
+            yrs_res = max(0, int(request.POST.get("years_in_barangay") or 1))
+        except ValueError:
+            yrs_res = 1
 
         submitted_citizen = CitizenProfile.objects.create(
             barangay=target_brgy,
             citizen_qr_id=generate_national_citizen_id(target_brgy),
+            philsys_id=request.POST.get("philsys_id", "").strip(),
             last_name=request.POST["last_name"].strip(),
             first_name=request.POST["first_name"].strip(),
             middle_name=request.POST.get("middle_name", "").strip(),
             suffix=request.POST.get("suffix", "").strip(),
+            alias_nickname=(request.POST.get("alias_nickname") or request.POST.get("alias") or "").strip(),
             sex=norm_sex,
-            gender_identity=request.POST.get("gender_identity", "PREFER_NOT_TO_SAY"),
+            gender_identity=g_id,
             birth_date=request.POST["birth_date"],
+            birth_place=request.POST.get("birth_place", "").strip(),
             civil_status=request.POST.get("civil_status", "SINGLE"),
-            address_line=request.POST.get("address_line", "").strip(),
-            purok=request.POST.get("purok", "Purok I").strip() or "Purok I",
+            citizenship=request.POST.get("citizenship", "Filipino").strip() or "Filipino",
+            religion=request.POST.get("religion", "").strip(),
+            blood_type=request.POST.get("blood_type", "").strip(),
+            house_lot_no=h_lot,
+            street_name=st_nm,
+            address_line=full_addr,
+            purok=purok_val,
+            residency_status=request.POST.get("residency_status", "PERMANENT"),
+            years_in_barangay=yrs_res,
             mobile_number=request.POST.get("mobile_number", "").strip(),
             email_address=submitted_email,
+            emergency_contact_name=request.POST.get("emergency_contact_name", "").strip(),
+            emergency_contact_phone=request.POST.get("emergency_contact_phone", "").strip(),
+            emergency_contact_relationship=request.POST.get("emergency_contact_relationship", "").strip(),
             is_registered_voter=bool(request.POST.get("is_registered_voter")),
+            precinct_number=request.POST.get("precinct_number", "").strip(),
+            philhealth_number=request.POST.get("philhealth_number", "").strip(),
+            sss_gsis_number=request.POST.get("sss_gsis_number", "").strip(),
+            tin_number=request.POST.get("tin_number", "").strip(),
+            pagibig_number=request.POST.get("pagibig_number", "").strip(),
+            education_level=request.POST.get("education_level", "").strip(),
+            currently_attending_school=bool(request.POST.get("currently_attending_school")),
+            school_or_course=request.POST.get("school_or_course", "").strip(),
+            grade_year_level=request.POST.get("grade_year_level", "").strip(),
+            employment_status=request.POST.get("employment_status", "").strip(),
+            occupation=request.POST.get("occupation", "").strip(),
+            employer_or_business=request.POST.get("employer_or_business", "").strip(),
+            employer_address=request.POST.get("employer_address", "").strip(),
+            monthly_income=request.POST.get("monthly_income", "").strip(),
             is_senior_citizen=bool(request.POST.get("is_senior_citizen")),
+            osca_id_number=request.POST.get("osca_id_number", "").strip(),
             is_pwd=bool(request.POST.get("is_pwd")),
+            pwd_disability_type=request.POST.get("pwd_disability_type", "").strip(),
+            pwd_id_number=request.POST.get("pwd_id_number", "").strip(),
             is_solo_parent=bool(request.POST.get("is_solo_parent")),
+            solo_parent_id_number=request.POST.get("solo_parent_id_number", "").strip(),
+            is_ofw=bool(request.POST.get("is_ofw")),
+            ofw_country=request.POST.get("ofw_country", "").strip(),
+            is_osy_osc=bool(request.POST.get("is_osy_osc")),
+            is_indigenous_people=bool(request.POST.get("is_indigenous_people")),
+            ip_group_tribe=request.POST.get("ip_group_tribe", "").strip(),
             is_4ps_beneficiary=bool(request.POST.get("is_4ps_beneficiary")),
+            four_ps_household_id=request.POST.get("four_ps_household_id", "").strip(),
+            is_pregnant=bool(request.POST.get("is_pregnant")),
             is_first_time_jobseeker=bool(request.POST.get("is_first_time_jobseeker")),
+            data_privacy_consent=bool(request.POST.get("agree_terms_privacy")),
             electronic_signature=request.POST.get("applicant_electronic_signature", "").strip(),
+            encoded_by="Citizen Self-Registration Portal",
             status="PENDING_APPROVAL",
         )
         save_standardized_citizen_files(
             submitted_citizen,
             photo_file=request.FILES.get("photo"),
             doc_files=request.FILES.getlist("supporting_document"),
-            source_channel="SELF_PORTAL",
+            source_channel="PORTAL_SIGNUP",
             uploaded_by=submitted_citizen.full_name,
         )
+        
 
     html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "portal.html"
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))

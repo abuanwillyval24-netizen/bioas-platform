@@ -321,7 +321,7 @@ class BarangayStaffProfile(models.Model):
         ("LEDGER_201", "02B. Master 201 Excel Ledger"),
         ("DOCS_REPO", "02C. Supporting Docs Repository"),
         ("CERTIFICATES", "03. Certificates & Clearances"),
-        ("BLOTTER", "04. Blotter & VAWC"),
+        ("BLOTTER", "04. Derogatory Record Flag"),
         ("TREASURY", "05. Treasury & Collections"),
         ("HEALTH", "06. Health Station"),
         ("WELFARE", "07. Welfare & Associations"),
