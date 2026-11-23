@@ -397,10 +397,10 @@
           {% if turnover_summary.pending_citizens > 0 %}
           <form method="post" id="massApproveForm" style="margin-bottom:18px;">
             {% csrf_token %}
-            <input type="hidden" name="action" value="MASS_APPROVE_201">
+            <input type="hidden" id="massActionInp" name="action" value="MASS_APPROVE_201"><input type="hidden" id="massRejectReasonInp" name="reject_reason" value="">
             <div class="section-title" style="flex-wrap:wrap;gap:8px;">
               <span>02B. Pending Citizen Verification Queue ({{ turnover_summary.pending_citizens }} Awaiting Official Check)</span>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input id="pendSearchInput" oninput="filterPendQueue()" placeholder="Filter pending by Name, QR ID, or Purok..." style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;min-width:200px;"><span id="pendSelBadge" style="background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;">0 Selected</span>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input id="pendSearchInput" oninput="filterPendQueue()" placeholder="Filter pending by Name, QR ID, or Purok..." style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;min-width:200px;"><span id="pendSelBadge" style="background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;">0 Selected</span><button type="button" onclick="selectNoDocRows()" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Select No-Doc Rows</button><button type="button" onclick="submitMassReject()" style="background:#dc2626;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Reject Selected &#10005;</button>
                 <button type="submit" onclick="return confirm('Approve ONLY the checked citizen records into the official 201 Master File?')" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">&#9989; Approve Checked</button>
                 <button type="submit" onclick="document.querySelectorAll('.pend-chk').forEach(c=>c.checked=false);return confirm('Mass-approve ALL {{ turnover_summary.pending_citizens }} pending records into the official 201 Master File?')" style="background:#16a34a;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&#9889; Mass Approve All ({{ turnover_summary.pending_citizens }})</button>
               </div>
@@ -415,7 +415,7 @@
                 <th style="white-space:nowrap;text-align:right;">Verify &amp; Decide</th>
               </tr></thead><tbody>
                 {% for c in citizens %}{% if c.status == "PENDING_APPROVAL" %}
-                <tr>
+                <tr data-has-doc="{% if c.supporting_doc_data_uri or c.supporting_document or c.repository_docs.all|length > 0 %}1{% else %}0{% endif %}">
                   <td style="text-align:center;"><input type="checkbox" class="pend-chk" onchange="this.closest('tr').classList.toggle('is-checked',this.checked);updatePendCount();" name="pending_ids" value="{{ c.id }}"></td>
                   <td style="white-space:nowrap;"><strong>{{ c.citizen_qr_id }}</strong></td>
                   <td>
@@ -496,6 +496,48 @@
               pendPage = 1;
               renderPendQueue();
             }
+            function selectNoDocRows() {
+              document.querySelectorAll('#pendQueueTable tbody tr').forEach(tr => {
+                const chk = tr.querySelector('.pend-chk');
+                if (!chk) return;
+                const noDoc = tr.dataset.hasDoc === '0';
+                chk.checked = noDoc;
+                tr.classList.toggle('is-checked', noDoc);
+              });
+              updatePendCount();
+            }
+            function submitMassReject() {
+              const cnt = document.querySelectorAll('#pendQueueTable .pend-chk:checked').length;
+              if (!cnt) { alert('Please check or slide across at least one row to reject.'); return; }
+              const reason = prompt(`Reject ${cnt} selected pending citizen row(s)? Enter rejection remark:`, 'Missing or unverified supporting documents');
+              if (reason === null) return;
+              document.getElementById('massActionInp').value = 'MASS_REJECT_201';
+              document.getElementById('massRejectReasonInp').value = reason;
+              document.getElementById('massApproveForm').submit();
+            }
+            let isDraggingPend = false;
+            let dragTargetState = true;
+            document.addEventListener('mouseup', () => { isDraggingPend = false; });
+            document.querySelectorAll('#pendQueueTable tbody tr').forEach(tr => {
+              const chk = tr.querySelector('.pend-chk');
+              if (!chk) return;
+              tr.addEventListener('mousedown', e => {
+                if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+                isDraggingPend = true;
+                dragTargetState = e.target === chk ? !chk.checked : !chk.checked;
+                if (e.target !== chk) {
+                  chk.checked = dragTargetState;
+                  tr.classList.toggle('is-checked', dragTargetState);
+                  updatePendCount();
+                }
+              });
+              tr.addEventListener('mouseenter', () => {
+                if (!isDraggingPend) return;
+                chk.checked = dragTargetState;
+                tr.classList.toggle('is-checked', dragTargetState);
+                updatePendCount();
+              });
+            });
             renderPendQueue();
           </script>
         {% elif module == "HOUSEHOLDS" %}

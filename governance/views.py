@@ -578,6 +578,25 @@ def command_dashboard(request):
                 action_notice = f"Verified & activated {approved_total} citizen record(s) into the Official 201 Master Registry!"
             else:
                 action_notice = "No pending citizen records were selected for approval."
+        elif act == "MASS_REJECT_201":
+            selected_ids = request.POST.getlist("pending_ids")
+            reason = request.POST.get("reject_reason", "").strip() or "Missing or unverified supporting documents"
+            if selected_ids:
+                qs_rej = CitizenProfile.objects.filter(barangay=active_barangay, status="PENDING_APPROVAL", id__in=selected_ids)
+                rej_count = qs_rej.count()
+                if rej_count > 0:
+                    qs_rej.delete()
+                    SystemAuditLog.objects.create(
+                        barangay=active_barangay,
+                        action_type="PORTAL_SYNC_APPROVED",
+                        actor_name=actor_name,
+                        actor_role=actor_role,
+                        reference_code=f"MASS-REJ-{rej_count}",
+                        details=f"Rejected & returned {rej_count} pending 201 application(s). Reason: {reason}",
+                    )
+                    action_notice = f"Rejected & removed {rej_count} pending 201 submission(s). Reason: {reason}"
+            else:
+                action_notice = "Please select at least one pending row to reject."
         elif act == "BATCH_ZIP_DOCS" and (request.FILES.getlist("photo_files") or request.FILES.getlist("doc_files")):
             import os, zipfile
             from django.core.files.base import ContentFile
