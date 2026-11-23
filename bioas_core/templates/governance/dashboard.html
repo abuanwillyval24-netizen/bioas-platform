@@ -184,22 +184,6 @@
             </div>
           </div>
 
-          <div class="card" style="margin-bottom:16px;border-top:4px solid #0f766e;background:#f0fdfa;">
-            <form id="bulk201Form" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="BULK_IMPORT_201">
-              <div style="flex:1;min-width:260px;">
-                <strong style="color:#0f766e;font-size:.95rem;">&#128229; Universal Multi-Sheet Excel / CSV 201 Staging Importer</strong>
-                <div style="font-size:.8rem;color:#475569;margin-top:2px;">Uploads stage into <strong>Pending Citizen Approvals</strong> first (keeping your verified 201 Master File strictly intact). Supports unlimited rows &amp; multi-sheet workbooks divided by Purok.</div>
-              </div>
-              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-                <a href="/?download_201_template=1" style="background:#fff;color:#0f766e;border:1px solid #0f766e;padding:8px 12px;border-radius:6px;font-weight:700;font-size:.8rem;text-decoration:none;white-space:nowrap;">&#11015; Download 201 Template</a>
-                <input id="bulk201File" type="file" name="excel_file" accept=".xlsx,.csv" required style="background:#fff;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
-                <button type="button" onclick="const f=document.getElementById('bulk201File');if(!f.files.length){alert('Please choose an .xlsx or .csv file first.');return;}document.getElementById('confirmFileName').innerText=f.files[0].name;document.getElementById('confirmUploadModal').style.display='flex';" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Stage for Approval &rarr;</button>
-              </div>
-            </form>
-          </div>
-
           <div class="grid">
             <div class="card"><h3>Total Active Residents</h3><div class="stat">{{ pop_stats.total_residents }}</div><small>Verified 201 Registry</small></div>
             <div class="card"><h3>Male / Female</h3><div class="stat">{{ pop_stats.male_count }} / {{ pop_stats.female_count }}</div><small>Male vs. Female</small></div>
@@ -234,7 +218,37 @@
             </div>
           </div>
 
-          {% if turnover_summary.pending_citizens > 0 %}
+          <div class="section-title" style="margin-top:20px;"><span>02. Citizen Portal Community Reports &amp; Complaints ({{ citizen_reports|length }})</span><a href="/citizen-home/" target="_blank" style="background:var(--primary);color:#fff;padding:6px 12px;border-radius:7px;text-decoration:none;font-size:.76rem;font-weight:700;">Open Citizen Portal &#8599;</a></div>
+          <div class="card" style="padding:16px 18px;border-top:4px solid var(--primary);margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+              <input id="repSearchInput" oninput="filterCitizenReports()" placeholder="Search tracking code, resident, category, or landmark..." style="flex:1;min-width:220px;padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;">
+              <select id="repStatusFilter" onchange="filterCitizenReports()" style="padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:600;background:#f8fafc;">
+                <option value="">All Statuses ({{ citizen_reports|length }})</option>
+                <option value="SUBMITTED_OPEN">Submitted / Open</option>
+                <option value="DISPATCHED_TANOD_WO">Dispatched to Tanod / WO</option>
+                <option value="RESOLVED_CLOSED">Resolved / Closed</option>
+              </select>
+            </div>
+            <div style="overflow-x:auto;"><table id="citizenReportsTable" style="margin:0;width:100%;border-collapse:collapse;"><thead><tr><th>Tracking Code &amp; Date</th><th>Resident</th><th>Category</th><th>Location &amp; Details</th><th>Status</th><th style="text-align:right;">Action</th></tr></thead><tbody>{% for rep in citizen_reports %}<tr class="rep-row" data-status="{{ rep.status }}" data-search="{{ rep.tracking_code|lower }} {{ rep.citizen.full_name|lower }} {{ rep.get_category_display|lower }} {{ rep.location_landmark|lower }}"><td><strong style="color:var(--primary);">{{ rep.tracking_code }}</strong><div style="font-size:.72rem;color:#64748b;">{{ rep.submitted_at|date:"M d, Y H:i" }}</div></td><td><strong>{{ rep.citizen.full_name }}</strong><div style="font-size:.72rem;color:#64748b;">{{ rep.citizen.purok }}</div></td><td><span class="badge" style="background:#f1f5f9;color:#1e293b;">{{ rep.get_category_display }}</span></td><td><div style="font-weight:700;font-size:.83rem;">{{ rep.location_landmark }}</div>{% if rep.description %}<div style="font-size:.76rem;color:#475569;">{{ rep.description|truncatechars:90 }}</div>{% endif %}</td><td>{% if rep.status == 'RESOLVED_CLOSED' %}<span class="badge" style="background:#dcfce7;color:#166534;">&#10003; {{ rep.get_status_display }}</span>{% elif rep.status == 'DISPATCHED_TANOD_WO' %}<span class="badge" style="background:#dbeafe;color:#1e40af;">&#9881; {{ rep.get_status_display }}</span>{% else %}<span class="badge" style="background:#fef3c7;color:#92400e;">&#9679; {{ rep.get_status_display }}</span>{% endif %}</td><td style="text-align:right;white-space:nowrap;">{% if rep.status == 'SUBMITTED_OPEN' %}<a href="/report-status/{{ rep.id }}/DISPATCHED_TANOD_WO/" style="background:#d97706;color:#fff;padding:5px 10px;border-radius:6px;text-decoration:none;font-size:.74rem;font-weight:700;margin-right:4px;">Dispatch &rarr;</a>{% endif %}{% if rep.status != 'RESOLVED_CLOSED' %}<a href="/report-status/{{ rep.id }}/RESOLVED_CLOSED/" style="background:#16a34a;color:#fff;padding:5px 10px;border-radius:6px;text-decoration:none;font-size:.74rem;font-weight:700;">Resolve &#10003;</a>{% else %}<span style="font-size:.74rem;color:#64748b;font-weight:600;">Completed</span>{% endif %}</td></tr>{% empty %}<tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b;">No community reports submitted yet.</td></tr>{% endfor %}</tbody></table></div>
+          </div>
+          <script>function filterCitizenReports(){const q=(document.getElementById('repSearchInput')?.value||'').trim().toLowerCase();const st=document.getElementById('repStatusFilter')?.value||'';document.querySelectorAll('#citizenReportsTable .rep-row').forEach(tr=>{tr.style.display=(!q||(tr.dataset.search||'').includes(q))&&(!st||tr.dataset.status===st)?'':'none';});}</script>
+          <div class="section-title" style="margin-top:20px;"><span>Citizen Data Intake &amp; Staging Hub (Excel Importer &bull; Batch QR Media &bull; Walk-In 201 Encoder)</span></div>
+          <div class="card" style="margin-bottom:16px;border-top:4px solid #0f766e;background:#f0fdfa;">
+            <form id="bulk201Form" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="BULK_IMPORT_201">
+              <div style="flex:1;min-width:260px;">
+                <strong style="color:#0f766e;font-size:.95rem;">&#128229; Universal Multi-Sheet Excel / CSV 201 Staging Importer</strong>
+                <div style="font-size:.8rem;color:#475569;margin-top:2px;">Uploads stage into <strong>Pending Citizen Approvals</strong> first (keeping your verified 201 Master File strictly intact). Supports unlimited rows &amp; multi-sheet workbooks divided by Purok.</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                <a href="/?download_201_template=1" style="background:#fff;color:#0f766e;border:1px solid #0f766e;padding:8px 12px;border-radius:6px;font-weight:700;font-size:.8rem;text-decoration:none;white-space:nowrap;">&#11015; Download 201 Template</a>
+                <input id="bulk201File" type="file" name="excel_file" accept=".xlsx,.csv" required style="background:#fff;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <button type="button" onclick="const f=document.getElementById('bulk201File');if(!f.files.length){alert('Please choose an .xlsx or .csv file first.');return;}document.getElementById('confirmFileName').innerText=f.files[0].name;document.getElementById('confirmUploadModal').style.display='flex';" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Stage for Approval &rarr;</button>
+              </div>
+            </form>
+          </div>
+
           <div id="confirmBatchDocsModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);align-items:center;justify-content:center;z-index:9998;padding:16px;">
             <div style="background:#fff;max-width:500px;width:100%;border-radius:12px;padding:22px;box-shadow:0 20px 45px rgba(0,0,0,.3);border-top:5px solid #f59e0b;">
               <h3 style="margin:0 0 8px;color:#92400e;font-size:1.05rem;">&#9888;&#65039; Confirm Batch QR Photo &amp; Document Upload</h3>
@@ -279,6 +293,51 @@
             </form>
           </div>
 
+          <div class="section-title">
+            <span>02C. Walk-In / Desk Complete 201 Master Encoder &amp; Household Linker</span>
+            <button type="button" id="btnToggle201Form" onclick="const b=document.getElementById('walkin201Box');const open=b.style.display==='none';b.style.display=open?'block':'none';this.innerHTML=open?'Hide 201 Encoder &#9652;':'+ Expand Walk-In 201 Encoder &#9662;';" style="background:#1e3a8a;color:#fff;border:0;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">+ Expand Walk-In 201 Encoder &#9662;</button>
+          </div>
+          <div id="walkin201Box" class="card" style="display:none;margin-bottom:18px;">
+            <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="SAVE_CITIZEN_201">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;">
+                <div><label style="font-size:.75rem;font-weight:700;">Last Name *</label><input name="last_name" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">First Name *</label><input name="first_name" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Middle Name</label><input name="middle_name" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Suffix</label><input name="suffix" placeholder="Jr., Sr., III" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Sex *</label><select name="sex" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Birthdate *</label><input type="date" name="birth_date" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Civil Status</label><select name="civil_status" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="SINGLE">Single</option><option value="MARRIED">Married</option><option value="WIDOWED">Widowed</option><option value="SEPARATED">Separated</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Purok / Zone</label><select name="purok" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="Purok I">Purok I</option><option value="Purok II">Purok II</option><option value="Purok III">Purok III</option><option value="Purok IV">Purok IV</option><option value="Purok V">Purok V</option><option value="Purok VI">Purok VI</option><option value="Purok VII">Purok VII</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">House / Street Address</label><input name="address_line" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Residency Status</label><select name="residency_status" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="PERMANENT">Permanent / Homeowner</option><option value="RENTER">Renter / Boarder</option><option value="SHARER">Sharer</option><option value="TRANSIENT">Transient</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Mobile Number</label><input name="mobile_number" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Email Address</label><input type="email" name="email_address" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Highest Education</label><select name="education_level" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="">-- Select --</option><option value="ELEMENTARY_GRAD">Elementary Graduate</option><option value="HIGHSCHOOL_LEVEL">High School Level</option><option value="HIGHSCHOOL_GRAD">High School Graduate</option><option value="VOCATIONAL">Vocational / TESDA</option><option value="COLLEGE_LEVEL">College Level</option><option value="COLLEGE_GRAD">College Graduate</option><option value="POST_GRAD">Post-Graduate</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Occupation / Livelihood</label><input name="occupation" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">PhilSys / National ID</label><input name="philsys_id" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">COMELEC Precinct No.</label><input name="precinct_number" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Household Code (e.g., HH-001)</label><input name="household_code" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Household Head Full Name</label><input name="household_head_name" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Relationship to Head</label><select name="relationship_to_head" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="HEAD">Head of Family</option><option value="SPOUSE">Spouse</option><option value="CHILD">Child (Son / Daughter)</option><option value="PARENT">Parent</option><option value="SIBLING">Sibling</option><option value="GRANDCHILD">Grandchild</option><option value="IN_LAW">Son / Daughter-in-Law</option><option value="OTHER">Other Member</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Birth Reg. Date (If Infant)</label><input type="date" name="birth_registered_date" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">2x2 Photo</label><input type="file" name="photo" accept="image/*" style="width:100%;padding:5px;border:1px solid #d1d5db;border-radius:6px;"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Supporting Document</label><input type="file" name="supporting_document" style="width:100%;padding:5px;border:1px solid #d1d5db;border-radius:6px;"></div>
+              </div>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.82rem;font-weight:700;">
+                <label><input type="checkbox" name="is_registered_voter"> Registered Voter</label>
+                <label><input type="checkbox" name="is_senior_citizen"> Senior Citizen</label>
+                <label><input type="checkbox" name="is_pwd"> PWD</label>
+                <label><input type="checkbox" name="is_solo_parent"> Solo Parent</label>
+                <label><input type="checkbox" name="is_4ps_beneficiary"> 4Ps</label>
+                <label><input type="checkbox" name="is_first_time_jobseeker"> First-Time Jobseeker</label>
+                <label><input type="checkbox" name="is_ofw"> OFW</label>
+                <label><input type="checkbox" name="is_pregnant"> Pregnant</label>
+              </div>
+              <button type="submit" style="margin-top:12px;background:#1e3a8a;color:#fff;border:0;padding:9px 18px;border-radius:7px;font-weight:700;cursor:pointer;">Save New Walk-In 201 Record</button>
+            </form>
+          </div>
+
+          {% if turnover_summary.pending_citizens > 0 %}
           <form method="post" id="massApproveForm" style="margin-bottom:18px;">
             {% csrf_token %}
             <input type="hidden" name="action" value="MASS_APPROVE_201">
@@ -328,50 +387,6 @@
           <form id="singleRejForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_CITIZEN"><input type="hidden" name="citizen_id" value=""><input type="hidden" name="reject_reason" value=""></form>
           {% endif %}
 
-          <div class="section-title">
-            <span>02C. Walk-In / Desk Complete 201 Master Encoder &amp; Household Linker</span>
-            <button type="button" id="btnToggle201Form" onclick="const b=document.getElementById('walkin201Box');const open=b.style.display==='none';b.style.display=open?'block':'none';this.innerHTML=open?'Hide 201 Encoder &#9652;':'+ Expand Walk-In 201 Encoder &#9662;';" style="background:#1e3a8a;color:#fff;border:0;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">+ Expand Walk-In 201 Encoder &#9662;</button>
-          </div>
-          <div id="walkin201Box" class="card" style="display:none;margin-bottom:18px;">
-            <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="SAVE_CITIZEN_201">
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;">
-                <div><label style="font-size:.75rem;font-weight:700;">Last Name *</label><input name="last_name" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">First Name *</label><input name="first_name" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Middle Name</label><input name="middle_name" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Suffix</label><input name="suffix" placeholder="Jr., Sr., III" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Sex *</label><select name="sex" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Birthdate *</label><input type="date" name="birth_date" required style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Civil Status</label><select name="civil_status" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="SINGLE">Single</option><option value="MARRIED">Married</option><option value="WIDOWED">Widowed</option><option value="SEPARATED">Separated</option></select></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Purok / Zone</label><select name="purok" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="Purok I">Purok I</option><option value="Purok II">Purok II</option><option value="Purok III">Purok III</option><option value="Purok IV">Purok IV</option><option value="Purok V">Purok V</option><option value="Purok VI">Purok VI</option><option value="Purok VII">Purok VII</option></select></div>
-                <div><label style="font-size:.75rem;font-weight:700;">House / Street Address</label><input name="address_line" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Residency Status</label><select name="residency_status" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="PERMANENT">Permanent / Homeowner</option><option value="RENTER">Renter / Boarder</option><option value="SHARER">Sharer</option><option value="TRANSIENT">Transient</option></select></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Mobile Number</label><input name="mobile_number" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Email Address</label><input type="email" name="email_address" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Highest Education</label><select name="education_level" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="">-- Select --</option><option value="ELEMENTARY_GRAD">Elementary Graduate</option><option value="HIGHSCHOOL_LEVEL">High School Level</option><option value="HIGHSCHOOL_GRAD">High School Graduate</option><option value="VOCATIONAL">Vocational / TESDA</option><option value="COLLEGE_LEVEL">College Level</option><option value="COLLEGE_GRAD">College Graduate</option><option value="POST_GRAD">Post-Graduate</option></select></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Occupation / Livelihood</label><input name="occupation" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">PhilSys / National ID</label><input name="philsys_id" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">COMELEC Precinct No.</label><input name="precinct_number" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Household Code (e.g., HH-001)</label><input name="household_code" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Household Head Full Name</label><input name="household_head_name" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Relationship to Head</label><select name="relationship_to_head" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"><option value="HEAD">Head of Family</option><option value="SPOUSE">Spouse</option><option value="CHILD">Child (Son / Daughter)</option><option value="PARENT">Parent</option><option value="SIBLING">Sibling</option><option value="GRANDCHILD">Grandchild</option><option value="IN_LAW">Son / Daughter-in-Law</option><option value="OTHER">Other Member</option></select></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Birth Reg. Date (If Infant)</label><input type="date" name="birth_registered_date" style="width:100%;padding:7px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">2x2 Photo</label><input type="file" name="photo" accept="image/*" style="width:100%;padding:5px;border:1px solid #d1d5db;border-radius:6px;"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Supporting Document</label><input type="file" name="supporting_document" style="width:100%;padding:5px;border:1px solid #d1d5db;border-radius:6px;"></div>
-              </div>
-              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.82rem;font-weight:700;">
-                <label><input type="checkbox" name="is_registered_voter"> Registered Voter</label>
-                <label><input type="checkbox" name="is_senior_citizen"> Senior Citizen</label>
-                <label><input type="checkbox" name="is_pwd"> PWD</label>
-                <label><input type="checkbox" name="is_solo_parent"> Solo Parent</label>
-                <label><input type="checkbox" name="is_4ps_beneficiary"> 4Ps</label>
-                <label><input type="checkbox" name="is_first_time_jobseeker"> First-Time Jobseeker</label>
-                <label><input type="checkbox" name="is_ofw"> OFW</label>
-                <label><input type="checkbox" name="is_pregnant"> Pregnant</label>
-              </div>
-              <button type="submit" style="margin-top:12px;background:#1e3a8a;color:#fff;border:0;padding:9px 18px;border-radius:7px;font-weight:700;cursor:pointer;">Save New Walk-In 201 Record</button>
-            </form>
-          </div>
-
           <div class="section-title"><span>02D. Household &amp; Family Tree Breakdown (Head &rarr; Members &rarr; Relationships)</span></div>
           <table><thead><tr><th>Household ID</th><th>Head of Family (Purok)</th><th>Members &amp; Relationships</th><th>Children (Unmarried / Married)</th><th>Seniors / PWD / Solo / Pregnant</th></tr></thead><tbody>
             {% for hr in household_rows %}
@@ -385,11 +400,24 @@
             {% empty %}<tr><td colspan="5">No households linked yet. Enter a Household Code (e.g., HH-001) above or in the Citizen Portal to auto-group family members.</td></tr>{% endfor %}
           </tbody></table>
 
-          <div class="section-title"><span>Citizen Portal Community Reports &amp; Complaints</span><a href="/citizen-home/" target="_blank">Open Citizen Portal &rarr;</a></div>
-          <table><thead><tr><th>Tracking Code</th><th>Resident</th><th>Category</th><th>Location</th><th>Status</th></tr></thead><tbody>
-            {% for rep in citizen_reports %}<tr><td><strong>{{ rep.tracking_code }}</strong></td><td>{{ rep.citizen.full_name }}</td><td>{{ rep.get_category_display }}</td><td>{{ rep.location_landmark }}</td><td><span class="badge">{{ rep.get_status_display }}</span> {% if rep.status == 'SUBMITTED_OPEN' %}<a href="/report-status/{{ rep.id }}/DISPATCHED_TANOD_WO/" style="margin-left:6px;background:#d97706;color:#fff;padding:2px 7px;border-radius:5px;text-decoration:none;font-size:0.74rem;font-weight:700;">Dispatch &rarr;</a>{% endif %}{% if rep.status != 'RESOLVED_CLOSED' %}<a href="/report-status/{{ rep.id }}/RESOLVED_CLOSED/" style="margin-left:6px;background:#16a34a;color:#fff;padding:2px 7px;border-radius:5px;text-decoration:none;font-size:0.74rem;font-weight:700;">Resolve &#10003;</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="5">No community reports submitted yet.</td></tr>{% endfor %}
-          </tbody></table>
-
+          <div class="section-title" style="margin-top:22px;"><span>02E. Shared Citizen Profiles Gallery (Official &amp; Citizen Synchronized View &mdash; {{ pop_stats.total_residents }})</span><a href="/citizen-home/" target="_blank" style="font-size:.78rem;font-weight:700;color:var(--primary);text-decoration:none;">Citizen Self-Service View &#8599;</a></div>
+          <div class="card" style="padding:16px 18px;border-top:4px solid var(--primary);margin-bottom:20px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+              <input id="galSearchInput" oninput="filterSharedGallery()" placeholder="Search approved resident by Full Name, Citizen ID, or Purok..." style="flex:1;min-width:240px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:.83rem;">
+            </div>
+            <div id="sharedProfileGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;">
+              {% for c in citizens %}{% if c.status == 'ACTIVE_RESIDENT' %}
+              <a href="/citizen-inspect/{{ c.id }}/" target="_blank" class="gal-card" data-search="{{ c.full_name|lower }} {{ c.citizen_qr_id|lower }} {{ c.purok|lower }}" style="display:flex;flex-direction:column;align-items:center;text-align:center;background:#f8fafc;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:12px;padding:14px 12px;text-decoration:none;color:inherit;transition:transform .2s ease,box-shadow .2s ease;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 20px rgba(30,58,138,.14)';" onmouseout="this.style.transform='none';this.style.boxShadow='none';">
+                {% if c.photo_data_uri %}<img src="{{ c.photo_data_uri }}" alt="2x2" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:3px solid #f59e0b;margin-bottom:8px;">{% elif c.photo %}<img src="{{ c.photo.url }}" alt="2x2" style="width:76px;height:76px;object-fit:cover;border-radius:50%;border:3px solid #f59e0b;margin-bottom:8px;">{% else %}<div style="width:76px;height:76px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:#475569;margin-bottom:8px;">2x2 Photo</div>{% endif %}
+                <div style="font-weight:800;font-size:.9rem;color:#0f172a;line-height:1.25;">{{ c.full_name }}</div>
+                <span class="badge" style="margin-top:5px;font-size:.72rem;background:#dbeafe;color:#1e40af;">{{ c.citizen_qr_id }}</span>
+                <div style="font-size:.75rem;color:#475569;margin-top:4px;">{{ c.purok }} &bull; {{ c.age }} yrs</div>
+                <div style="font-size:.72rem;font-weight:800;color:var(--primary);margin-top:6px;">Open Shared 201 Profile &#8599;</div>
+              </a>
+              {% endif %}{% endfor %}
+            </div>
+          </div>
+          <script>function filterSharedGallery(){const q=(document.getElementById('galSearchInput')?.value||'').trim().toLowerCase();document.querySelectorAll('#sharedProfileGrid .gal-card').forEach(el=>{el.style.display=(!q||(el.dataset.search||'').includes(q))?'flex':'none';});}</script>
         {% elif module == "LEDGER_201" %}
           <style>.main{max-width:100% !important;}</style>
           <div class="section-title">
