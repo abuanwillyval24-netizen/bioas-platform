@@ -249,7 +249,10 @@ def citizen_home(request):
                 )
             except Exception:
                 pass
-            notice = f"We sent your Reference ID, Username, and 6-digit OTP to {cand.email_address}."
+            if getattr(dj_settings, "EMAIL_HOST_USER", ""):
+                notice = f"We sent your Reference ID, Username, and 6-digit OTP to {cand.email_address}."
+            else:
+                notice = f"[SMTP Fallback Preview] Reference ID: {cand.citizen_qr_id} | Username: {cand.portal_username or '(Not set)'} | 6-Digit OTP: {code} (Set EMAIL_HOST_USER on Render for live inbox delivery)"
     elif top_act == "RESET_PASSWORD_OTP":
         if not request.session.get("citizen_otp_code") or request.POST.get("otp_code", "").strip() != request.session.get("citizen_otp_code"):
             error, otp_stage = "Invalid or expired 6-digit OTP code.", "VERIFY"
