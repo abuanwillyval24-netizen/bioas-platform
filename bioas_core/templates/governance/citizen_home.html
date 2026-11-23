@@ -24,8 +24,26 @@
   </div>
 
   <div class="wrap">
-    {% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}
-    {% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
+    {% if notice %}
+    <div id="modernNoticeCard" style="background:#ffffff;border:1px solid #bbf7d0;border-left:5px solid #16a34a;border-radius:12px;padding:14px 16px;margin-bottom:16px;box-shadow:0 8px 24px rgba(15,23,42,.08);display:flex;align-items:flex-start;gap:12px;">
+      <div style="width:30px;height:30px;border-radius:50%;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;font-weight:900;flex-shrink:0;">&#10003;</div>
+      <div style="flex:1;font-size:.86rem;line-height:1.5;color:#0f172a;">
+        <strong style="display:block;color:#15803d;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Portal Notification</strong>
+        {{ notice }}
+      </div>
+      <button type="button" onclick="document.getElementById('modernNoticeCard').remove()" style="background:transparent;color:#64748b;border:0;padding:0 4px;font-size:1.1rem;line-height:1;cursor:pointer;">&times;</button>
+    </div>
+    {% endif %}
+    {% if error %}
+    <div id="modernErrorCard" style="background:#ffffff;border:1px solid #fecaca;border-left:5px solid #dc2626;border-radius:12px;padding:14px 16px;margin-bottom:16px;box-shadow:0 8px 24px rgba(15,23,42,.08);display:flex;align-items:flex-start;gap:12px;">
+      <div style="width:30px;height:30px;border-radius:50%;background:#fee2e2;color:#b91c1c;display:flex;align-items:center;justify-content:center;font-weight:900;flex-shrink:0;">!</div>
+      <div style="flex:1;font-size:.86rem;line-height:1.5;color:#0f172a;">
+        <strong style="display:block;color:#b91c1c;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Action Required</strong>
+        {{ error }}
+      </div>
+      <button type="button" onclick="document.getElementById('modernErrorCard').remove()" style="background:transparent;color:#64748b;border:0;padding:0 4px;font-size:1.1rem;line-height:1;cursor:pointer;">&times;</button>
+    </div>
+    {% endif %}
 
     {% if not citizen %}
     <div class="card" style="border-top:4px solid #1e3a8a;">
