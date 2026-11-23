@@ -115,7 +115,6 @@
         </div>
       </details>
       {% endif %}
-      {% endif %}
       {% if "CERTIFICATES" in visible_modules %}<a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>{% endif %}
       {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Derogatory Record Flag</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
       <div class="side-group">Treasury &amp; Revenue</div>
