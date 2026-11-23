@@ -104,7 +104,7 @@
             {% if "DOCS_REPO" in visible_modules %}<a href="?tier=BARANGAY&module=DOCS_REPO" class="{% if module == 'DOCS_REPO' %}active{% endif %}"><span>02C. Supporting Docs Repository</span><span class="pill">{{ all_repo_docs|length }}</span></a>{% endif %}
 
       {% if "CERTIFICATES" in visible_modules %}<a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>{% endif %}
-      {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Blotter &amp; VAWC</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
+      {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Derogatory Record Flag</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
       {% if "TREASURY" in visible_modules %}<a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury &amp; Collections</span><span class="pill">{{ receipts|length }}</span></a>{% endif %}
       <div class="side-group">Community &amp; Care</div>
       {% if "HEALTH" in visible_modules %}<a href="?tier=BARANGAY&module=HEALTH" class="{% if module == 'HEALTH' %}active{% endif %}"><span>06. Health Station</span><span class="pill">{{ health_records|length }}</span></a>{% endif %}
@@ -559,7 +559,7 @@
             {% for cert in certificates %}<tr><td><strong>{{ cert.control_number }}</strong></td><td>{{ cert.citizen.full_name }}</td><td>{{ cert.get_cert_type_display }}</td><td><span class="badge">{{ cert.get_status_display }}</span></td><td><a href="/certificate/{{ cert.control_number }}/" target="_blank">Print →</a></td></tr>{% endfor %}
           </tbody></table>
         {% elif module == "BLOTTER" %}
-          <div class="section-title"><span>04. Blotter & VAWC Vault</span><a href="/admin/blotter/blottercase/add/">+ Log Case</a></div>
+          <div class="section-title"><span>04. Derogatory Record Flag Vault</span><a href="/admin/blotter/blottercase/add/">+ Log Case</a></div>
           <table><thead><tr><th>Case No.</th><th>Parties (VAWC Masked)</th><th>Stage</th><th>Clearance</th></tr></thead><tbody>
             {% for b in blotter_cases %}<tr><td><strong>{{ b.case_number }}</strong></td><td>{{ b.masked_title }}</td><td><span class="badge">{{ b.get_stage_display }}</span></td><td>{% if b.blocks_clearance %}<span class="badge badge-warn">Blocked</span>{% else %}<span class="badge">Cleared</span>{% endif %}</td></tr>{% endfor %}
           </tbody></table>
@@ -732,7 +732,7 @@
             <div class="card"><h3>Active Barangay</h3><div class="stat">{{ active_barangay.name|default:"Not Set" }}</div><small>{{ active_barangay.tenant_code }}</small></div>
             <div class="card"><h3>02. 201 Citizens</h3><div class="stat">{{ citizens|length }}</div><small>{{ citizen_reports|length }} Community Reports</small></div>
             <div class="card"><h3>03. Certificates</h3><div class="stat">{{ certificates|length }}</div><small>Clearances & Indigency</small></div>
-            <div class="card"><h3>04. Blotter / VAWC</h3><div class="stat">{{ blotter_cases|length }}</div><small>RA 9262 Protected</small></div>
+            <div class="card"><h3>04. Derogatory Record Flag</h3><div class="stat">{{ blotter_cases|length }}</div></div>
             <div class="card"><h3>05. Treasury</h3><div class="stat">₱{{ total_collections|floatformat:2 }}</div><small>{{ receipts|length }} Official Receipts | {{ abuloy_sheets|length }} Welfare Sheets</small></div>
             <div class="card"><h3>06. Health Station</h3><div class="stat">{{ health_records|length }}</div><small>{{ medicines|length }} Med Items</small></div>
       
