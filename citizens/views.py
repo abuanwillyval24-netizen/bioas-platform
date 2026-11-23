@@ -446,13 +446,29 @@ def citizen_201_inspect(request, citizen_id):
 
 def citizen_proof_pdf(request, citizen_id):
     c = get_object_or_404(CitizenProfile, id=citizen_id)
-    if c.supporting_doc_data_uri and "," in c.supporting_doc_data_uri:
-        b64_part = c.supporting_doc_data_uri.split(",", 1).__getitem__(1)
+    data_uri = c.supporting_doc_data_uri
+    if not data_uri:
+        repo_item = c.repository_docs.exclude(file_data_uri="").first()
+        if repo_item:
+            data_uri = repo_item.file_data_uri
+    if data_uri and "," in data_uri:
+        b64_part = data_uri.split(",", 1).__getitem__(1)
         raw_pdf = base64.b64decode(b64_part)
         resp = HttpResponse(raw_pdf, content_type="application/pdf")
         resp["Content-Disposition"] = f'inline; filename="{c.citizen_qr_id}_supporting_doc.pdf"'
         return resp
     if c.supporting_document:
-        from django.shortcuts import redirect
-        return redirect(c.supporting_document.url)
+        try:
+            if os.path.exists(c.supporting_document.path):
+                from django.shortcuts import redirect
+                return redirect(c.supporting_document.url)
+        except Exception:
+            pass
+        return HttpResponse(
+            f"<div style='font-family:system-ui;max-width:520px;margin:60px auto;padding:24px;border:1px solid #cbd5e1;border-radius:10px;'>"
+            f"<h3 style='color:#991b1b;margin-top:0;'>File Reset by Server Redeploy</h3>"
+            f"<p>The file <strong>{c.citizen_qr_id}_supporting_doc.pdf</strong> was uploaded before permanent database storage was active. Please re-upload it once in <strong>02B Batch QR Uploader</strong> to store it permanently in PostgreSQL.</p>"
+            f"</div>",
+            status=404,
+        )
     return HttpResponse("No supporting document attached for this citizen record.", status=404)
