@@ -240,19 +240,20 @@
         {% elif module == "CITIZENS_INTAKE" %}
           <div class="section-title" style="margin-top:20px;"><span>Citizen Data Intake &amp; Staging Hub (Excel Importer &bull; Batch QR Media &bull; Walk-In 201 Encoder)</span></div>
           <style>
-            .intake-drawer { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(15,23,42,.05); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-            .intake-drawer:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(30,58,138,.12); border-color: var(--primary); }
-            .intake-drawer > summary { list-style: none; cursor: pointer; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: .88rem; user-select: none; }
-            .intake-drawer > summary::-webkit-details-marker { display: none; }
-            .intake-drawer[open] > summary .chev { transform: rotate(180deg); }
-            .chev { transition: transform .2s ease; font-size: .78rem; color: #64748b; }
+            .intake-bar { background: #ffffff; border: 1px solid #cbd5e1; border-left: 4px solid var(--primary); border-radius: 9px; padding: 10px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: 0 2px 6px rgba(15,23,42,.04); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+            .intake-bar:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(30,58,138,.12); border-color: var(--primary); }
+            .intake-bar-title { font-size: .88rem; font-weight: 800; color: var(--primary); }
+            .intake-btn { background: var(--primary); color: #ffffff; border: 0; padding: 7px 14px; border-radius: 7px; font-size: .78rem; font-weight: 800; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease, opacity .16s ease; }
+            .intake-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30,58,138,.25); opacity: .94; }
             #pendQueueTable tbody tr { transition: background .15s ease, box-shadow .15s ease; cursor: pointer; }
-            #pendQueueTable tbody tr:hover { background: #eff6ff !important; box-shadow: inset 4px 0 0 #1e3a8a; }
+            #pendQueueTable tbody tr:hover { background: #eff6ff !important; box-shadow: inset 4px 0 0 var(--primary); }
             #pendQueueTable tbody tr.is-checked { background: #ecfdf5 !important; box-shadow: inset 4px 0 0 #16a34a; }
           </style>
-          <details class="intake-drawer" style="border-left:5px solid #0f766e;">
-            <summary style="color:#0f766e;background:#f0fdfa;border-radius:9px;"><span>&#128229; Universal Multi-Sheet Excel / CSV 201 Staging Importer <small style="font-weight:600;color:#475569;margin-left:6px;">(Click to expand upload &amp; template)</small></span><span class="chev">&#9662;</span></summary>
-            <div style="padding:14px 16px;border-top:1px solid #ccfbf1;background:#f0fdfa;">
+          <div class="intake-bar">
+            <span class="intake-bar-title">02B-1. Universal Multi-Sheet Excel / CSV 201 Staging Importer</span>
+            <button type="button" class="intake-btn" onclick="const b=document.getElementById('excelIntakeBox');const h=b.style.display==='none';b.style.display=h?'block':'none';this.textContent=h?'? Collapse Excel Importer ?':'+ Expand Excel Importer ?';">+ Expand Excel Importer &#9662;</button>
+          </div>
+          <div id="excelIntakeBox" class="card" style="display:none;margin-bottom:14px;border-top:4px solid #0f766e;background:#f0fdfa;">
             <form id="bulk201Form" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
               {% csrf_token %}
               <input type="hidden" name="action" value="BULK_IMPORT_201">
@@ -266,8 +267,7 @@
                 <button type="button" onclick="const f=document.getElementById('bulk201File');if(!f.files.length){alert('Please choose an .xlsx or .csv file first.');return;}document.getElementById('confirmFileName').innerText=f.files[0].name;document.getElementById('confirmUploadModal').style.display='flex';" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Stage for Approval &rarr;</button>
               </div>
             </form>
-            </div>
-          </details>
+          </div>
           <div id="confirmBatchDocsModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);align-items:center;justify-content:center;z-index:9998;padding:16px;">
             <div style="background:#fff;max-width:500px;width:100%;border-radius:12px;padding:22px;box-shadow:0 20px 45px rgba(0,0,0,.3);border-top:5px solid #f59e0b;">
               <h3 style="margin:0 0 8px;color:#92400e;font-size:1.05rem;">&#9888;&#65039; Confirm Batch QR Photo &amp; Document Upload</h3>
@@ -290,9 +290,11 @@
             </div>
           </div>
 
-          <details class="intake-drawer" style="border-left:5px solid #1e3a8a;">
-            <summary style="color:#1e3a8a;background:#eff6ff;border-radius:9px;"><span>&#128230; Batch QR-Matched 2x2 Photos &amp; Supporting Docs Uploader <small style="font-weight:600;color:#475569;margin-left:6px;">(Click to expand 2-slot batch matcher)</small></span><span class="chev">&#9662;</span></summary>
-            <div style="padding:14px 16px;border-top:1px solid #dbeafe;background:#eff6ff;">
+          <div class="intake-bar">
+            <span class="intake-bar-title">02B-2. Batch QR-Matched 2x2 Photos &amp; Supporting Docs Uploader</span>
+            <button type="button" class="intake-btn" onclick="const b=document.getElementById('batchQrIntakeBox');const h=b.style.display==='none';b.style.display=h?'block':'none';this.textContent=h?'? Collapse Batch QR Uploader ?':'+ Expand Batch QR Uploader ?';">+ Expand Batch QR Uploader &#9662;</button>
+          </div>
+          <div id="batchQrIntakeBox" class="card" style="display:none;margin-bottom:14px;border-top:4px solid var(--primary);background:#eff6ff;">
             <form id="batchQrDocsForm" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;">
               {% csrf_token %}
               <input type="hidden" name="action" value="BATCH_ZIP_DOCS">
@@ -312,11 +314,10 @@
                 <button type="button" onclick="const p=document.getElementById('batchPhotoInp').files.length,d=document.getElementById('batchDocInp').files.length;if(!p&&!d){alert('Please select at least one 2x2 Profile Photo or Supporting Document first.');return;}document.getElementById('batchSummaryText').innerHTML='You selected <strong>'+p+'</strong> 2x2 Profile Photo item(s) and <strong>'+d+'</strong> Supporting Document item(s) for exact Citizen ID matching.';document.getElementById('confirmBatchDocsModal').style.display='flex';" style="background:#1e3a8a;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:700;font-size:.8rem;cursor:pointer;white-space:nowrap;">Upload &amp; Match QR Files &rarr;</button>
               </div>
             </form>
-            </div>
-          </details>
-          <div class="section-title">
-            <span>02C. Walk-In / Desk Complete 201 Master Encoder &amp; Household Linker</span>
-            <button type="button" id="btnToggle201Form" onclick="const b=document.getElementById('walkin201Box');const open=b.style.display==='none';b.style.display=open?'block':'none';this.innerHTML=open?'Hide 201 Encoder &#9652;':'+ Expand Walk-In 201 Encoder &#9662;';" style="background:#1e3a8a;color:#fff;border:0;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">+ Expand Walk-In 201 Encoder &#9662;</button>
+          </div>
+          <div class="intake-bar">
+            <span class="intake-bar-title">02B-3. Walk-In / Desk Complete 201 Master Encoder &amp; Household Linker</span>
+            <button type="button" id="btnToggle201Form" class="intake-btn" onclick="const b=document.getElementById('walkin201Box');const h=b.style.display==='none';b.style.display=h?'block':'none';this.textContent=h?'? Collapse Walk-In 201 Encoder ?':'+ Expand Walk-In 201 Encoder ?';">+ Expand Walk-In 201 Encoder &#9662;</button>
           </div>
           <div id="walkin201Box" class="card" style="display:none;margin-bottom:18px;">
             <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="SAVE_CITIZEN_201">
