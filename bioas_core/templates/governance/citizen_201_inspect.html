@@ -107,3 +107,102 @@
         <div class="item"><div class="lbl">Place of Birth</div><div class="val">{{ c.birth_place|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Civil Status</div><div class="val">{{ c.get_civil_status_display }}</div></div>
         <div class="item"><div class="lbl">Citizenship / Nationality</div><div class="val">{{ c.citizenship|default:"Filipino" }}</div></div>
+
+                <div class="item"><div class="lbl">Religion</div><div class="val">{{ c.religion|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Blood Type</div><div class="val">{{ c.blood_type|default:"-" }}</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title"><span>3. Address &amp; Contact Details</span><span style="font-size:.7rem;color:#64748b;">Section III</span></div>
+      <div class="grid-3">
+        <div class="item"><div class="lbl">Province</div><div class="val">{{ c.barangay.city_municipality.province.name }}</div></div>
+        <div class="item"><div class="lbl">City / Municipality</div><div class="val">{{ c.barangay.city_municipality.name }}</div></div>
+        <div class="item"><div class="lbl">Barangay</div><div class="val">{{ c.barangay.name }}</div></div>
+        <div class="item"><div class="lbl">House / Building / Lot No.</div><div class="val">{{ c.house_lot_no|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Street Name</div><div class="val">{{ c.street_name|default:c.address_line|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Purok / Zone / Sitio / Subdivision</div><div class="val">{{ c.purok }}</div></div>
+        <div class="item"><div class="lbl">Length of Residency</div><div class="val">{{ c.years_in_barangay }} year(s)</div></div>
+        <div class="item"><div class="lbl">Mobile Number</div><div class="val">{{ c.mobile_number|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Email Address</div><div class="val">{{ c.email_address|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Emergency Contact Person</div><div class="val">{{ c.emergency_contact_name|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Emergency Contact Number</div><div class="val">{{ c.emergency_contact_phone|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Emergency Contact Relationship</div><div class="val">{{ c.emergency_contact_relationship|default:"-" }}</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title"><span>4. Civic &amp; Government IDs</span><span style="font-size:.7rem;color:#64748b;">Section IV</span></div>
+      <div class="grid-3">
+        <div class="item"><div class="lbl">Registered Voter</div><div class="val">{% if c.is_registered_voter %}Yes (Registered){% else %}No{% endif %}</div></div>
+        <div class="item"><div class="lbl">Voter's Precinct Number</div><div class="val">{{ c.precinct_number|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">PhilHealth Number</div><div class="val">{{ c.philhealth_number|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">SSS / GSIS Number</div><div class="val">{{ c.sss_gsis_number|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">TIN</div><div class="val">{{ c.tin_number|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Pag-IBIG Number</div><div class="val">{{ c.pagibig_number|default:"-" }}</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title"><span>5. Education &amp; Employment</span><span style="font-size:.7rem;color:#64748b;">Section V</span></div>
+      <div class="grid-3">
+        <div class="item"><div class="lbl">Highest Educational Attainment</div><div class="val">{{ c.get_education_level_display|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Currently Attending School</div><div class="val">{% if c.currently_attending_school %}Yes{% else %}No{% endif %}</div></div>
+        <div class="item"><div class="lbl">School Name</div><div class="val">{{ c.school_or_course|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Grade / Year Level</div><div class="val">{{ c.grade_year_level|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Employment Status</div><div class="val">{{ c.employment_status|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Occupation / Job Title</div><div class="val">{{ c.occupation|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Employer / Business Name</div><div class="val">{{ c.employer_or_business|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Employer / Business Address</div><div class="val">{{ c.employer_address|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Monthly Income Range</div><div class="val">{{ c.monthly_income|default:"-" }}</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title"><span>6. Sectoral &amp; Vulnerability Flags</span><span style="font-size:.7rem;color:#64748b;">Section VI</span></div>
+      <div class="grid-3">
+        <div class="item"><div class="lbl">Senior Citizen</div><div class="val">{% if c.is_senior_citizen %}Yes{% else %}No{% endif %}</div></div>
+        <div class="item"><div class="lbl">OSCA ID Number</div><div class="val">{{ c.osca_id_number|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Person with Disability (PWD)</div><div class="val">{% if c.is_pwd %}Yes{% else %}No{% endif %}</div></div>
+        <div class="item"><div class="lbl">Disability Type</div><div class="val">{{ c.pwd_disability_type|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">PWD ID Number</div><div class="val">{{ c.pwd_id_number|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Solo Parent</div><div class="val">{% if c.is_solo_parent %}Yes{% else %}No{% endif %}</div></div>
+        <div class="item"><div class="lbl">Solo Parent ID Number</div><div class="val">{{ c.solo_parent_id_number|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Overseas Filipino Worker (OFW)</div><div class="val">{% if c.is_ofw %}Yes{% else %}No{% endif %}</div></div>
+        <div class="item"><div class="lbl">Country of Deployment</div><div class="val">{{ c.ofw_country|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Out-of-School Youth / Child (OSY / OSC)</div><div class="val">{% if c.is_osy_osc %}Yes{% else %}No{% endif %}</div></div>
+        <div class="item"><div class="lbl">Indigenous Peoples (IP)</div><div class="val">{% if c.is_indigenous_people %}Yes{% else %}No{% endif %}</div></div>
+        <div class="item"><div class="lbl">IP Group / Tribe</div><div class="val">{{ c.ip_group_tribe|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">4Ps Beneficiary</div><div class="val">{% if c.is_4ps_beneficiary %}Yes{% else %}No{% endif %}</div></div>
+        <div class="item"><div class="lbl">4Ps Household ID</div><div class="val">{{ c.four_ps_household_id|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Pregnant / Lactating</div><div class="val">{% if c.is_pregnant %}Yes{% else %}No{% endif %}</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title"><span>7. Administrative &amp; Verification</span><span style="font-size:.7rem;color:#64748b;">Section VII</span></div>
+      <div class="grid-3">
+        <div class="item"><div class="lbl">Resident Status</div><div class="val">{{ c.get_status_display }}</div></div>
+        <div class="item">
+          <div class="lbl">Derogatory Record Flag</div>
+          <div class="val">
+            {% if derogatory_cases %}
+              <span style="color:#991b1b;font-weight:900;">&#9888; FLAGGED ({{ derogatory_cases|length }} Active Hold)</span>
+            {% else %}
+              <span style="color:#166534;font-weight:800;">&#10003; CLEAR (No Derogatory Record)</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="item"><div class="lbl">Data Privacy Consent (RA 10173)</div><div class="val">{% if c.data_privacy_consent %}Signed &amp; Consented{% else %}Pending{% endif %}</div></div>
+        <div class="item"><div class="lbl">Signature / Thumbmark</div><div class="val">{{ c.electronic_signature|default:"On File (Digital / Thumbmark)" }}</div></div>
+        <div class="item"><div class="lbl">Encoded By</div><div class="val">{{ c.encoded_by|default:"BIOAS Portal / Encoder" }}</div></div>
+        <div class="item"><div class="lbl">Validated By</div><div class="val">{{ c.validated_by|default:"Barangay Secretary / Admin" }}</div></div>
+      </div>
+    </div>
+
+    <div class="sys-footer">
+      SYSTEM GENERATED &bull; BIOAS Official Digital 201 Registry &bull; Generated {{ now_ts|date:"Y-m-d H:i" }} &bull; Default Paper: Long Bond (8.5&quot; &times; 13&quot;)
+    </div>
+  </div>
+</body>
+</html>
