@@ -52,10 +52,29 @@
   <div class="wrap">
     <div class="card" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;border-top:5px solid {{ p_col }};">
       <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;flex:1;min-width:260px;">
-        {% if c.photo_data_uri %}
-          <img src="{{ c.photo_data_uri }}" alt="2x2 Official Photo" style="width:124px;height:124px;object-fit:cover;border-radius:10px;border:3px solid {{ s_col }};box-shadow:0 3px 10px rgba(0,0,0,.15);">
-        {% elif c.photo %}
-          <img src="{{ c.photo.url }}" alt="2x2 Official Photo" style="width:124px;height:124px;object-fit:cover;border-radius:10px;border:3px solid {{ s_col }};box-shadow:0 3px 10px rgba(0,0,0,.15);">
+        {% if c.photo_data_uri or c.photo %}
+          <div style="text-align:center;">
+            <img
+              src="{% if c.photo_data_uri %}{{ c.photo_data_uri }}{% else %}{{ c.photo.url }}{% endif %}"
+              alt="2x2 Official Photo"
+              title="Click to enlarge 2x2 photo"
+              onclick="document.getElementById('zoomedPhotoImg').src=this.src;document.getElementById('photoZoomModal').style.display='flex';"
+              style="width:124px;height:124px;object-fit:cover;border-radius:10px;border:3px solid {{ s_col }};box-shadow:0 3px 10px rgba(0,0,0,.15);cursor:zoom-in;transition:transform .18s ease;"
+              onmouseover="this.style.transform='scale(1.04)'"
+              onmouseout="this.style.transform='scale(1)'"
+            >
+            <div class="no-print" style="font-size:.66rem;color:#64748b;font-weight:700;margin-top:4px;">&#128269; Click photo to enlarge</div>
+          </div>
+          <div id="photoZoomModal" class="no-print" onclick="if(event.target===this)this.style.display='none';" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.82);align-items:center;justify-content:center;z-index:9999;padding:20px;">
+            <div style="background:#fff;border-radius:14px;padding:16px;max-width:440px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.45);border-top:5px solid {{ p_col }};">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <strong style="font-size:.86rem;color:{{ p_col }};">{{ c.full_name }} ({{ c.citizen_qr_id }})</strong>
+                <button type="button" onclick="document.getElementById('photoZoomModal').style.display='none';" style="background:#e2e8f0;color:#0f172a;border:0;padding:4px 10px;border-radius:6px;font-weight:800;cursor:pointer;">Close &#10005;</button>
+              </div>
+              <img id="zoomedPhotoImg" src="" alt="Enlarged 2x2 Photo" style="width:100%;max-height:420px;object-fit:contain;border-radius:10px;border:2px solid #cbd5e1;background:#f8fafc;">
+              <div style="font-size:.74rem;color:#64748b;margin-top:8px;">Visual Verification Only &bull; Excluded from Printed 201 Sheet</div>
+            </div>
+          </div>
         {% else %}
           <div style="width:124px;height:124px;background:#e2e8f0;border-radius:10px;border:2px dashed #94a3b8;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#475569;text-align:center;padding:8px;">No 2x2 Photo Attached</div>
         {% endif %}
