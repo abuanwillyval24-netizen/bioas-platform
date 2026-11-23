@@ -472,12 +472,30 @@ def command_dashboard(request):
 
                     if not lname or not fname_c or len(bdate) != 10:
                         continue
-                    cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=qr_val).first() if qr_val else None
+                    prov_c = "".join(ch for ch in active_barangay.city_municipality.province.name.upper() if ch.isalpha())[:3].ljust(3, "X")
+                    city_c = "".join(ch for ch in active_barangay.city_municipality.name.upper() if ch.isalpha())[:3].ljust(3, "X")
+                    brgy_c = "".join(ch for ch in active_barangay.name.upper() if ch.isalpha())[:3].ljust(3, "X")
+                    off_prefix = f"{prov_c}-{city_c}-{brgy_c}-{date.today().year}-"
+                    norm_qr = qr_val
+                    if qr_val and not qr_val.startswith(off_prefix):
+                        tail_digits = ""
+                        for ch in reversed(qr_val):
+                            if ch.isdigit():
+                                tail_digits = ch + tail_digits
+                            elif tail_digits:
+                                break
+                        if tail_digits:
+                            cand_qr = f"{off_prefix}{int(tail_digits):05d}"
+                            if not CitizenProfile.objects.filter(citizen_qr_id=cand_qr).exclude(citizen_qr_id=qr_val).exists():
+                                norm_qr = cand_qr
+                    cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id__in=[q for q in (qr_val, norm_qr) if q]).first() if (qr_val or norm_qr) else None
                     if not cit:
                         cit = CitizenProfile(
                             barangay=active_barangay,
-                            citizen_qr_id=qr_val or f"CIT-{uuid.uuid4().hex[:6].upper()}",
+                            citizen_qr_id=norm_qr or f"CIT-{uuid.uuid4().hex[:6].upper()}",
                         )
+                    elif norm_qr and cit.citizen_qr_id != norm_qr and not CitizenProfile.objects.filter(citizen_qr_id=norm_qr).exclude(id=cit.id).exists():
+                        cit.citizen_qr_id = norm_qr
                     cit.last_name = lname.__getitem__(slice(0, 80))
                     cit.first_name = fname_c.__getitem__(slice(0, 80))
                     cit.middle_name = mname_c.__getitem__(slice(0, 80))
@@ -656,6 +674,23 @@ def command_dashboard(request):
     }
 
     from citizens.models import CitizenSupportingDocument
+    if active_barangay:
+        prov_c = "".join(ch for ch in active_barangay.city_municipality.province.name.upper() if ch.isalpha())[:3].ljust(3, "X")
+        city_c = "".join(ch for ch in active_barangay.city_municipality.name.upper() if ch.isalpha())[:3].ljust(3, "X")
+        brgy_c = "".join(ch for ch in active_barangay.name.upper() if ch.isalpha())[:3].ljust(3, "X")
+        off_prefix = f"{prov_c}-{city_c}-{brgy_c}-{date.today().year}-"
+        for leg in CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id__startswith="QR-"):
+            tail_d = ""
+            for ch in reversed(leg.citizen_qr_id):
+                if ch.isdigit():
+                    tail_d = ch + tail_d
+                elif tail_d:
+                    break
+            if tail_d:
+                cand_qr = f"{off_prefix}{int(tail_d):05d}"
+                if not CitizenProfile.objects.filter(citizen_qr_id=cand_qr).exists():
+                    leg.citizen_qr_id = cand_qr
+                    leg.save(update_fields=["citizen_qr_id"])
     citizens = CitizenProfile.objects.select_related("household").filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
     all_repo_docs = CitizenSupportingDocument.objects.select_related("citizen").filter(citizen__barangay=active_barangay) if active_barangay else CitizenSupportingDocument.objects.none()
     households = Household.objects.prefetch_related("members").filter(barangay=active_barangay) if active_barangay else Household.objects.none()
