@@ -99,12 +99,22 @@
       <div class="side-group">Command</div>
       <a href="?tier=BARANGAY&module=OVERVIEW" class="{% if module == 'OVERVIEW' %}active{% endif %}"><span>Command Overview</span><span class="pill">{{ visible_modules|length }}</span></a>
       <div class="side-group">Frontline Services</div>
-      {% if "CITIZENS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02. Citizens &amp; Reports</span><span class="pill">{{ citizens|length }}</span></a>{% endif %}
-      {% if "LEDGER_201" in visible_modules %}<a href="?tier=BARANGAY&module=LEDGER_201" class="{% if module == 'LEDGER_201' %}active{% endif %}"><span>02B. Master 201 Excel Ledger</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
-            {% if "DOCS_REPO" in visible_modules %}<a href="?tier=BARANGAY&module=DOCS_REPO" class="{% if module == 'DOCS_REPO' %}active{% endif %}"><span>02C. Supporting Docs Repository</span><span class="pill">{{ all_repo_docs|length }}</span></a>{% endif %}
-
+      {% if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or "DOCS_REPO" in visible_modules %}
+      <details {% if module == 'CITIZENS' or module == 'LEDGER_201' or module == 'DOCS_REPO' %}open{% endif %} style="margin:2px 0;">
+        <summary style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;color:#e2e8f0;font-size:.82rem;font-weight:700;background:{% if module == 'CITIZENS' or module == 'LEDGER_201' or module == 'DOCS_REPO' %}rgba(255,255,255,.08){% else %}transparent{% endif %};">
+          <span>02. Citizen &amp; 201 Suite</span>
+          <span style="font-size:.72rem;color:#94a3b8;">&#9662;</span>
+        </summary>
+        <div style="padding-left:10px;border-left:2px solid rgba(255,255,255,.14);margin:4px 0 4px 10px;display:flex;flex-direction:column;gap:2px;">
+          {% if "CITIZENS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02. Citizens &amp; Reports</span><span class="pill">{{ citizens|length }}</span></a>{% endif %}
+          {% if "LEDGER_201" in visible_modules %}<a href="?tier=BARANGAY&module=LEDGER_201" class="{% if module == 'LEDGER_201' %}active{% endif %}"><span>02B. Master 201 Excel Ledger</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
+          {% if "DOCS_REPO" in visible_modules %}<a href="?tier=BARANGAY&module=DOCS_REPO" class="{% if module == 'DOCS_REPO' %}active{% endif %}"><span>02C. Supporting Docs Repository</span><span class="pill">{{ all_repo_docs|length }}</span></a>{% endif %}
+        </div>
+      </details>
+      {% endif %}
       {% if "CERTIFICATES" in visible_modules %}<a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>{% endif %}
       {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Derogatory Record Flag</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
+      <div class="side-group">Treasury &amp; Revenue</div>
       {% if "TREASURY" in visible_modules %}<a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury &amp; Collections</span><span class="pill">{{ receipts|length }}</span></a>{% endif %}
       <div class="side-group">Community &amp; Care</div>
       {% if "HEALTH" in visible_modules %}<a href="?tier=BARANGAY&module=HEALTH" class="{% if module == 'HEALTH' %}active{% endif %}"><span>06. Health Station</span><span class="pill">{{ health_records|length }}</span></a>{% endif %}
