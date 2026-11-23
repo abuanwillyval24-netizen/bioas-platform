@@ -237,22 +237,31 @@ def citizen_home(request):
         else:
             code = f"{random.randint(100000, 999999)}"
             request.session["citizen_otp_code"], request.session["citizen_otp_cid"], otp_stage = code, cand.id, "VERIFY"
-            try:
-                from django.core.mail import send_mail
-                from django.conf import settings as dj_settings
-                send_mail(
-                    f"[{cand.barangay.name}] Citizen Reference ID, Username & Password Reset OTP",
-                    f"Good day {cand.full_name},\n\nYour Citizen Reference ID: {cand.citizen_qr_id}\nYour Portal Username: {cand.portal_username or '(Not set yet)'}\nYour 6-digit Password Reset OTP: {code}\n\nEnter this 6-digit OTP on /citizen-home/ to set a new password.",
-                    getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
-                    [cand.email_address],
-                    fail_silently=True,
-                )
-            except Exception:
-                pass
-            if getattr(dj_settings, "EMAIL_HOST_USER", ""):
-                notice = f"We sent your Reference ID, Username, and 6-digit OTP to {cand.email_address}."
+            import os, json, urllib.request
+            resend_key = os.environ.get("RESEND_API_KEY", "").strip()
+            sent_live = False
+            msg_body = f"Good day {cand.full_name},\n\nYour Citizen Reference ID: {cand.citizen_qr_id}\nYour Portal Username: {cand.portal_username or '(Not set yet)'}\nYour 6-digit Password Reset OTP: {code}\n\nEnter this 6-digit OTP on /citizen-home/ to set a new password."
+            if resend_key:
+                try:
+                    req = urllib.request.Request(
+                        "https://api.resend.com/emails",
+                        data=json.dumps({
+                            "from": os.environ.get("RESEND_FROM_EMAIL", "BIOAS Portal <onboarding@resend.dev>"),
+                            "to": [cand.email_address],
+                            "subject": f"[{cand.barangay.name}] Reference ID, Username & Password Reset OTP",
+                            "text": msg_body,
+                        }).encode("utf-8"),
+                        headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        sent_live = resp.status in (200, 201)
+                except Exception:
+                    sent_live = False
+            if sent_live:
+                notice = f"We emailed your Reference ID, Username, and 6-digit OTP to {cand.email_address}."
             else:
-                notice = f"[SMTP Fallback Preview] Reference ID: {cand.citizen_qr_id} | Username: {cand.portal_username or '(Not set)'} | 6-Digit OTP: {code} (Set EMAIL_HOST_USER on Render for live inbox delivery)"
+                notice = f"[Testing OTP Preview] Reference ID: {cand.citizen_qr_id} | Username: {cand.portal_username or '(Not set)'} | 6-Digit OTP: {code} (Add free RESEND_API_KEY on Render to deliver directly to Gmail)"
     elif top_act == "RESET_PASSWORD_OTP":
         if not request.session.get("citizen_otp_code") or request.POST.get("otp_code", "").strip() != request.session.get("citizen_otp_code"):
             error, otp_stage = "Invalid or expired 6-digit OTP code.", "VERIFY"
