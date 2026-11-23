@@ -463,6 +463,57 @@ def citizen_201_inspect(request, citizen_id):
     if not is_official and not is_owner_citizen:
         return redirect("/login/")
 
+    action_banner = ""
+    if request.method == "POST" and is_official:
+        from audit.models import SystemAuditLog
+        staff_p = getattr(request.user, "staff_profile", None)
+        act_nm = staff_p.full_name if staff_p else (request.user.get_full_name() or request.user.username)
+        act_rl = staff_p.get_role_display() if staff_p else "System Administrator"
+        act_cmd = request.POST.get("inspect_action", "")
+        if act_cmd == "APPROVE_DIRECT" and c.status == "PENDING_APPROVAL":
+            c.status = "ACTIVE_RESIDENT"
+            c.save(update_fields=["status"])
+            SystemAuditLog.objects.create(
+                barangay=c.barangay,
+                action_type="PORTAL_SYNC_APPROVED",
+                actor_name=act_nm,
+                actor_role=act_rl,
+                reference_code=c.citizen_qr_id,
+                details=f"Approved citizen portal sign-up for {c.full_name} ({c.citizen_qr_id}) directly from 201 Profile Inspect.",
+            )
+            if c.email_address:
+                try:
+                    from django.core.mail import send_mail
+                    from django.conf import settings as dj_settings
+                    send_mail(
+                        subject=f"[{c.barangay.name}] Account Approved ? Complete Your 201 Profile",
+                        message=(
+                            f"Good day {c.full_name},\n\n"
+                            f"Your Barangay registration ({c.citizen_qr_id}) has been verified and approved into the Official 201 Master Registry.\n"
+                            f"Next Step: Please sign in at /citizen-home/ using your Citizen ID ({c.citizen_qr_id}) and complete your profile.\n\n"
+                            f"? {c.barangay.name} Office of the Barangay Secretary"
+                        ),
+                        from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                        recipient_list=[c.email_address],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
+            action_banner = f"Approved {c.full_name} ({c.citizen_qr_id}) into Official 201 Master & 02E Gallery! Sent 'Complete your profile' notification."
+        elif act_cmd == "REJECT_DIRECT" and c.status == "PENDING_APPROVAL":
+            reason = request.POST.get("reject_reason", "").strip() or "Incomplete or unverified supporting documents"
+            qr_ref, full_nm = c.citizen_qr_id, c.full_name
+            SystemAuditLog.objects.create(
+                barangay=c.barangay,
+                action_type="PORTAL_SYNC_APPROVED",
+                actor_name=act_nm,
+                actor_role=act_rl,
+                reference_code=qr_ref,
+                details=f"Rejected & returned 201 application for {full_nm} ({qr_ref}). Reason: {reason}",
+            )
+            c.delete()
+            return redirect("/?tier=BARANGAY&module=CITIZENS_INTAKE")
+
     ua = request.META.get("HTTP_USER_AGENT", "")
     is_mobile_ua = any(k in ua for k in ("Mobile", "Android", "iPhone", "iPad", "Opera Mini", "IEMobile"))
     view_mode = request.GET.get("view", "").strip().lower()
@@ -503,7 +554,7 @@ def citizen_201_inspect(request, citizen_id):
         "c": c, "p_col": p_col, "s_col": s_col, "repo_docs": repo_docs,
         "derogatory_cases": derogatory_cases,
         "view_mode": view_mode, "device_label": device_label,
-        "qr_param": qr_param, "now_ts": timezone.now(),
+        "qr_param": qr_param, "now_ts": timezone.now(), "is_official": is_official, "action_banner": action_banner,
     }, request))
 
 

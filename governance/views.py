@@ -790,7 +790,7 @@ def command_dashboard(request):
             detail = f"QR: {c.citizen_qr_id} | {c.purok} | {c.address_line or '-'} | Age {c.age} ({c.get_sex_display()}) | HH: {hh_code} | Job: {c.occupation or '-'} | PhilSys: {c.philsys_id or '-'} | Precinct: {c.precinct_number or '-'} | Mobile: {c.mobile_number or '-'} | {', '.join(tags) or 'General Resident'} | {c.get_status_display()}"
             row_mod = "CITIZENS_INTAKE" if c.status == "PENDING_APPROVAL" else target_mod
             row_lbl = "02B. Pending Queue" if c.status == "PENDING_APPROVAL" else "02C. 201 Master"
-            search_index.append({"module_label": row_lbl, "title": f"{c.full_name} [{c.citizen_qr_id}]", "detail": detail, "url": f"?tier=BARANGAY&module={row_mod}&q={c.citizen_qr_id}"})
+            search_index.append({"module_label": row_lbl, "title": f"{c.full_name} [{c.citizen_qr_id}]", "detail": detail, "url": f"/citizen-inspect/{c.id}/"})
     if "CITIZENS" in visible_modules:
         for rep in citizen_reports:
             search_index.append({"module_label": "02. Reports", "title": f"{rep.tracking_code} — {rep.get_category_display()}", "detail": f"Resident: {rep.citizen.full_name} | Landmark: {rep.location_landmark} | {rep.description[:80]} | {rep.get_status_display()}", "url": "?tier=BARANGAY&module=CITIZENS"})

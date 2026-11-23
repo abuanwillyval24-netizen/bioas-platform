@@ -51,6 +51,32 @@
   </div>
 
   <div class="wrap">
+    {% if action_banner %}
+      <div class="card no-print" style="background:#dcfce7;border:1px solid #16a34a;border-left:5px solid #16a34a;color:#14532d;font-weight:800;margin-bottom:14px;">
+        &#10004; {{ action_banner }}
+      </div>
+    {% endif %}
+    {% if is_official and c.status == "PENDING_APPROVAL" %}
+      <div class="card no-print" style="background:#fffbeb;border:1px solid #f59e0b;border-left:5px solid #d97706;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+        <div>
+          <strong style="color:#92400e;font-size:.95rem;display:block;">&#9888; Pending Portal Registration ? Awaiting Official 201 Verification</strong>
+          <span style="font-size:.8rem;color:#78350f;">Verify the 2x2 photo &amp; uploaded supporting documents below before merging into the Official 201 Master &amp; 02E Gallery.</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <form method="post" style="margin:0;">
+            {% csrf_token %}
+            <input type="hidden" name="inspect_action" value="APPROVE_DIRECT">
+            <button type="submit" style="background:#16a34a;color:#fff;border:0;padding:9px 16px;border-radius:8px;font-weight:800;font-size:.82rem;cursor:pointer;">Approve into 201 Master &#10003;</button>
+          </form>
+          <form method="post" style="margin:0;" onsubmit="const r=prompt('Enter rejection / return remark:','Incomplete or unverified supporting documents');if(r===null)return false;this.querySelector('[name=reject_reason]').value=r;">
+            {% csrf_token %}
+            <input type="hidden" name="inspect_action" value="REJECT_DIRECT">
+            <input type="hidden" name="reject_reason" value="">
+            <button type="submit" style="background:#dc2626;color:#fff;border:0;padding:9px 14px;border-radius:8px;font-weight:800;font-size:.82rem;cursor:pointer;">Reject / Return &#10005;</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
     <div class="card" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;border-top:5px solid {{ p_col }};">
       <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;flex:1;min-width:260px;">
         {% if c.photo_data_uri or c.photo %}
