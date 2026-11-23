@@ -239,7 +239,20 @@
           <script>function filterCitizenReports(){const q=(document.getElementById('repSearchInput')?.value||'').trim().toLowerCase();const st=document.getElementById('repStatusFilter')?.value||'';document.querySelectorAll('#citizenReportsTable .rep-row').forEach(tr=>{tr.style.display=(!q||(tr.dataset.search||'').includes(q))&&(!st||tr.dataset.status===st)?'':'none';});}</script>
         {% elif module == "CITIZENS_INTAKE" %}
           <div class="section-title" style="margin-top:20px;"><span>Citizen Data Intake &amp; Staging Hub (Excel Importer &bull; Batch QR Media &bull; Walk-In 201 Encoder)</span></div>
-          <div class="card" style="margin-bottom:16px;border-top:4px solid #0f766e;background:#f0fdfa;">
+          <style>
+            .intake-drawer { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(15,23,42,.05); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+            .intake-drawer:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(30,58,138,.12); border-color: var(--primary); }
+            .intake-drawer > summary { list-style: none; cursor: pointer; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: .88rem; user-select: none; }
+            .intake-drawer > summary::-webkit-details-marker { display: none; }
+            .intake-drawer[open] > summary .chev { transform: rotate(180deg); }
+            .chev { transition: transform .2s ease; font-size: .78rem; color: #64748b; }
+            #pendQueueTable tbody tr { transition: background .15s ease, box-shadow .15s ease; cursor: pointer; }
+            #pendQueueTable tbody tr:hover { background: #eff6ff !important; box-shadow: inset 4px 0 0 #1e3a8a; }
+            #pendQueueTable tbody tr.is-checked { background: #ecfdf5 !important; box-shadow: inset 4px 0 0 #16a34a; }
+          </style>
+          <details class="intake-drawer" style="border-left:5px solid #0f766e;">
+            <summary style="color:#0f766e;background:#f0fdfa;border-radius:9px;"><span>&#128229; Universal Multi-Sheet Excel / CSV 201 Staging Importer <small style="font-weight:600;color:#475569;margin-left:6px;">(Click to expand upload &amp; template)</small></span><span class="chev">&#9662;</span></summary>
+            <div style="padding:14px 16px;border-top:1px solid #ccfbf1;background:#f0fdfa;">
             <form id="bulk201Form" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
               {% csrf_token %}
               <input type="hidden" name="action" value="BULK_IMPORT_201">
@@ -253,8 +266,8 @@
                 <button type="button" onclick="const f=document.getElementById('bulk201File');if(!f.files.length){alert('Please choose an .xlsx or .csv file first.');return;}document.getElementById('confirmFileName').innerText=f.files[0].name;document.getElementById('confirmUploadModal').style.display='flex';" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Stage for Approval &rarr;</button>
               </div>
             </form>
-          </div>
-
+            </div>
+          </details>
           <div id="confirmBatchDocsModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);align-items:center;justify-content:center;z-index:9998;padding:16px;">
             <div style="background:#fff;max-width:500px;width:100%;border-radius:12px;padding:22px;box-shadow:0 20px 45px rgba(0,0,0,.3);border-top:5px solid #f59e0b;">
               <h3 style="margin:0 0 8px;color:#92400e;font-size:1.05rem;">&#9888;&#65039; Confirm Batch QR Photo &amp; Document Upload</h3>
@@ -277,7 +290,9 @@
             </div>
           </div>
 
-          <div class="card" style="margin-bottom:12px;border-left:4px solid #1e3a8a;background:#eff6ff;padding:12px 16px;">
+          <details class="intake-drawer" style="border-left:5px solid #1e3a8a;">
+            <summary style="color:#1e3a8a;background:#eff6ff;border-radius:9px;"><span>&#128230; Batch QR-Matched 2x2 Photos &amp; Supporting Docs Uploader <small style="font-weight:600;color:#475569;margin-left:6px;">(Click to expand 2-slot batch matcher)</small></span><span class="chev">&#9662;</span></summary>
+            <div style="padding:14px 16px;border-top:1px solid #dbeafe;background:#eff6ff;">
             <form id="batchQrDocsForm" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;">
               {% csrf_token %}
               <input type="hidden" name="action" value="BATCH_ZIP_DOCS">
@@ -297,8 +312,8 @@
                 <button type="button" onclick="const p=document.getElementById('batchPhotoInp').files.length,d=document.getElementById('batchDocInp').files.length;if(!p&&!d){alert('Please select at least one 2x2 Profile Photo or Supporting Document first.');return;}document.getElementById('batchSummaryText').innerHTML='You selected <strong>'+p+'</strong> 2x2 Profile Photo item(s) and <strong>'+d+'</strong> Supporting Document item(s) for exact Citizen ID matching.';document.getElementById('confirmBatchDocsModal').style.display='flex';" style="background:#1e3a8a;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:700;font-size:.8rem;cursor:pointer;white-space:nowrap;">Upload &amp; Match QR Files &rarr;</button>
               </div>
             </form>
-          </div>
-
+            </div>
+          </details>
           <div class="section-title">
             <span>02C. Walk-In / Desk Complete 201 Master Encoder &amp; Household Linker</span>
             <button type="button" id="btnToggle201Form" onclick="const b=document.getElementById('walkin201Box');const open=b.style.display==='none';b.style.display=open?'block':'none';this.innerHTML=open?'Hide 201 Encoder &#9652;':'+ Expand Walk-In 201 Encoder &#9662;';" style="background:#1e3a8a;color:#fff;border:0;padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">+ Expand Walk-In 201 Encoder &#9662;</button>
@@ -349,14 +364,14 @@
             <input type="hidden" name="action" value="MASS_APPROVE_201">
             <div class="section-title" style="flex-wrap:wrap;gap:8px;">
               <span>02B. Pending Citizen Verification Queue ({{ turnover_summary.pending_citizens }} Awaiting Official Check)</span>
-              <div style="display:flex;gap:8px;align-items:center;">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input id="pendSearchInput" oninput="filterPendQueue()" placeholder="Filter pending by Name, QR ID, or Purok..." style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;min-width:200px;"><span id="pendSelBadge" style="background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;">0 Selected</span>
                 <button type="submit" onclick="return confirm('Approve ONLY the checked citizen records into the official 201 Master File?')" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">&#9989; Approve Checked</button>
                 <button type="submit" onclick="document.querySelectorAll('.pend-chk').forEach(c=>c.checked=false);return confirm('Mass-approve ALL {{ turnover_summary.pending_citizens }} pending records into the official 201 Master File?')" style="background:#16a34a;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&#9889; Mass Approve All ({{ turnover_summary.pending_citizens }})</button>
               </div>
             </div>
             <div style="overflow-x:auto;">
-              <table style="width:100%;border-collapse:collapse;"><thead><tr>
-                <th style="width:34px;text-align:center;"><input type="checkbox" onclick="document.querySelectorAll('.pend-chk').forEach(c=>c.checked=this.checked)"></th>
+              <table id="pendQueueTable" style="width:100%;border-collapse:collapse;"><thead><tr>
+                <th style="width:34px;text-align:center;"><input type="checkbox" onclick="document.querySelectorAll('.pend-chk').forEach(c=>{c.checked=this.checked;c.closest('tr').classList.toggle('is-checked',this.checked);});updatePendCount();"></th>
                 <th style="white-space:nowrap;">QR ID</th>
                 <th style="white-space:nowrap;">Full Name <small style="font-weight:500;color:#64748b;">(Click to Inspect Full 201 &#8599;)</small></th>
                 <th style="white-space:nowrap;">Purok</th>
@@ -365,7 +380,7 @@
               </tr></thead><tbody>
                 {% for c in citizens %}{% if c.status == "PENDING_APPROVAL" %}
                 <tr>
-                  <td style="text-align:center;"><input type="checkbox" class="pend-chk" name="pending_ids" value="{{ c.id }}"></td>
+                  <td style="text-align:center;"><input type="checkbox" class="pend-chk" onchange="this.closest('tr').classList.toggle('is-checked',this.checked);updatePendCount();" name="pending_ids" value="{{ c.id }}"></td>
                   <td style="white-space:nowrap;"><strong>{{ c.citizen_qr_id }}</strong></td>
                   <td>
                     <a href="/citizen-inspect/{{ c.id }}/" target="_blank" style="color:#1e3a8a;font-weight:800;text-decoration:none;font-size:.9rem;">{{ c.full_name }} &#8599;</a>
@@ -393,6 +408,19 @@
           <form id="singleRejForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_CITIZEN"><input type="hidden" name="citizen_id" value=""><input type="hidden" name="reject_reason" value=""></form>
           {% endif %}
 
+          <script>
+            function updatePendCount() {
+              const cnt = document.querySelectorAll('#pendQueueTable .pend-chk:checked').length;
+              const b = document.getElementById('pendSelBadge');
+              if (b) b.textContent = cnt + ' Selected';
+            }
+            function filterPendQueue() {
+              const q = (document.getElementById('pendSearchInput')?.value || '').trim().toLowerCase();
+              document.querySelectorAll('#pendQueueTable tbody tr').forEach(tr => {
+                tr.style.display = (!q || tr.textContent.toLowerCase().includes(q)) ? '' : 'none';
+              });
+            }
+          </script>
         {% elif module == "HOUSEHOLDS" %}
           <div class="section-title"><span>02D. Household &amp; Family Tree Breakdown (Head &rarr; Members &rarr; Relationships)</span></div>
           <table><thead><tr><th>Household ID</th><th>Head of Family (Purok)</th><th>Members &amp; Relationships</th><th>Children (Unmarried / Married)</th><th>Seniors / PWD / Solo / Pregnant</th></tr></thead><tbody>
