@@ -62,6 +62,7 @@ class CitizenProfile(models.Model):
     ]
     STATUS_CHOICES = [
         ("PENDING_APPROVAL", "Pending Portal Approval"),
+        ("REJECTED_RETURNED", "Returned for Revision / Rejected"),
         ("ACTIVE_RESIDENT", "Active Verified Resident"),
         ("TRANSFERRED_OUT", "Transferred Out"),
         ("DECEASED", "Deceased"),
@@ -172,6 +173,7 @@ class CitizenProfile(models.Model):
     validated_by = models.CharField(max_length=120, blank=True)
 
     status = models.CharField(max_length=25, choices=STATUS_CHOICES, default="ACTIVE_RESIDENT")
+    rejection_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

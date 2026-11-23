@@ -222,6 +222,8 @@ def citizen_home(request):
     elif citizen and citizen.status == "PENDING_APPROVAL":
         error = "Account Status: Pending Administrator Approval. You will receive access within 24 hours once verified by the Barangay Secretary."
         citizen = None
+    elif citizen and citizen.status == "REJECTED_RETURNED":
+        error = f"Application Returned for Revision ? Reason: {citizen.rejection_reason or 'Incomplete or unverified supporting documents'}. Please fix your details or re-upload a clear 2x2 Photo / Supporting Document below and click Save to resubmit for 201 verification."
     elif citizen and citizen.status != "ACTIVE_RESIDENT":
         error = f"Account Status: {citizen.get_status_display()}."
         citizen = None
@@ -276,6 +278,10 @@ def citizen_home(request):
                     )
                 citizen.household = hh
                 citizen.relationship_to_head = request.POST.get("relationship_to_head", citizen.relationship_to_head)
+            was_returned = (citizen.status == "REJECTED_RETURNED")
+            if was_returned:
+                citizen.status = "PENDING_APPROVAL"
+                citizen.rejection_reason = ""
             citizen.save()
             save_standardized_citizen_files(
                 citizen,
@@ -284,6 +290,9 @@ def citizen_home(request):
                 source_channel="SELF_PORTAL",
                 uploaded_by=citizen.full_name,
             )
+            if was_returned:
+                notice = "Your corrected 201 profile and supporting documents have been resubmitted to the Barangay Secretary for verification!"
+                citizen = None
 
         elif act == "SUBMIT_REPORT":
             rep = CitizenCommunityReport.objects.create(
@@ -511,8 +520,29 @@ def citizen_201_inspect(request, citizen_id):
                 reference_code=qr_ref,
                 details=f"Rejected & returned 201 application for {full_nm} ({qr_ref}). Reason: {reason}",
             )
-            c.delete()
-            return redirect("/?tier=BARANGAY&module=CITIZENS_INTAKE")
+            c.status = "REJECTED_RETURNED"
+            c.rejection_reason = reason
+            c.save(update_fields=["status", "rejection_reason"])
+            if c.email_address:
+                try:
+                    from django.core.mail import send_mail
+                    from django.conf import settings as dj_settings
+                    send_mail(
+                        subject=f"[{c.barangay.name}] 201 Registration Returned for Revision",
+                        message=(
+                            f"Good day {c.full_name},\n\n"
+                            f"Your Barangay 201 registration ({c.citizen_qr_id}) was returned for revision.\n"
+                            f"Reason: {reason}\n\n"
+                            f"Please log in at /citizen-home/ using your Citizen ID ({c.citizen_qr_id}) to update your details or re-upload your supporting documents and resubmit.\n\n"
+                            f"? {c.barangay.name} Office of the Barangay Secretary"
+                        ),
+                        from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                        recipient_list=[c.email_address],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
+            action_banner = f"Returned {full_nm} ({qr_ref}) for revision. Reason saved & citizen notified to log in and resubmit."
 
     ua = request.META.get("HTTP_USER_AGENT", "")
     is_mobile_ua = any(k in ua for k in ("Mobile", "Android", "iPhone", "iPad", "Opera Mini", "IEMobile"))
