@@ -257,7 +257,8 @@ def citizen_home(request):
                     )
                     with urllib.request.urlopen(req, timeout=8) as resp:
                         sent_live = resp.status in (200, 201)
-                except Exception:
+                except Exception as mail_err:
+                    print("RESEND_OTP_ERROR:", repr(mail_err))
                     sent_live = False
             notice = "If an account is registered under that email address, your Citizen Reference ID, Username, and 6-digit OTP have been sent discreetly to your email inbox."
     elif top_act == "RESET_PASSWORD_OTP":
