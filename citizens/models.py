@@ -174,6 +174,8 @@ class CitizenProfile(models.Model):
 
     status = models.CharField(max_length=25, choices=STATUS_CHOICES, default="ACTIVE_RESIDENT")
     rejection_reason = models.TextField(blank=True)
+    portal_username = models.CharField(max_length=60, blank=True, db_index=True)
+    portal_password_hash = models.CharField(max_length=128, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

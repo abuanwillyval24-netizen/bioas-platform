@@ -231,19 +231,25 @@ def citizen_home(request):
             request.session["citizen_auth_id"] = cand.id
             citizen = cand
     elif top_act == "SEND_RECOVERY_OTP":
-        cand = CitizenProfile.objects.filter(citizen_qr_id=rec_qr_id, email_address__iexact=rec_email).first() if (rec_qr_id and rec_email) else None
+        cand = CitizenProfile.objects.filter(email_address__iexact=rec_email).order_by("-id").first() if rec_email else None
         if not cand:
-            error, otp_stage = "No citizen account matches that Reference ID and Registered Email.", "FORM"
+            error, otp_stage = "No citizen account is registered under that Email Address. If you lost access to your email, please visit the Barangay Hall for Walk-In Assisted Account Recovery.", "FORM"
         else:
             code = f"{random.randint(100000, 999999)}"
             request.session["citizen_otp_code"], request.session["citizen_otp_cid"], otp_stage = code, cand.id, "VERIFY"
             try:
                 from django.core.mail import send_mail
                 from django.conf import settings as dj_settings
-                send_mail(f"[{cand.barangay.name}] Password Reset OTP", f"Your 6-digit reset code is: {code}", getattr(dj_settings, "DEFAULT_FROM_EMAIL", None), [cand.email_address], fail_silently=True)
+                send_mail(
+                    f"[{cand.barangay.name}] Citizen Reference ID, Username & Password Reset OTP",
+                    f"Good day {cand.full_name},\n\nYour Citizen Reference ID: {cand.citizen_qr_id}\nYour Portal Username: {cand.portal_username or '(Not set yet)'}\nYour 6-digit Password Reset OTP: {code}\n\nEnter this 6-digit OTP on /citizen-home/ to set a new password.",
+                    getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                    [cand.email_address],
+                    fail_silently=True,
+                )
             except Exception:
                 pass
-            notice = f"A 6-digit verification code has been sent to {cand.email_address}."
+            notice = f"We sent your Reference ID, Username, and 6-digit OTP to {cand.email_address}."
     elif top_act == "RESET_PASSWORD_OTP":
         if not request.session.get("citizen_otp_code") or request.POST.get("otp_code", "").strip() != request.session.get("citizen_otp_code"):
             error, otp_stage = "Invalid or expired 6-digit OTP code.", "VERIFY"
@@ -258,6 +264,8 @@ def citizen_home(request):
                 request.session["citizen_auth_id"] = cand.id
                 citizen, notice = cand, f"Password updated! Signed in as {cand.portal_username or cand.citizen_qr_id}."
     else:
+        if request.GET.get("logout") == "1":
+            request.session.pop("citizen_auth_id", None)
         auth_cid = request.session.get("citizen_auth_id")
         if auth_cid:
             citizen = CitizenProfile.objects.select_related("barangay", "household").filter(id=auth_cid).first()

@@ -29,13 +29,36 @@
 
     {% if not citizen %}
     <div class="card" style="border-top:4px solid #1e3a8a;">
-      <h2 style="margin-top:0;font-size:1.1rem;">Resident Digital ID Sign-In</h2>
-      <p style="font-size:.85rem;color:#475569;">Enter your approved <strong>Citizen ID</strong> (e.g., <code>NE-CAB-LAG-2026-00001</code>) to open your synchronized 201 Profile, request clearances, or file community reports.</p>
-      <form method="get">
-        <label>Citizen ID *</label>
-        <input name="qr_id" value="{{ qr_id }}" placeholder="e.g., NE-CAB-LAG-2026-00001" required>
-        <button type="submit" style="margin-top:12px;width:100%;">Access My Synchronized Portal &rarr;</button>
+      <h2 style="margin-top:0;font-size:1.1rem;">Resident Portal Sign-In</h2>
+      <p style="font-size:.85rem;color:#475569;">Sign in with your <strong>Portal Username &amp; Password</strong> to check your status, fix &amp; resubmit returned registrations, or update your 201 profile.</p>
+      <form method="post">
+        {% csrf_token %}<input type="hidden" name="action" value="CITIZEN_LOGIN">
+        <label>Portal Username *</label><input name="portal_username" value="{{ login_username }}" placeholder="Enter your username" required />
+        <label>Password *</label><input type="password" name="portal_password" placeholder="Enter your password" required />
+        <button type="submit" style="margin-top:12px;width:100%;">Sign In to Resident Portal &rarr;</button>
       </form>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:.82rem;">
+        <button type="button" onclick="const b=document.getElementById('otpRecoveryBox');b.style.display=b.style.display==='none'?'block':'none';" style="background:transparent;color:#1e3a8a;padding:0;text-decoration:underline;font-size:.82rem;">Forgot Reference ID, Username, or Password?</button>
+        <a href="/portal/" style="color:#0f766e;font-weight:700;text-decoration:none;">New Resident? Create Account &rarr;</a>
+      </div>
+      <div id="otpRecoveryBox" style="display:{% if otp_stage %}block{% else %}none{% endif %};margin-top:16px;padding-top:14px;border-top:1px dashed #cbd5e1;">
+        <h3 style="margin:0 0 6px;font-size:.96rem;color:#92400e;">Forgot Reference ID, Username, or Password? (Email OTP Recovery)</h3>
+        <p style="font-size:.78rem;color:#64748b;margin:0 0 8px;">Forgot your Reference Number or Username? Enter your <strong>Registered Email Address</strong> below?we will email your <strong>Citizen Reference ID</strong>, <strong>Username</strong>, and a <strong>6-digit OTP</strong> to reset your password.</p>
+        <form method="post" style="margin-bottom:10px;">
+          {% csrf_token %}<input type="hidden" name="action" value="SEND_RECOVERY_OTP">
+          <label>Registered Email Address *</label><input type="email" name="rec_email" value="{{ rec_email }}" placeholder="name@example.com" required />
+          <button type="submit" style="margin-top:10px;background:#d97706;">Email My Reference ID, Username &amp; 6-Digit OTP</button>
+        </form>
+        {% if otp_stage == "VERIFY" %}
+        <form method="post" style="background:#fffbeb;padding:12px;border-radius:8px;border:1px solid #f59e0b;">
+          {% csrf_token %}<input type="hidden" name="action" value="RESET_PASSWORD_OTP">
+          <label>6-Digit OTP Code *</label><input name="otp_code" maxlength="6" placeholder="123456" required />
+          <label>New Portal Password (Min 6 Chars) *</label><input type="password" name="new_password" minlength="6" required />
+          <button type="submit" style="margin-top:10px;background:#16a34a;">Verify OTP &amp; Save New Password</button>
+        </form>
+        {% endif %}
+        <p style="font-size:.76rem;color:#64748b;margin:8px 0 0;">Lost access to both your email/phone and credentials? Visit the Barangay Hall with a valid ID for <strong>Walk-In Assisted Account Recovery</strong>.</p>
+      </div>
     </div>
     {% else %}
     <div class="card" style="border-top:4px solid #16a34a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
@@ -53,7 +76,7 @@
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a href="/citizen-inspect/{{ citizen.id }}/?qr={{ citizen.citizen_qr_id }}" target="_blank" class="btn-gold">&#128100; View &amp; Print Official 201 Sheet &#8599;</a>
-        <a href="/citizen-home/" style="background:#e2e8f0;color:#0f172a;padding:9px 12px;border-radius:7px;text-decoration:none;font-size:.82rem;font-weight:700;">Sign Out</a>
+        <a href="/citizen-home/?logout=1" style="background:#e2e8f0;color:#0f172a;padding:9px 12px;border-radius:7px;text-decoration:none;font-size:.82rem;font-weight:700;">Sign Out</a>
       </div>
     </div>
 
