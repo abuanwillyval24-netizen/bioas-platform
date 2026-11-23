@@ -854,7 +854,7 @@ def command_dashboard(request):
         "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "households": households, "citizen_reports": citizen_reports,
         "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "receipts": receipts, "abuloy_sheets": abuloy_sheets, "total_collections": total_collections,
-        "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "associations": associations,
+        "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "rejected_citizens": list(citizens.filter(status="REJECTED_RETURNED").order_by("updated_at")), "associations": associations,
         "socio_counts": {
             "subsistence": citizens.filter(status="ACTIVE_RESIDENT", socioeconomic_tier="SUBSISTENCE").count(),
             "low_income": citizens.filter(status="ACTIVE_RESIDENT", socioeconomic_tier="LOW_INCOME").count(),

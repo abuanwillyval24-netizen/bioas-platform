@@ -402,7 +402,7 @@
               <span>02B. Pending Citizen Verification Queue ({{ turnover_summary.pending_citizens }} Awaiting Official Check)</span>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input id="pendSearchInput" value="{{ search_query }}" oninput="filterPendQueue()" placeholder="Filter pending by Name, QR ID, or Purok..." style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;min-width:200px;"><span id="pendSelBadge" style="background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;">0 Selected</span><button type="button" onclick="selectNoDocRows()" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Select No-Doc Rows</button><button type="button" onclick="submitMassReject()" style="background:#dc2626;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Reject Selected &#10005;</button>
                 <button type="submit" onclick="return confirm('Approve ONLY the checked citizen records into the official 201 Master File?')" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">&#9989; Approve Checked</button>
-                <button type="submit" onclick="document.querySelectorAll('.pend-chk').forEach(c=>c.checked=false);return confirm('Mass-approve ALL {{ turnover_summary.pending_citizens }} pending records into the official 201 Master File?')" style="background:#16a34a;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&#9889; Mass Approve All ({{ turnover_summary.pending_citizens }})</button>
+                <button type="submit" onclick="document.querySelectorAll('.pend-chk').forEach(c=>c.checked=false);return confirm('Mass-approve ALL {{ turnover_summary.pending_citizens }} pending records into the official 201 Master File?')" style="background:#16a34a;color:#fff;border:0;padding:6px 14px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&#9889; Mass Approve All ({{ turnover_summary.pending_citizens }})</button><button type="button" id="toggleRejTabBtn" onclick="toggleRejectedTab()" style="background:#fee2e2;color:#991b1b;border:1px solid #f87171;padding:6px 13px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&#128683; Rejected / Returned ({{ rejected_citizens|length }})</button>
               </div>
             </div>
             <div style="overflow-x:auto;">
@@ -461,7 +461,61 @@
           <form id="singleRejForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_CITIZEN"><input type="hidden" name="citizen_id" value=""><input type="hidden" name="reject_reason" value=""></form>
           {% endif %}
 
+          <div id="rejectedQueueBox" style="{% if turnover_summary.pending_citizens > 0 %}display:none;{% endif %}margin-bottom:18px;">
+            <div class="section-title" style="background:#fef2f2;padding:10px 14px;border:1px solid #fecaca;border-left:5px solid #dc2626;border-radius:8px;">
+              <span style="color:#991b1b;">&#128683; Rejected / Returned Applications ({{ rejected_citizens|length }} &bull; Sorted 1st-In, 1st-Rejected)</span>
+              {% if turnover_summary.pending_citizens > 0 %}
+                <button type="button" onclick="toggleRejectedTab()" style="background:#1e3a8a;color:#fff;border:0;padding:5px 12px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">&larr; Back to Pending Queue ({{ turnover_summary.pending_citizens }})</button>
+              {% endif %}
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="white-space:nowrap;"># (FIFO Order)</th>
+                    <th style="white-space:nowrap;">Rejected Date &amp; Time</th>
+                    <th style="white-space:nowrap;">QR ID</th>
+                    <th style="white-space:nowrap;">Full Name</th>
+                    <th style="white-space:nowrap;">Purok</th>
+                    <th>Rejection / Return Reason</th>
+                    <th style="white-space:nowrap;text-align:right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for rc in rejected_citizens %}
+                  <tr>
+                    <td style="font-weight:800;color:#64748b;">{{ forloop.counter }}</td>
+                    <td style="white-space:nowrap;font-size:.78rem;">{{ rc.updated_at|date:"Y-m-d H:i" }}</td>
+                    <td style="white-space:nowrap;"><strong>{{ rc.citizen_qr_id }}</strong></td>
+                    <td><a href="/citizen-inspect/{{ rc.id }}/" target="_blank" style="color:#1e3a8a;font-weight:800;text-decoration:none;">{{ rc.full_name }} &#8599;</a></td>
+                    <td style="white-space:nowrap;">{{ rc.purok }}</td>
+                    <td style="color:#991b1b;font-weight:700;font-size:.8rem;">{{ rc.rejection_reason|default:"Incomplete or unverified supporting documents" }}</td>
+                    <td style="white-space:nowrap;text-align:right;">
+                      <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="APPROVE_CITIZEN">
+                        <input type="hidden" name="citizen_id" value="{{ rc.id }}">
+                        <button type="submit" style="background:#16a34a;color:#fff;border:0;padding:5px 11px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;">Approve Now &rarr;</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="7" style="text-align:center;color:#64748b;padding:16px;">No rejected or returned applications.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <script>
+            function toggleRejectedTab() {
+              const pendForm = document.getElementById('massApproveForm');
+              const rejBox = document.getElementById('rejectedQueueBox');
+              if (!rejBox) return;
+              const showingRej = rejBox.style.display !== 'none';
+              if (pendForm) pendForm.style.display = showingRej ? '' : 'none';
+              rejBox.style.display = showingRej ? 'none' : '';
+            }
             let pendPage = 1;
             (function(){
               const savedSize = sessionStorage.getItem('bioas_pend_page_size');
