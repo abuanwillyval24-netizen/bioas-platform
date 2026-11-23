@@ -240,7 +240,7 @@
         {% elif module == "CITIZENS_INTAKE" %}
           <div class="section-title" style="margin-top:20px;"><span>Citizen Data Intake &amp; Staging Hub (Excel Importer &bull; Batch QR Media &bull; Walk-In 201 Encoder)</span></div>
           <style>
-            .intake-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-bottom: 14px; }
+            .intake-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #cbd5e1; }
             .intake-box { background: #ffffff; border: 1px solid #cbd5e1; border-top: 4px solid var(--primary); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-shadow: 0 2px 6px rgba(15,23,42,.05); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
             .intake-box:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(30,58,138,.13); border-color: var(--primary); }
             .intake-box .ib-tag { display: inline-block; background: #dbeafe; color: #1e40af; font-size: .68rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; margin-bottom: 5px; }
@@ -430,23 +430,64 @@
                 {% endif %}{% endfor %}
               </tbody></table>
             </div>
+            <div id="pendPagerBar" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px;padding:10px 14px;background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;color:#334155;font-weight:700;">
+                <span>Rows per page:</span>
+                <select id="pendPageSize" onchange="pendPage=1;renderPendQueue();" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.8rem;font-weight:700;background:#f8fafc;color:#0f172a;">
+                  <option value="20" selected>20 Rows (Default)</option>
+                  <option value="50">50 Rows</option>
+                  <option value="100">100 Rows</option>
+                  <option value="ALL">Display All</option>
+                </select>
+                <span id="pendPageInfo" style="color:#64748b;margin-left:6px;"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button type="button" id="pendPrevBtn" onclick="if(pendPage>1){pendPage--;renderPendQueue();}" style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&larr; Prev</button>
+                <span id="pendPageBadge" style="background:#dbeafe;color:#1e40af;padding:5px 11px;border-radius:6px;font-size:.78rem;font-weight:800;">Page 1</span>
+                <button type="button" id="pendNextBtn" onclick="pendPage++;renderPendQueue();" style="background:var(--primary);color:#ffffff;border:0;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">Next &rarr;</button>
+              </div>
+            </div>
           </form>
           <form id="singleAppForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="APPROVE_CITIZEN"><input type="hidden" name="citizen_id" value=""></form>
           <form id="singleRejForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_CITIZEN"><input type="hidden" name="citizen_id" value=""><input type="hidden" name="reject_reason" value=""></form>
           {% endif %}
 
           <script>
+            let pendPage = 1;
             function updatePendCount() {
               const cnt = document.querySelectorAll('#pendQueueTable .pend-chk:checked').length;
               const b = document.getElementById('pendSelBadge');
               if (b) b.textContent = cnt + ' Selected';
             }
-            function filterPendQueue() {
+            function renderPendQueue() {
               const q = (document.getElementById('pendSearchInput')?.value || '').trim().toLowerCase();
-              document.querySelectorAll('#pendQueueTable tbody tr').forEach(tr => {
-                tr.style.display = (!q || tr.textContent.toLowerCase().includes(q)) ? '' : 'none';
-              });
+              const sizeVal = document.getElementById('pendPageSize')?.value || '20';
+              const allRows = Array.from(document.querySelectorAll('#pendQueueTable tbody tr'));
+              const matched = allRows.filter(tr => !q || tr.textContent.toLowerCase().includes(q));
+              const total = matched.length;
+              const pageSize = (sizeVal === 'ALL') ? Math.max(1, total) : parseInt(sizeVal, 10);
+              const totalPages = Math.max(1, Math.ceil(total / pageSize));
+              if (pendPage > totalPages) pendPage = totalPages;
+              const startIdx = (pendPage - 1) * pageSize;
+              const endIdx = (sizeVal === 'ALL') ? total : Math.min(total, startIdx + pageSize);
+
+              allRows.forEach(tr => tr.style.display = 'none');
+              matched.slice(startIdx, endIdx).forEach(tr => tr.style.display = '');
+
+              const info = document.getElementById('pendPageInfo');
+              if (info) info.textContent = total === 0 ? 'Showing 0 records' : `Showing ${startIdx + 1}–${endIdx} of ${total}`;
+              const badge = document.getElementById('pendPageBadge');
+              if (badge) badge.textContent = `Page ${pendPage} of ${totalPages}`;
+              const prevBtn = document.getElementById('pendPrevBtn');
+              const nextBtn = document.getElementById('pendNextBtn');
+              if (prevBtn) { prevBtn.disabled = (pendPage <= 1); prevBtn.style.opacity = (pendPage <= 1) ? '0.45' : '1'; }
+              if (nextBtn) { nextBtn.disabled = (pendPage >= totalPages); nextBtn.style.opacity = (pendPage >= totalPages) ? '0.45' : '1'; }
             }
+            function filterPendQueue() {
+              pendPage = 1;
+              renderPendQueue();
+            }
+            renderPendQueue();
           </script>
         {% elif module == "HOUSEHOLDS" %}
           <div class="section-title"><span>02D. Household &amp; Family Tree Breakdown (Head &rarr; Members &rarr; Relationships)</span></div>
