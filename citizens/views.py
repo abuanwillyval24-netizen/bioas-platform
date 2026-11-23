@@ -435,10 +435,21 @@ def citizen_201_inspect(request, citizen_id):
     p_col = c.barangay.default_primary_color if c.barangay else "#1E3A8A"
     s_col = c.barangay.default_secondary_color if c.barangay else "#F59E0B"
     repo_docs = list(c.repository_docs.all())
+    derogatory_cases = []
+    try:
+        from blotter.models import BlotterCase
+        derogatory_cases = list(BlotterCase.objects.filter(
+            barangay=c.barangay,
+            respondent_name__icontains=c.last_name,
+            blocks_clearance=True,
+        ))
+    except Exception:
+        derogatory_cases = []
     html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "citizen_201_inspect.html"
     tpl = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(tpl.render({
         "c": c, "p_col": p_col, "s_col": s_col, "repo_docs": repo_docs,
+        "derogatory_cases": derogatory_cases,
         "view_mode": view_mode, "device_label": device_label,
         "qr_param": qr_param, "now_ts": timezone.now(),
     }, request))

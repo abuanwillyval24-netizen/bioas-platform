@@ -3,40 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Official 201 Profile Sheet — {{ c.full_name }}</title>
+  <title>Official 201 Master Record — {{ c.full_name }}</title>
   <style>
-    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-    body { margin: 0; background: #f1f5f9; color: #0f172a; }
-    .top { background: {{ p_col }}; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 4px solid {{ s_col }}; }
-    .wrap { max-width: {% if view_mode == 'mobile' %}520px{% else %}920px{% endif %}; margin: 18px auto; padding: 0 14px; }
-    .card { background: #fff; border-radius: 10px; padding: 16px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 14px; }
-    .grid { display: grid; grid-template-columns: {% if view_mode == 'mobile' %}1fr{% else %}repeat(auto-fit, minmax(210px, 1fr)){% endif %}; gap: 10px; }
-    .item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 11px; }
-    .lbl { font-size: .68rem; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: .03em; }
-    .val { font-size: .9rem; font-weight: 700; color: #0f172a; margin-top: 2px; word-break: break-word; }
-    .badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 3px 9px; border-radius: 999px; font-size: .74rem; font-weight: 700; margin: 2px 4px 2px 0; }
-    .sys-footer { text-align: center; padding: 12px; font-size: .76rem; font-weight: 800; letter-spacing: .06em; color: #475569; border-top: 2px dashed #cbd5e1; margin-top: 16px; text-transform: uppercase; }
-    @page { size: 8.5in 13in; margin: 11mm; }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #eef2f6; color: #0f172a; }
+    .top { background: {{ p_col }}; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 4px solid {{ s_col }}; }
+    .wrap { max-width: {% if view_mode == 'mobile' %}540px{% else %}1020px{% endif %}; margin: 22px auto; padding: 0 18px; }
+    .card { background: #fff; border-radius: 12px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(15,23,42,.06); border: 1px solid #cbd5e1; margin-bottom: 16px; }
+    .sec-title { margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; font-size: .92rem; font-weight: 800; color: {{ p_col }}; text-transform: uppercase; letter-spacing: .04em; display: flex; justify-content: space-between; align-items: center; }
+    .grid-3 { display: grid; grid-template-columns: {% if view_mode == 'mobile' %}1fr{% else %}repeat(3, minmax(0, 1fr)){% endif %}; gap: 13px; }
+    .item { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 13px; }
+    .lbl { font-size: .67rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: .04em; }
+    .val { font-size: .9rem; font-weight: 700; color: #0f172a; margin-top: 3px; word-break: break-word; line-height: 1.35; }
+    .badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 3px 10px; border-radius: 999px; font-size: .74rem; font-weight: 800; margin: 2px 5px 2px 0; }
+    .sys-footer { text-align: center; padding: 12px; font-size: .74rem; font-weight: 800; letter-spacing: .06em; color: #475569; border-top: 2px dashed #cbd5e1; margin-top: 14px; text-transform: uppercase; }
+    @page { size: 8.5in 13in; margin: 10mm; }
     @media print {
       .no-print { display: none !important; }
       body { background: #fff; }
       .wrap { max-width: 100%; margin: 0; padding: 0; }
-      .card { box-shadow: none; border: 1px solid #cbd5e1; break-inside: avoid; margin-bottom: 10px; padding: 12px 14px; }
-      .grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px; }
+      .card { box-shadow: none; border: 1px solid #94a3b8; break-inside: avoid; margin-bottom: 9px; padding: 11px 14px; border-radius: 6px; }
+      .sec-title { margin-bottom: 8px; padding-bottom: 5px; font-size: .82rem; }
+      .grid-3 { grid-template-columns: repeat(3, 1fr) !important; gap: 7px; }
+      .item { padding: 6px 9px; border-radius: 5px; }
+      .lbl { font-size: .6rem; }
+      .val { font-size: .78rem; margin-top: 2px; }
+      .sys-footer { margin-top: 8px; padding: 8px; font-size: .68rem; }
     }
   </style>
 </head>
 <body>
   <div class="top no-print">
     <div>
-      <strong>Official 201 Master Record</strong> &mdash; {{ c.barangay.name }}
-      <span style="background:rgba(255,255,255,.2);padding:2px 8px;border-radius:999px;font-size:.7rem;margin-left:6px;">Detected: {{ device_label }}</span>
+      <strong>Official Citizen 201 Master Record</strong> &mdash; {{ c.barangay.name }}
+      <span style="background:rgba(255,255,255,.2);padding:2px 9px;border-radius:999px;font-size:.7rem;margin-left:6px;">Detected: {{ device_label }}</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       {% if view_mode == 'mobile' %}
-        <a href="?{% if qr_param %}qr={{ qr_param }}&{% endif %}view=sheet" style="background:rgba(255,255,255,.18);color:#fff;padding:7px 12px;border-radius:6px;text-decoration:none;font-size:.78rem;font-weight:700;">&#128196; Switch to Print Sheet View</a>
+        <a href="?{% if qr_param %}qr={{ qr_param }}&{% endif %}view=sheet" style="background:rgba(255,255,255,.18);color:#fff;padding:7px 12px;border-radius:6px;text-decoration:none;font-size:.78rem;font-weight:700;">&#128196; Print Sheet View</a>
       {% else %}
-        <a href="?{% if qr_param %}qr={{ qr_param }}&{% endif %}view=mobile" style="background:rgba(255,255,255,.18);color:#fff;padding:7px 12px;border-radius:6px;text-decoration:none;font-size:.78rem;font-weight:700;">&#128241; Switch to Mobile Card View</a>
+        <a href="?{% if qr_param %}qr={{ qr_param }}&{% endif %}view=mobile" style="background:rgba(255,255,255,.18);color:#fff;padding:7px 12px;border-radius:6px;text-decoration:none;font-size:.78rem;font-weight:700;">&#128241; Mobile Card View</a>
       {% endif %}
       <button type="button" onclick="window.print()" style="background:#f59e0b;color:#0f172a;border:0;padding:7px 14px;border-radius:6px;font-weight:800;font-size:.78rem;cursor:pointer;">&#128424; Print 201 File (Long Bond Default)</button>
       <button type="button" onclick="window.close()" style="background:rgba(255,255,255,.18);color:#fff;border:0;padding:7px 12px;border-radius:6px;font-weight:700;font-size:.78rem;cursor:pointer;">Close &#10005;</button>
@@ -44,74 +50,60 @@
   </div>
 
   <div class="wrap">
-    <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;border-top:4px solid {{ p_col }};">
-      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
-    <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;border-top:4px solid {{ p_col }};">
-      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+    <div class="card" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;border-top:5px solid {{ p_col }};">
+      <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;flex:1;min-width:260px;">
         {% if c.photo_data_uri %}
-          <img src="{{ c.photo_data_uri }}" alt="2x2 Official Photo" style="width:118px;height:118px;object-fit:cover;border-radius:10px;border:3px solid {{ s_col }};box-shadow:0 2px 8px rgba(0,0,0,.14);">
+          <img src="{{ c.photo_data_uri }}" alt="2x2 Official Photo" style="width:124px;height:124px;object-fit:cover;border-radius:10px;border:3px solid {{ s_col }};box-shadow:0 3px 10px rgba(0,0,0,.15);">
         {% elif c.photo %}
-          <img src="{{ c.photo.url }}" alt="2x2 Official Photo" style="width:118px;height:118px;object-fit:cover;border-radius:10px;border:3px solid {{ s_col }};box-shadow:0 2px 8px rgba(0,0,0,.14);">
+          <img src="{{ c.photo.url }}" alt="2x2 Official Photo" style="width:124px;height:124px;object-fit:cover;border-radius:10px;border:3px solid {{ s_col }};box-shadow:0 3px 10px rgba(0,0,0,.15);">
         {% else %}
-          <div style="width:118px;height:118px;background:#e2e8f0;border-radius:10px;border:2px dashed #94a3b8;display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700;color:#475569;text-align:center;padding:8px;">No 2x2 Photo Attached</div>
+          <div style="width:124px;height:124px;background:#e2e8f0;border-radius:10px;border:2px dashed #94a3b8;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#475569;text-align:center;padding:8px;">No 2x2 Photo Attached</div>
         {% endif %}
         <div>
-          <div style="font-size:.74rem;font-weight:800;color:{{ p_col }};text-transform:uppercase;letter-spacing:.04em;">Republic of the Philippines &bull; {{ c.barangay.name }}</div>
-          <div style="font-size:1.3rem;font-weight:900;margin-top:2px;">{{ c.full_name }}</div>
-          <div style="margin-top:4px;"><span class="badge" style="font-size:.82rem;">{{ c.citizen_qr_id }}</span></div>
-          <div style="font-size:.82rem;color:#475569;margin-top:5px;">Registry Status: <strong>{{ c.get_status_display }}</strong> &bull; Encoded: {{ c.created_at|date:"Y-m-d H:i" }}</div>
+          <div style="font-size:.72rem;font-weight:800;color:{{ p_col }};text-transform:uppercase;letter-spacing:.05em;">Republic of the Philippines &bull; {{ c.barangay.city_municipality.province.name }} &bull; {{ c.barangay.city_municipality.name }} &bull; {{ c.barangay.name }}</div>
+          <div style="font-size:1.38rem;font-weight:900;margin-top:3px;color:#0f172a;">{{ c.full_name }}</div>
+          <div style="margin-top:6px;">
+            <span class="badge" style="font-size:.82rem;background:#1e3a8a;color:#fff;">{{ c.citizen_qr_id }}</span>
+            <span class="badge" style="background:#f1f5f9;color:#334155;">{{ c.get_status_display }}</span>
+          </div>
+          <div style="font-size:.8rem;color:#475569;margin-top:6px;">Profile Completeness: <strong>{{ c.profile_completion_pct }}%</strong> &bull; Registered: {{ c.created_at|date:"Y-m-d H:i" }}</div>
         </div>
       </div>
-      <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div class="no-print" style="margin-left:auto;">
         {% if c.supporting_doc_data_uri or c.supporting_document %}
-          <a href="/citizen-proof/{{ c.id }}/{% if qr_param %}?qr={{ qr_param }}{% endif %}" target="_blank" style="background:#0f766e;color:#fff;padding:9px 14px;border-radius:7px;text-decoration:none;font-size:.82rem;font-weight:800;">Open Supporting Proof (New Tab) &#8599;</a>
+          <a href="/citizen-proof/{{ c.id }}/{% if qr_param %}?qr={{ qr_param }}{% endif %}" target="_blank" style="background:#0f766e;color:#fff;padding:7px 12px;border-radius:6px;text-decoration:none;font-size:.75rem;font-weight:800;display:inline-block;white-space:nowrap;">Open Supporting Docs &#8599;</a>
         {% elif repo_docs %}
-          <a href="/citizen-docs/{{ c.citizen_qr_id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:9px 14px;border-radius:7px;text-decoration:none;font-size:.82rem;font-weight:800;">Open Supporting Vault ({{ repo_docs|length }}) &#8599;</a>
+          <a href="/citizen-docs/{{ c.citizen_qr_id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:7px 12px;border-radius:6px;text-decoration:none;font-size:.75rem;font-weight:800;display:inline-block;white-space:nowrap;">Open Supporting Docs ({{ repo_docs|length }}) &#8599;</a>
         {% else %}
-          <span style="background:#fee2e2;color:#991b1b;padding:8px 12px;border-radius:7px;font-size:.8rem;font-weight:800;">&#9888; No Supporting Document Attached</span>
+          <span style="background:#fee2e2;color:#991b1b;padding:6px 10px;border-radius:6px;font-size:.74rem;font-weight:800;display:inline-block;">&#9888; No Supporting Docs</span>
         {% endif %}
       </div>
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px;font-size:.95rem;color:{{ p_col }};">1. Personal &amp; Residency Details</h3>
-      <div class="grid">
+      <div class="sec-title"><span>1. System &amp; Barangay Reference</span><span style="font-size:.7rem;color:#64748b;">Section I</span></div>
+      <div class="grid-3">
+        <div class="item"><div class="lbl">Citizen ID</div><div class="val">{{ c.citizen_qr_id }}</div></div>
+        <div class="item"><div class="lbl">Household Number</div><div class="val">{% if c.household %}{{ c.household.household_code }}{% else %}-{% endif %}</div></div>
+        <div class="item"><div class="lbl">Relationship to Household Head</div><div class="val">{% if c.household %}{{ c.get_relationship_to_head_display }}{% else %}-{% endif %}</div></div>
+        <div class="item"><div class="lbl">Barangay Classification</div><div class="val">{{ c.barangay.get_barangay_classification_display }}</div></div>
+        <div class="item"><div class="lbl">Residency Status</div><div class="val">{{ c.get_residency_status_display }}</div></div>
+        <div class="item"><div class="lbl">Date Registered</div><div class="val">{{ c.created_at|date:"Y-m-d H:i" }}</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title"><span>2. Personal &amp; Identity Information</span><span style="font-size:.7rem;color:#64748b;">Section II</span></div>
+      <div class="grid-3">
+        <div class="item"><div class="lbl">PhilSys Card Number (PCN)</div><div class="val">{{ c.philsys_id|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Last Name</div><div class="val">{{ c.last_name }}</div></div>
         <div class="item"><div class="lbl">First Name</div><div class="val">{{ c.first_name }}</div></div>
-        <div class="item"><div class="lbl">Middle Name / Suffix</div><div class="val">{{ c.middle_name|default:"-" }} {{ c.suffix }}</div></div>
-        <div class="item"><div class="lbl">Sex &amp; Age</div><div class="val">{{ c.get_sex_display }} &bull; {{ c.age }} yrs old</div></div>
-        <div class="item"><div class="lbl">Birthdate</div><div class="val">{{ c.birth_date|date:"Y-m-d" }}</div></div>
-        <div class="item"><div class="lbl">Birthplace</div><div class="val">{{ c.birth_place|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Middle Name</div><div class="val">{{ c.middle_name|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Suffix / Extension</div><div class="val">{{ c.suffix|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Alias / Nickname</div><div class="val">{{ c.alias_nickname|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Date of Birth</div><div class="val">{{ c.birth_date|date:"Y-m-d" }}</div></div>
+        <div class="item"><div class="lbl">Age</div><div class="val">{{ c.age }} yrs old</div></div>
+        <div class="item"><div class="lbl">Sex</div><div class="val">{{ c.get_sex_display }}</div></div>
+        <div class="item"><div class="lbl">Place of Birth</div><div class="val">{{ c.birth_place|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Civil Status</div><div class="val">{{ c.get_civil_status_display }}</div></div>
-        <div class="item"><div class="lbl">Purok / Zone</div><div class="val">{{ c.purok }}</div></div>
-        <div class="item" {% if view_mode != 'mobile' %}style="grid-column:span 2;"{% endif %}><div class="lbl">Complete Street / House Address</div><div class="val">{{ c.address_line|default:"-" }}</div></div>
-        <div class="item"><div class="lbl">Residency Status</div><div class="val">{{ c.get_residency_status_display }}</div></div>
-        <div class="item"><div class="lbl">Household &amp; Role</div><div class="val">{% if c.household %}{{ c.household.household_code }} ({{ c.get_relationship_to_head_display }}){% else %}-{% endif %}</div></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3 style="margin:0 0 10px;font-size:.95rem;color:{{ p_col }};">2. Government IDs, Contact &amp; Livelihood</h3>
-      <div class="grid">
-        <div class="item"><div class="lbl">PhilSys National ID</div><div class="val">{{ c.philsys_id|default:"-" }}</div></div>
-        <div class="item"><div class="lbl">COMELEC Voter &amp; Precinct</div><div class="val">{% if c.is_registered_voter %}Registered ({{ c.precinct_number|default:"No Precinct" }}){% else %}Non-Voter{% endif %}</div></div>
-        <div class="item"><div class="lbl">Mobile Number</div><div class="val">{{ c.mobile_number|default:"-" }}</div></div>
-        <div class="item"><div class="lbl">Email Address</div><div class="val">{{ c.email_address|default:"-" }}</div></div>
-        <div class="item"><div class="lbl">Highest Education</div><div class="val">{{ c.get_education_level_display|default:"-" }}</div></div>
-        <div class="item"><div class="lbl">Occupation / Livelihood</div><div class="val">{{ c.occupation|default:"-" }}</div></div>
-        <div class="item"><div class="lbl">Employer / Business</div><div class="val">{{ c.employer_or_business|default:"-" }}</div></div>
-        <div class="item"><div class="lbl">Emergency Contact</div><div class="val">{{ c.emergency_contact_name|default:"-" }} ({{ c.emergency_contact_phone|default:"-" }})</div></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3 style="margin:0 0 8px;font-size:.95rem;color:{{ p_col }};">3. Sectoral &amp; Vital Registry Classifications</h3>
-      <div>
-        {% if c.is_registered_voter %}<span class="badge">COMELEC Registered Voter</span>{% endif %}
-        {% if c.is_senior_citizen %}<span class="badge">Senior Citizen (60+)</span>{% endif %}
-        {% if c.is_pwd %}<span class="badge">Person with Disability (PWD)</span>{% endif %}
-        {% if c.is_solo_parent %}<span class="badge">Solo Parent</span>{% endif %}
-        {% if c.is_4ps_beneficiary %}<span class="badge">4Ps Beneficiary</span>{% endif %}
-        {% if c.is_first_time_jobseeker %}<span class="badge">First-Time Jobseeker</span>{% endif %}
-        {% if c.is_ofw %}<span class="badge">OFW</span>{% endif %}
-        {% if c.is_pregnant %}<span class="badge">Pregnant</span>{% endif %}
+        <div class="item"><div class="lbl">Citizenship / Nationality</div><div class="val">{{ c.citizenship|default:"Filipino" }}</div></div>
