@@ -749,10 +749,10 @@ def command_dashboard(request):
             hh_code = c.household.household_code if c.household else "No Household"
             tags = [t for t, flag in [("Voter", c.is_registered_voter), ("Senior", c.is_senior_citizen), ("PWD", c.is_pwd), ("Solo Parent", c.is_solo_parent), ("4Ps", c.is_4ps_beneficiary), ("Pregnant", c.is_pregnant), ("OFW", c.is_ofw)] if flag]
             detail = f"QR: {c.citizen_qr_id} | {c.purok} | {c.address_line or '-'} | Age {c.age} ({c.get_sex_display()}) | HH: {hh_code} | Job: {c.occupation or '-'} | PhilSys: {c.philsys_id or '-'} | Precinct: {c.precinct_number or '-'} | Mobile: {c.mobile_number or '-'} | {', '.join(tags) or 'General Resident'} | {c.get_status_display()}"
-            search_index.append({"module_label": "02B. 201 Master", "title": f"{c.full_name} [{c.citizen_qr_id}]", "detail": detail, "url": f"?tier=BARANGAY&module={target_mod}&q={c.citizen_qr_id}"})
+            search_index.append({"module_label": "02E. 201 Master", "title": f"{c.full_name} [{c.citizen_qr_id}]", "detail": detail, "url": f"/citizen-inspect/{c.id}/"})
     if "CITIZENS" in visible_modules:
         for rep in citizen_reports:
-            search_index.append({"module_label": "02. Reports", "title": f"{rep.tracking_code} — {rep.get_category_display()}", "detail": f"Resident: {rep.citizen.full_name} | Landmark: {rep.location_landmark} | {rep.description[:80]} | {rep.get_status_display()}", "url": "?tier=BARANGAY&module=CITIZENS"})
+            search_index.append({"module_label": "02. Reports", "title": f"{rep.tracking_code} — {rep.get_category_display()}", "detail": f"Resident: {rep.citizen.full_name} | Landmark: {rep.location_landmark} | {rep.description[:80]} | {rep.get_status_display()}", "url": "?tier=BARANGAY&module=CITIZEN_REPORTS"})
     if "CERTIFICATES" in visible_modules:
         for cert in certificates:
             search_index.append({"module_label": "03. Certificates", "title": f"{cert.control_number} — {cert.get_cert_type_display()}", "detail": f"Citizen: {cert.citizen.full_name} ({cert.citizen.citizen_qr_id}) | Purpose: {getattr(cert, 'purpose', '-')} | Fee: P{getattr(cert, 'fee_amount', 0)} | {cert.get_status_display()}", "url": "?tier=BARANGAY&module=CERTIFICATES"})

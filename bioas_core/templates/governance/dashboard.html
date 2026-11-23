@@ -150,7 +150,7 @@
             <td><span class="badge">{{ item.module_label }}</span></td>
             <td><strong>{{ item.title }}</strong></td>
             <td style="font-size:.82rem;color:#475569;">{{ item.detail }}</td>
-            <td style="white-space:nowrap;"><a href="{{ item.url }}" style="background:#1e3a8a;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">Open &rarr;</a></td>
+            <td style="white-space:nowrap;"><a href="{{ item.url }}" {% if "/citizen-inspect/" in item.url %}target="_blank"{% endif %} style="background:#1e3a8a;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">Open &rarr;</a></td>
           </tr>
           {% endfor %}
         </tbody></table>
@@ -1137,7 +1137,7 @@
         return;
       }
       liveDrop.innerHTML = hits.map((h, idx) =>
-        '<a class="sdrop-item" data-idx="' + idx + '" href="' + h.url + '" style="display:block;padding:9px 12px;border-bottom:1px solid #f1f5f9;text-decoration:none;color:#0f172a;">' +
+        '<a class="sdrop-item" data-idx="' + idx + '" href="' + h.url + '" ' + (h.url.startsWith("/citizen-inspect/") ? 'target="_blank" ' : '') + 'onmousedown="event.preventDefault();if(this.href.includes(\'/citizen-inspect/\')){window.open(this.href,\'_blank\');}else{window.location.href=this.href;}" style="display:block;padding:9px 12px;border-bottom:1px solid #f1f5f9;text-decoration:none;color:#0f172a;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;"><strong style="font-size:.82rem;">' + h.title + '</strong><span style="background:#e0e7ff;color:#1e3a8a;font-size:.68rem;font-weight:800;padding:2px 6px;border-radius:999px;white-space:nowrap;">' + h.module_label + '</span></div>' +
         '<div style="font-size:.74rem;color:#475569;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + h.detail + '</div></a>'
       ).join("") + '<div style="padding:7px 12px;background:#f8fafc;font-size:.74rem;color:#1e3a8a;font-weight:700;text-align:center;">Press Enter to view all matches across all 14 modules &rarr;</div>';
