@@ -17,18 +17,19 @@
     .val { font-size: .9rem; font-weight: 700; color: #0f172a; margin-top: 3px; word-break: break-word; line-height: 1.35; }
     .badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 3px 10px; border-radius: 999px; font-size: .74rem; font-weight: 800; margin: 2px 5px 2px 0; }
     .sys-footer { text-align: center; padding: 12px; font-size: .74rem; font-weight: 800; letter-spacing: .06em; color: #475569; border-top: 2px dashed #cbd5e1; margin-top: 14px; text-transform: uppercase; }
-    @page { size: 8.5in 13in; margin: 10mm; }
+    @page { size: 8.5in 13in; margin: 7mm; }
     @media print {
       .no-print { display: none !important; }
-      body { background: #fff; }
+      body { background: #fff; zoom: 0.88; }
       .wrap { max-width: 100%; margin: 0; padding: 0; }
-      .card { box-shadow: none; border: 1px solid #94a3b8; break-inside: avoid; margin-bottom: 9px; padding: 11px 14px; border-radius: 6px; }
-      .sec-title { margin-bottom: 8px; padding-bottom: 5px; font-size: .82rem; }
-      .grid-3 { grid-template-columns: repeat(3, 1fr) !important; gap: 7px; }
-      .item { padding: 6px 9px; border-radius: 5px; }
-      .lbl { font-size: .6rem; }
-      .val { font-size: .78rem; margin-top: 2px; }
-      .sys-footer { margin-top: 8px; padding: 8px; font-size: .68rem; }
+      .card { box-shadow: none; border: 1px solid #94a3b8; break-inside: avoid; margin-bottom: 5px; padding: 6px 10px; border-radius: 5px; }
+      .card img { width: 76px !important; height: 76px !important; border-width: 2px !important; }
+      .sec-title { margin-bottom: 4px; padding-bottom: 2px; font-size: .72rem; }
+      .grid-3 { grid-template-columns: repeat(4, 1fr) !important; gap: 4px; }
+      .item { padding: 3px 6px; border-radius: 4px; background: #fff; }
+      .lbl { font-size: .53rem; letter-spacing: .02em; }
+      .val { font-size: .68rem; margin-top: 1px; line-height: 1.2; }
+      .sys-footer { margin-top: 5px; padding: 4px; font-size: .6rem; }
     }
   </style>
 </head>
