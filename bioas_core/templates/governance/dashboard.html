@@ -427,9 +427,15 @@
           </div>
           <script>function filterSharedGallery(){const q=(document.getElementById('galSearchInput')?.value||'').trim().toLowerCase();document.querySelectorAll('#sharedProfileGrid .gal-card').forEach(el=>{el.style.display=(!q||(el.dataset.search||'').includes(q))?'flex':'none';});}</script>
         {% elif module == "LEDGER_201" %}
-          <style>.main{max-width:100% !important;}</style>
+          <style>
+            .main{max-width:100% !important;}
+            #xl201Table { width: max-content !important; min-width: 100% !important; table-layout: auto !important; }
+            #xl201Table th, #xl201Table td { white-space: nowrap !important; padding: 9px 14px !important; vertical-align: middle !important; }
+            #xl201Table th[data-col="0"], #xl201Table td[data-col="0"] { min-width: 195px !important; left: 0 !important; }
+            #xl201Table th[data-col="1"], #xl201Table td[data-col="1"] { left: 195px !important; }
+          </style>
           <div class="section-title">
-            <span>02B. Master 201 Approved Resident Ledger (Full-Screen Excel Grid &mdash; <span id="xlCount">0</span> Rows)</span>
+            <span>02C. Master 201 Approved Resident Ledger (Full-Screen Excel Grid &mdash; <span id="xlCount">0</span> Rows)</span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
               <button type="button" onclick="toggleColMenu()" style="background:#334155;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Customize Columns &#9662;</button>
               <button type="button" onclick="resetColPrefs()" style="background:#475569;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Show All Columns</button>
@@ -467,7 +473,7 @@
               <thead>
                 <tr style="background:#0f172a;color:#fff;">
                   <th data-col="0" style="background:#0f172a;color:#fff;position:sticky;left:0;z-index:3;">QR ID</th>
-                  <th data-col="1" style="background:#0f172a;color:#fff;position:sticky;left:95px;z-index:3;">Full Name</th>
+                  <th data-col="1" style="background:#0f172a;color:#fff;position:sticky;left:195px;z-index:3;">Full Name</th>
                   <th data-col="2" style="background:#0f172a;color:#fff;">Birthdate</th>
                   <th data-col="3" style="background:#0f172a;color:#fff;">Age</th>
                   <th data-col="4" style="background:#0f172a;color:#fff;">Sex</th>
@@ -497,7 +503,7 @@
                 {% for c in citizens %}{% if c.status == "ACTIVE_RESIDENT" %}
                 <tr class="xl-row" data-purok="{{ c.purok }}" data-sex="{{ c.get_sex_display }}" data-voter="{% if c.is_registered_voter %}Voter{% else %}Non-Voter{% endif %}" data-class="{% if c.is_senior_citizen %}Senior {% endif %}{% if c.is_pwd %}PWD {% endif %}{% if c.is_solo_parent %}Solo Parent {% endif %}{% if c.is_4ps_beneficiary %}4Ps {% endif %}{% if c.is_pregnant %}Pregnant {% endif %}{% if c.is_ofw %}OFW{% endif %}">
                   <td data-col="0" style="position:sticky;left:0;background:#f8fafc;font-weight:800;z-index:2;">{{ c.citizen_qr_id }}</td>
-                  <td data-col="1" style="position:sticky;left:95px;background:#f8fafc;font-weight:700;z-index:2;white-space:nowrap;">{{ c.full_name }}</td>
+                  <td data-col="1" style="position:sticky;left:195px;background:#f8fafc;font-weight:700;z-index:2;white-space:nowrap;">{{ c.full_name }}</td>
                   <td data-col="2" style="white-space:nowrap;">{{ c.birth_date|date:"Y-m-d" }}</td>
                   <td data-col="3"><strong>{{ c.age }}</strong></td>
                   <td data-col="4">{{ c.get_sex_display }}</td>
