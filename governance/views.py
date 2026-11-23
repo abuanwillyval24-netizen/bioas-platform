@@ -217,7 +217,25 @@ def command_dashboard(request):
                     reference_code=target.citizen_qr_id,
                     details=f"Approved citizen portal sign-up for {target.full_name} ({target.citizen_qr_id}).",
                 )
-                action_notice = f"Approved {target.full_name} ({target.citizen_qr_id}) into Master 201 Registry!"
+                if target.email_address:
+                    try:
+                        from django.core.mail import send_mail
+                        from django.conf import settings as dj_settings
+                        send_mail(
+                            subject=f"[{active_barangay.name}] Account Approved ? Complete Your 201 Profile",
+                            message=(
+                                f"Good day {target.full_name},\n\n"
+                                f"Your Barangay registration ({target.citizen_qr_id}) has been verified and approved into the Official 201 Master Registry.\n"
+                                f"Next Step: Please sign in at /citizen-home/ using your Citizen ID ({target.citizen_qr_id}) and complete your profile.\n\n"
+                                f"? {active_barangay.name} Office of the Barangay Secretary"
+                            ),
+                            from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                            recipient_list=[target.email_address],
+                            fail_silently=True,
+                        )
+                    except Exception:
+                        pass
+                action_notice = f"Approved {target.full_name} ({target.citizen_qr_id}) into 201 Master & 02E Gallery! Sent 'Complete your profile' notification."
         elif act == "REJECT_CITIZEN":
             target = CitizenProfile.objects.filter(id=request.POST.get("citizen_id"), barangay=active_barangay).first()
             reason = request.POST.get("reject_reason", "").strip() or "Incomplete or unverified supporting documents"
