@@ -843,6 +843,7 @@ def theme_settings(request):
         act = request.POST.get("action")
         if act == "CREATE_OFFICER" and can_manage_officers and barangay:
             uname = request.POST.get("officer_username", "").strip()
+            o_email = request.POST.get("officer_email", "").strip().lower()
             pwd = request.POST.get("officer_password", "")
             cit_id = request.POST.get("citizen_id", "").strip()
             linked_cit = CitizenProfile.objects.filter(barangay=barangay, id=cit_id, status="ACTIVE_RESIDENT").first() if cit_id else None
@@ -851,15 +852,23 @@ def theme_settings(request):
             seat_code = request.POST.get("officer_seat_code", "").strip()
             committee = request.POST.get("officer_committee", "").strip()
             chosen_mods = request.POST.getlist("modules") or list(BarangayStaffProfile.ROLE_DEFAULT_MODULES.get(role, ["OVERVIEW", "POLICY"]))
-            if not uname or len(pwd) < 6 or not fname:
-                error = "Full name (from 201 or manual), username, and password (min 6 chars) are required."
+            if not uname or not o_email or "@" not in o_email or len(pwd) < 6 or not fname:
+                error = "Full name, valid official email (for 2FA/OTP), username, and password (min 6 chars) are required."
             elif linked_cit and hasattr(linked_cit, "staff_account") and linked_cit.staff_account is not None:
-                error = f"{linked_cit.full_name} ({linked_cit.citizen_qr_id}) already has an officer account."
-            elif User.objects.filter(username=uname).exists():
-                error = f"Username '{uname}' already exists."
+                error = f"Non-Dual Guard: {linked_cit.full_name} ({linked_cit.citizen_qr_id}) already has an officer account."
+            elif User.objects.filter(username__iexact=uname).exists():
+                error = f"Non-Dual Guard: Username '{uname}' already exists."
+            elif User.objects.filter(email__iexact=o_email).exists():
+                error = f"Non-Dual Guard: Email '{o_email}' is already registered to another account."
+            elif BarangayStaffProfile.objects.filter(barangay=barangay, full_name__iexact=fname).exists():
+                error = f"Non-Dual Guard: Officer '{fname}' is already appointed in {barangay.name}."
+            elif role == "CAPTAIN" and BarangayStaffProfile.objects.filter(barangay=barangay, role="CAPTAIN", approval_status="ACTIVE").exists():
+                error = f"Non-Dual Guard: {barangay.name} already has an Active Punong Barangay (Captain). Suspend or reassign the existing Captain seat first."
+            elif seat_code and BarangayStaffProfile.objects.filter(barangay=barangay, seat_code__iexact=seat_code, approval_status="ACTIVE").exists():
+                error = f"Non-Dual Guard: Seat / Designation Code '{seat_code}' is already assigned to an active officer."
             else:
                 parts = fname.split()
-                new_user = User.objects.create_user(username=uname, password=pwd, first_name=parts, last_name=" ".join(parts[1:]))
+                new_user = User.objects.create_user(username=uname, email=o_email, password=pwd, first_name=parts, last_name=" ".join(parts[1:]))
                 auto_status = "ACTIVE" if (u.is_superuser or (current_prof and current_prof.role == "CAPTAIN")) else "PENDING_CAPTAIN"
                 sp = BarangayStaffProfile.objects.create(
                     user=new_user,
@@ -1107,7 +1116,8 @@ label{display:block;font-weight:700;font-size:.8rem;margin:8px 0 4px}input,selec
       <div><label>Official Role *</label><select id="roleSel" name="officer_role" onchange="applyRolePreset(this.value)">{% for k,v in role_choices %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
       <div><label>Seat / Designation Code</label><input name="officer_seat_code" placeholder="e.g., SEAT-CAPTAIN"></div>
       <div><label>Committee / Unit</label><input name="officer_committee" placeholder="e.g., Executive"></div>
-      <div><label>Login Username *</label><input name="officer_username" placeholder="e.g., capt.reyes" required></div>
+      <div><label>Official Email (For 2FA / OTP) *</label><input type="email" name="officer_email" placeholder="e.g., abuanwillyval24+captain@gmail.com" required></div>
+      <div><label>Login Username *</label><input name="officer_username" placeholder="e.g., capt.ksample" required></div>
       <div><label>Initial Password (min 6 chars) *</label><input type="password" name="officer_password" required></div>
     </div>
     <label style="margin-top:12px;">Configurable Sidebar Modules for This Account:</label>
@@ -1121,7 +1131,7 @@ label{display:block;font-weight:700;font-size:.8rem;margin:8px 0 4px}input,selec
   <form method="post" style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;background:#f8fafc;">{% csrf_token %}
     <input type="hidden" name="action" value="UPDATE_OFFICER_MODULES"><input type="hidden" name="staff_profile_id" value="{{ sp.id }}">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-      <div><strong>{{ sp.full_name }}</strong> (<code>{{ sp.user.username }}</code>) &mdash; <span style="color:#1e3a8a;font-weight:700;">{{ sp.get_role_display }}</span> {% if sp.citizen %}<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:999px;font-size:.72rem;font-weight:700;">201 Linked: {{ sp.citizen.citizen_qr_id }}</span>{% endif %}</div>
+      <div><strong>{{ sp.full_name }}</strong> (<code>{{ sp.user.username }}</code>{% if sp.user.email %} &bull; <span style="color:#0f766e;font-size:.8rem;">{{ sp.user.email }}</span>{% endif %}) &mdash; <span style="color:#1e3a8a;font-weight:700;">{{ sp.get_role_display }}</span> {% if sp.citizen %}<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:999px;font-size:.72rem;font-weight:700;">201 Linked: {{ sp.citizen.citizen_qr_id }}</span>{% endif %}</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <select name="approval_status" style="width:auto;padding:5px 8px;font-size:.8rem;font-weight:700;">{% for k,v in status_choices %}<option value="{{ k }}" {% if sp.approval_status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
         <button type="submit" class="save" style="margin:0;padding:6px 12px;font-size:.8rem;">Save Access</button>
