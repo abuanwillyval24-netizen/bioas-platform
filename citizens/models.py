@@ -108,11 +108,32 @@ class CitizenProfile(models.Model):
     currently_attending_school = models.BooleanField(default=False)
     school_or_course = models.CharField(max_length=140, blank=True)
     grade_year_level = models.CharField(max_length=60, blank=True)
+    SOCIOECONOMIC_TIER_CHOICES = [
+        ("SUBSISTENCE", "Subsistence / Priority Support"),
+        ("LOW_INCOME", "Low-Income / Vulnerable"),
+        ("LOWER_MIDDLE", "Lower-Middle / Marginal"),
+        ("SELF_SUSTAINING", "Self-Sustaining"),
+    ]
+    LIVELIHOOD_SOURCE_CHOICES = [
+        ("CITIZEN_DECLARATION", "Citizen Declaration"),
+        ("CENSUS_SNAPSHOT", "Census Snapshot"),
+        ("FIELD_VALIDATION", "Field Validation"),
+    ]
+    LIVELIHOOD_VERIFY_CHOICES = [
+        ("UNVERIFIED", "Unverified"),
+        ("VERIFIED", "Verified"),
+        ("UNDER_REVIEW", "Under Review"),
+    ]
     employment_status = models.CharField(max_length=60, blank=True)
     occupation = models.CharField(max_length=120, blank=True)
+    secondary_livelihood = models.CharField(max_length=140, blank=True)
     employer_or_business = models.CharField(max_length=140, blank=True)
     employer_address = models.CharField(max_length=200, blank=True)
     monthly_income = models.CharField(max_length=60, blank=True)
+    socioeconomic_tier = models.CharField(max_length=25, choices=SOCIOECONOMIC_TIER_CHOICES, blank=True)
+    livelihood_source = models.CharField(max_length=25, choices=LIVELIHOOD_SOURCE_CHOICES, default="CITIZEN_DECLARATION", blank=True)
+    livelihood_verification_status = models.CharField(max_length=20, choices=LIVELIHOOD_VERIFY_CHOICES, default="UNVERIFIED", blank=True)
+    livelihood_effective_date = models.DateField(null=True, blank=True)
 
     is_registered_voter = models.BooleanField(default=False)
     precinct_number = models.CharField(max_length=30, blank=True)
