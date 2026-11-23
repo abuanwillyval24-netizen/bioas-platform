@@ -585,11 +585,33 @@ def command_dashboard(request):
                         out.append((os.path.basename(f_item.name).strip(), f_item.read()))
                 return out
 
+            from citizens.views import _geo_code
+            city_o = getattr(active_barangay, "city_municipality", None)
+            prov_o = getattr(city_o, "province", None)
+            nat_prefix = f"{_geo_code(getattr(prov_o, 'name', ''), 'NE')}-{_geo_code(getattr(city_o, 'name', ''), 'CAB')}-{_geo_code(getattr(active_barangay, 'name', ''), 'LAG')}-{date.today().year}-"
+
+            def _resolve_national_citizen(qr_cand):
+                cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id__iexact=qr_cand).first()
+                tail_digits = "".join(ch for ch in qr_cand.split("-").__getitem__(-1) if ch.isdigit())
+                if not cit and tail_digits:
+                    seq_int = int(tail_digits)
+                    for cand_c in CitizenProfile.objects.filter(barangay=active_barangay):
+                        c_tail = "".join(ch for ch in cand_c.citizen_qr_id.split("-").__getitem__(-1) if ch.isdigit())
+                        if c_tail and int(c_tail) == seq_int:
+                            cit = cand_c
+                            break
+                if cit and tail_digits and not cit.citizen_qr_id.upper().startswith(nat_prefix):
+                    target_nat_id = f"{nat_prefix}{int(tail_digits):05d}"
+                    if not CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=target_nat_id).exclude(id=cit.id).exists():
+                        cit.citizen_qr_id = target_nat_id
+                        cit.save(update_fields=["citizen_qr_id"])
+                return cit
+
             for base_fn, file_bytes in _extract_items(request.FILES.getlist("photo_files")):
                 if not base_fn or not file_bytes:
                     continue
                 qr_candidate = os.path.splitext(base_fn).__getitem__(0).split("_").__getitem__(0).strip().upper()
-                cit_target = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id__iexact=qr_candidate).first() if qr_candidate else None
+                cit_target = _resolve_national_citizen(qr_candidate) if qr_candidate else None
                 if not cit_target:
                     skipped_files.append(base_fn)
                     continue
@@ -600,7 +622,7 @@ def command_dashboard(request):
                 if not base_fn or not file_bytes:
                     continue
                 qr_candidate = os.path.splitext(base_fn).__getitem__(0).split("_").__getitem__(0).strip().upper()
-                cit_target = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id__iexact=qr_candidate).first() if qr_candidate else None
+                cit_target = _resolve_national_citizen(qr_candidate) if qr_candidate else None
                 if not cit_target:
                     skipped_files.append(base_fn)
                     continue
