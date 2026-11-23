@@ -100,18 +100,19 @@
       <a href="?tier=BARANGAY&module=OVERVIEW" class="{% if module == 'OVERVIEW' %}active{% endif %}"><span>Command Overview</span><span class="pill">{{ visible_modules|length }}</span></a>
       <div class="side-group">Frontline Services</div>
       {% if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or "DOCS_REPO" in visible_modules %}
-      <details {% if module == 'CITIZENS' or module == 'CITIZENS_INTAKE' or module == 'LEDGER_201' or module == 'HOUSEHOLDS' or module == 'SHARED_GALLERY' or module == 'DOCS_REPO' %}open{% endif %} style="margin:2px 0;">
-        <summary style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;color:#e2e8f0;font-size:.82rem;font-weight:700;background:{% if module == 'CITIZENS' or module == 'CITIZENS_INTAKE' or module == 'LEDGER_201' or module == 'HOUSEHOLDS' or module == 'SHARED_GALLERY' or module == 'DOCS_REPO' %}rgba(255,255,255,.08){% else %}transparent{% endif %};">
+      <details {% if module == 'CITIZENS' or module == 'CITIZENS_INTAKE' or module == 'LEDGER_201' or module == 'HOUSEHOLDS' or module == 'SHARED_GALLERY' or module == 'DOCS_REPO' or module == 'CITIZEN_REPORTS' %}open{% endif %} style="margin:2px 0;">
+        <summary style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;color:#e2e8f0;font-size:.82rem;font-weight:700;background:{% if module == 'CITIZENS' or module == 'CITIZENS_INTAKE' or module == 'LEDGER_201' or module == 'HOUSEHOLDS' or module == 'SHARED_GALLERY' or module == 'DOCS_REPO' or module == 'CITIZEN_REPORTS' %}rgba(255,255,255,.08){% else %}transparent{% endif %};">
           <span>02. Citizen &amp; 201 Suite</span>
           <span style="font-size:.72rem;color:#94a3b8;">&#9662;</span>
         </summary>
         <div style="padding-left:10px;border-left:2px solid rgba(255,255,255,.14);margin:4px 0 4px 10px;display:flex;flex-direction:column;gap:2px;">
-          {% if "CITIZENS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02A. Population &amp; Reports</span><span class="pill">{{ citizen_reports|length }}</span></a>{% endif %}
+          {% if "CITIZENS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02A. Live Population</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
           {% if "CITIZENS_INTAKE" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZENS_INTAKE" class="{% if module == 'CITIZENS_INTAKE' %}active{% endif %}"><span>02B. Data Intake &amp; Pending</span><span class="pill">{{ turnover_summary.pending_citizens }}</span></a>{% endif %}
           {% if "LEDGER_201" in visible_modules %}<a href="?tier=BARANGAY&module=LEDGER_201" class="{% if module == 'LEDGER_201' %}active{% endif %}"><span>02C. Master 201 Excel Ledger</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
           {% if "HOUSEHOLDS" in visible_modules %}<a href="?tier=BARANGAY&module=HOUSEHOLDS" class="{% if module == 'HOUSEHOLDS' %}active{% endif %}"><span>02D. Household &amp; Family Tree</span><span class="pill">{{ household_rows|length }}</span></a>{% endif %}
           {% if "SHARED_GALLERY" in visible_modules %}<a href="?tier=BARANGAY&module=SHARED_GALLERY" class="{% if module == 'SHARED_GALLERY' %}active{% endif %}"><span>02E. Shared Citizen Profiles</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
           {% if "DOCS_REPO" in visible_modules %}<a href="?tier=BARANGAY&module=DOCS_REPO" class="{% if module == 'DOCS_REPO' %}active{% endif %}"><span>02F. Supporting Docs Vault</span><span class="pill">{{ all_repo_docs|length }}</span></a>{% endif %}
+          {% if "CITIZEN_REPORTS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZEN_REPORTS" class="{% if module == 'CITIZEN_REPORTS' %}active{% endif %}"><span>02G. Citizen Portal Reports</span><span class="pill">{{ citizen_reports|length }}</span></a>{% endif %}
         </div>
       </details>
       {% endif %}
@@ -221,7 +222,8 @@
             </div>
           </div>
 
-          <div class="section-title" style="margin-top:20px;"><span>02. Citizen Portal Community Reports &amp; Complaints ({{ citizen_reports|length }})</span><a href="/citizen-home/" target="_blank" style="background:var(--primary);color:#fff;padding:6px 12px;border-radius:7px;text-decoration:none;font-size:.76rem;font-weight:700;">Open Citizen Portal &#8599;</a></div>
+        {% elif module == "CITIZEN_REPORTS" %}
+          <div class="section-title" style="margin-top:20px;"><span>02G. Citizen Portal Community Reports &amp; Complaints ({{ citizen_reports|length }})</span><a href="/citizen-home/" target="_blank" style="background:var(--primary);color:#fff;padding:6px 12px;border-radius:7px;text-decoration:none;font-size:.76rem;font-weight:700;">Open Citizen Portal &#8599;</a></div>
           <div class="card" style="padding:16px 18px;border-top:4px solid var(--primary);margin-bottom:20px;">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
               <input id="repSearchInput" oninput="filterCitizenReports()" placeholder="Search tracking code, resident, category, or landmark..." style="flex:1;min-width:220px;padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;">
