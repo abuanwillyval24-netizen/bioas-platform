@@ -56,6 +56,17 @@
         &#10004; {{ action_banner }}
       </div>
     {% endif %}
+    {% if is_official %}
+      <div class="card no-print" style="background:#f8fafc;border:1px solid #cbd5e1;border-left:5px solid #1e3a8a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div><strong style="color:#1e3a8a;font-size:.86rem;">&#128273; Walk-In Assisted Account Recovery (ID-Verified Resident)</strong><div style="font-size:.76rem;color:#475569;">Current Username: <strong>{{ c.portal_username|default:"Not Set" }}</strong></div></div>
+        <form method="post" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0;">
+          {% csrf_token %}<input type="hidden" name="inspect_action" value="WALKIN_RESET_CREDS">
+          <input name="walkin_username" value="{{ c.portal_username|default:c.citizen_qr_id|lower }}" placeholder="New Username" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;" required>
+          <input name="walkin_temp_pass" minlength="6" placeholder="Temp Password (6+ chars)" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;" required>
+          <button type="submit" style="background:#1e3a8a;color:#fff;border:0;padding:7px 12px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Reset Credentials</button>
+        </form>
+      </div>
+    {% endif %}
     {% if is_official and c.status == "PENDING_APPROVAL" %}
       <div class="card no-print" style="background:#fffbeb;border:1px solid #f59e0b;border-left:5px solid #d97706;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
         <div>

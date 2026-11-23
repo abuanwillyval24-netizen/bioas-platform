@@ -190,6 +190,8 @@ def citizen_portal(request):
             is_first_time_jobseeker=bool(request.POST.get("is_first_time_jobseeker")),
             data_privacy_consent=bool(request.POST.get("agree_terms_privacy")),
             electronic_signature=request.POST.get("applicant_electronic_signature", "").strip(),
+            portal_username=request.POST.get("portal_username", "").strip().lower(),
+            portal_password_hash=__import__("django.contrib.auth.hashers", fromlist=["make_password"]).make_password(request.POST.get("portal_password", "").strip()) if request.POST.get("portal_password", "").strip() else "",
             encoded_by="Citizen Self-Registration Portal",
             status="PENDING_APPROVAL",
         )
@@ -213,9 +215,54 @@ def citizen_portal(request):
 
 
 def citizen_home(request):
+    from django.contrib.auth.hashers import check_password, make_password
+    import random
     qr_id = (request.POST.get("qr_id") or request.GET.get("qr_id") or "").strip().upper()
-    citizen = CitizenProfile.objects.select_related("barangay", "household").filter(citizen_qr_id=qr_id).first() if qr_id else None
-    notice, error = "", ""
+    login_username = (request.POST.get("portal_username") or "").strip().lower()
+    rec_qr_id = (request.POST.get("rec_qr_id") or "").strip().upper()
+    rec_email = (request.POST.get("rec_email") or "").strip()
+    otp_stage, notice, error, citizen = "", "", "", None
+    top_act = request.POST.get("action") if request.method == "POST" else ""
+    if top_act == "CITIZEN_LOGIN":
+        cand = CitizenProfile.objects.select_related("barangay", "household").filter(portal_username__iexact=login_username).first() if login_username else None
+        if not cand or not cand.portal_password_hash or not check_password(request.POST.get("portal_password", ""), cand.portal_password_hash):
+            error = "Invalid Portal Username or Password. Try again or use Forgot Password below."
+        else:
+            request.session["citizen_auth_id"] = cand.id
+            citizen = cand
+    elif top_act == "SEND_RECOVERY_OTP":
+        cand = CitizenProfile.objects.filter(citizen_qr_id=rec_qr_id, email_address__iexact=rec_email).first() if (rec_qr_id and rec_email) else None
+        if not cand:
+            error, otp_stage = "No citizen account matches that Reference ID and Registered Email.", "FORM"
+        else:
+            code = f"{random.randint(100000, 999999)}"
+            request.session["citizen_otp_code"], request.session["citizen_otp_cid"], otp_stage = code, cand.id, "VERIFY"
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings as dj_settings
+                send_mail(f"[{cand.barangay.name}] Password Reset OTP", f"Your 6-digit reset code is: {code}", getattr(dj_settings, "DEFAULT_FROM_EMAIL", None), [cand.email_address], fail_silently=True)
+            except Exception:
+                pass
+            notice = f"A 6-digit verification code has been sent to {cand.email_address}."
+    elif top_act == "RESET_PASSWORD_OTP":
+        if not request.session.get("citizen_otp_code") or request.POST.get("otp_code", "").strip() != request.session.get("citizen_otp_code"):
+            error, otp_stage = "Invalid or expired 6-digit OTP code.", "VERIFY"
+        elif len(request.POST.get("new_password", "").strip()) < 6:
+            error, otp_stage = "New password must be at least 6 characters.", "VERIFY"
+        else:
+            cand = CitizenProfile.objects.filter(id=request.session.get("citizen_otp_cid")).first()
+            if cand:
+                cand.portal_password_hash = make_password(request.POST.get("new_password", "").strip())
+                cand.save(update_fields=["portal_password_hash"])
+                request.session.pop("citizen_otp_code", None)
+                request.session["citizen_auth_id"] = cand.id
+                citizen, notice = cand, f"Password updated! Signed in as {cand.portal_username or cand.citizen_qr_id}."
+    else:
+        auth_cid = request.session.get("citizen_auth_id")
+        if auth_cid:
+            citizen = CitizenProfile.objects.select_related("barangay", "household").filter(id=auth_cid).first()
+        elif qr_id and request.user.is_authenticated:
+            citizen = CitizenProfile.objects.select_related("barangay", "household").filter(citizen_qr_id=qr_id).first()
 
     if qr_id and not citizen:
         error = f"Citizen QR ID '{qr_id}' not found."
@@ -330,7 +377,7 @@ def citizen_home(request):
     return HttpResponse(tpl.render({
         "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
         "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
-        "recent_certs": recent_certs, "recent_reports": recent_reports,
+        "recent_certs": recent_certs, "recent_reports": recent_reports, "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
     }, request))
 
 from django.shortcuts import get_object_or_404, redirect
@@ -543,6 +590,15 @@ def citizen_201_inspect(request, citizen_id):
                 except Exception:
                     pass
             action_banner = f"Returned {full_nm} ({qr_ref}) for revision. Reason saved & citizen notified to log in and resubmit."
+        elif act_cmd == "WALKIN_RESET_CREDS":
+            from django.contrib.auth.hashers import make_password
+            new_u = request.POST.get("walkin_username", "").strip().lower() or c.citizen_qr_id.lower()
+            new_p = request.POST.get("walkin_temp_pass", "").strip()
+            if len(new_p) >= 6:
+                c.portal_username, c.portal_password_hash = new_u, make_password(new_p)
+                c.save(update_fields=["portal_username", "portal_password_hash"])
+                SystemAuditLog.objects.create(barangay=c.barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=act_nm, actor_role=act_rl, reference_code=c.citizen_qr_id, details=f"Walk-In Assisted Account Recovery for {c.full_name} ({c.citizen_qr_id}). Username: {new_u}.")
+                action_banner = f"Walk-In Account Recovery complete! New Username: '{new_u}' (Temp Password set & logged to Audit Trail)."
 
     ua = request.META.get("HTTP_USER_AGENT", "")
     is_mobile_ua = any(k in ua for k in ("Mobile", "Android", "iPhone", "iPad", "Opera Mini", "IEMobile"))
