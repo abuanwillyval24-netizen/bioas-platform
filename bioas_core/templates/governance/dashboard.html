@@ -859,6 +859,143 @@
           <table><thead><tr><th>Beneficiary</th><th>Program</th><th>Cycle</th><th>Amount</th></tr></thead><tbody>
             {% for s in social_aids %}<tr><td><strong>{{ s.citizen.full_name }}</strong></td><td>{{ s.get_program_category_display }}</td><td>{{ s.distribution_cycle }}</td><td>₱{{ s.amount_or_pack_value }}</td></tr>{% empty %}<tr><td colspan="4">No aid releases recorded yet.</td></tr>{% endfor %}
           </tbody></table>
+                    <div class="section-title" style="margin-top:20px;">
+            <span>07C. Livelihood &amp; Socioeconomic Priority Screening (4-Layer Anti-Palakasan Engine)</span>
+            <span style="font-size:.75rem;color:#475569;font-weight:700;">Neutral Census Tiers &bull; Cross-Module Verified</span>
+          </div>
+          <div class="grid" style="margin-bottom:14px;">
+            <div class="card" style="border-top-color:#dc2626;cursor:pointer;" onclick="document.getElementById('socioTierFilter').value='SUBSISTENCE';filterSocioTable();">
+              <h3>Subsistence / Priority Support</h3>
+              <div class="stat" style="color:#dc2626;">{{ socio_counts.subsistence }}</div>
+            </div>
+            <div class="card" style="border-top-color:#d97706;cursor:pointer;" onclick="document.getElementById('socioTierFilter').value='LOW_INCOME';filterSocioTable();">
+              <h3>Low-Income / Vulnerable</h3>
+              <div class="stat" style="color:#d97706;">{{ socio_counts.low_income }}</div>
+            </div>
+            <div class="card" style="border-top-color:#2563eb;cursor:pointer;" onclick="document.getElementById('socioTierFilter').value='LOWER_MIDDLE';filterSocioTable();">
+              <h3>Lower-Middle / Marginal</h3>
+              <div class="stat" style="color:#2563eb;">{{ socio_counts.lower_middle }}</div>
+            </div>
+            <div class="card" style="border-top-color:#16a34a;cursor:pointer;" onclick="document.getElementById('socioTierFilter').value='SELF_SUSTAINING';filterSocioTable();">
+              <h3>Self-Sustaining</h3>
+              <div class="stat" style="color:#16a34a;">{{ socio_counts.self_sustaining }}</div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:14px 16px;margin-bottom:18px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+              <input id="socioSearchInp" oninput="filterSocioTable()" placeholder="Search Resident, QR ID, Primary/Secondary Livelihood, or Purok..." style="flex:1;min-width:220px;padding:7px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;">
+              <select id="socioTierFilter" onchange="filterSocioTable()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.8rem;font-weight:700;background:#f8fafc;">
+                <option value="">All Socioeconomic Tiers (Priority Order)</option>
+                <option value="SUBSISTENCE">1. Subsistence / Priority Support</option>
+                <option value="LOW_INCOME">2. Low-Income / Vulnerable</option>
+                <option value="LOWER_MIDDLE">3. Lower-Middle / Marginal</option>
+                <option value="SELF_SUSTAINING">4. Self-Sustaining</option>
+                <option value="UNSET">Unclassified / Pending Assessment</option>
+              </select>
+              <select id="socioVerifyFilter" onchange="filterSocioTable()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.8rem;font-weight:700;background:#f8fafc;">
+                <option value="">All Verification States</option>
+                <option value="VERIFIED">Field Verified Only</option>
+                <option value="UNVERIFIED">Unverified Declarations</option>
+                <option value="UNDER_REVIEW">Under Review</option>
+              </select>
+            </div>
+            <div style="overflow-x:auto;">
+              <table id="socioScreenTable" style="margin:0;width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="white-space:nowrap;">Priority Tier (Layer 3)</th>
+                    <th style="white-space:nowrap;">Resident &amp; Purok</th>
+                    <th style="white-space:nowrap;">Economic Activity &amp; Income (Layers 1 &amp; 2)</th>
+                    <th style="white-space:nowrap;">Anti-Palakasan Cross-Checks</th>
+                    <th style="white-space:nowrap;">Provenance (Layer 4)</th>
+                    <th style="white-space:nowrap;text-align:right;">Field Validation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in citizens %}{% if c.status == "ACTIVE_RESIDENT" %}
+                  <tr data-tier="{{ c.socioeconomic_tier|default:'UNSET' }}" data-rank="{% if c.socioeconomic_tier == 'SUBSISTENCE' %}1{% elif c.socioeconomic_tier == 'LOW_INCOME' %}2{% elif c.socioeconomic_tier == 'LOWER_MIDDLE' %}3{% elif c.socioeconomic_tier == 'SELF_SUSTAINING' %}4{% else %}5{% endif %}" data-verify="{{ c.livelihood_verification_status|default:'UNVERIFIED' }}">
+                    <td style="white-space:nowrap;">
+                      {% if c.socioeconomic_tier == "SUBSISTENCE" %}
+                        <span class="badge" style="background:#fee2e2;color:#991b1b;">Subsistence / Priority Support</span>
+                      {% elif c.socioeconomic_tier == "LOW_INCOME" %}
+                        <span class="badge" style="background:#fef3c7;color:#92400e;">Low-Income / Vulnerable</span>
+                      {% elif c.socioeconomic_tier == "LOWER_MIDDLE" %}
+                        <span class="badge" style="background:#dbeafe;color:#1e40af;">Lower-Middle / Marginal</span>
+                      {% elif c.socioeconomic_tier == "SELF_SUSTAINING" %}
+                        <span class="badge" style="background:#dcfce7;color:#166534;">Self-Sustaining</span>
+                      {% else %}
+                        <span class="badge" style="background:#f1f5f9;color:#475569;">Pending Assessment</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <a href="/citizen-inspect/{{ c.id }}/" target="_blank" style="font-weight:800;color:#1e3a8a;text-decoration:none;">{{ c.full_name }} &#8599;</a>
+                      <div style="font-size:.73rem;color:#64748b;">{{ c.citizen_qr_id }} &bull; {{ c.purok }}</div>
+                    </td>
+                    <td>
+                      <strong>{{ c.occupation|default:"Not Declared" }}</strong>{% if c.secondary_livelihood %} <small style="color:#0f766e;">(+ {{ c.secondary_livelihood }})</small>{% endif %}
+                      <div style="font-size:.73rem;color:#475569;">Income: {{ c.monthly_income|default:"Not Disclosed" }}</div>
+                    </td>
+                    <td>
+                      <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                        {% if c.is_4ps_beneficiary %}<span class="badge" style="background:#fef3c7;color:#92400e;font-size:.68rem;">4Ps</span>{% endif %}
+                        {% if c.is_solo_parent %}<span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:.68rem;">Solo Parent</span>{% endif %}
+                        {% if c.is_pwd %}<span class="badge" style="background:#fce7f3;color:#9d174d;font-size:.68rem;">PWD</span>{% endif %}
+                        {% if c.is_senior_citizen %}<span class="badge" style="background:#f3e8ff;color:#6b21a8;font-size:.68rem;">Senior</span>{% endif %}
+                        <span class="badge" style="background:#f1f5f9;color:#334155;font-size:.68rem;">Ayuda Grants: {{ c.aid_distributions.all|length }}</span>
+                      </div>
+                    </td>
+                    <td style="white-space:nowrap;font-size:.75rem;">
+                      <div><strong>{{ c.get_livelihood_source_display|default:"Citizen Declaration" }}</strong></div>
+                      <span style="color:{% if c.livelihood_verification_status == 'VERIFIED' %}#16a34a{% elif c.livelihood_verification_status == 'UNDER_REVIEW' %}#d97706{% else %}#64748b{% endif %};font-weight:800;">{{ c.get_livelihood_verification_status_display|default:"Unverified" }}</span>
+                      {% if c.livelihood_effective_date %}<small style="color:#64748b;">({{ c.livelihood_effective_date|date:"Y-m-d" }})</small>{% endif %}
+                    </td>
+                    <td style="white-space:nowrap;text-align:right;">
+                      <form method="post" style="display:inline-flex;gap:4px;align-items:center;" onsubmit="const r=prompt('Enter Field Validation / Committee Note (logged to Audit Trail):','Field & cross-module livelihood verification');if(r===null)return false;this.querySelector('[name=verify_reason]').value=r;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="VERIFY_LIVELIHOOD_TIER">
+                        <input type="hidden" name="citizen_id" value="{{ c.id }}">
+                        <input type="hidden" name="verify_reason" value="">
+                        <select name="socioeconomic_tier" style="padding:4px 6px;border:1px solid #cbd5e1;border-radius:5px;font-size:.73rem;">
+                          <option value="SUBSISTENCE" {% if c.socioeconomic_tier == 'SUBSISTENCE' %}selected{% endif %}>Subsistence / Priority</option>
+                          <option value="LOW_INCOME" {% if c.socioeconomic_tier == 'LOW_INCOME' %}selected{% endif %}>Low-Income / Vulnerable</option>
+                          <option value="LOWER_MIDDLE" {% if c.socioeconomic_tier == 'LOWER_MIDDLE' %}selected{% endif %}>Lower-Middle / Marginal</option>
+                          <option value="SELF_SUSTAINING" {% if c.socioeconomic_tier == 'SELF_SUSTAINING' %}selected{% endif %}>Self-Sustaining</option>
+                        </select>
+                        <button type="submit" style="background:#0f766e;color:#fff;border:0;padding:5px 9px;border-radius:5px;font-size:.72rem;font-weight:800;cursor:pointer;">Verify &#10003;</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% endif %}{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <script>
+            function filterSocioTable() {
+              const tbody = document.querySelector('#socioScreenTable tbody');
+              if (!tbody) return;
+          <script>
+            function filterSocioTable() {
+              const tbody = document.querySelector('#socioScreenTable tbody');
+              if (!tbody) return;
+              const q = (document.getElementById('socioSearchInp')?.value || '').trim().toLowerCase();
+              const tf = document.getElementById('socioTierFilter')?.value || '';
+              const vf = document.getElementById('socioVerifyFilter')?.value || '';
+              const rows = Array.from(tbody.querySelectorAll('tr'));
+              rows.sort((a, b) => parseInt(a.dataset.rank || '5', 10) - parseInt(b.dataset.rank || '5', 10));
+              rows.forEach(tr => {
+                const okQ = !q || tr.textContent.toLowerCase().includes(q);
+                const okT = !tf || tr.dataset.tier === tf;
+                const okV = !vf || tr.dataset.verify === vf;
+                tr.style.display = (okQ && okT && okV) ? '' : 'none';
+                tbody.appendChild(tr);
+              });
+            }
+            filterSocioTable();
+          </script>
+
+          
         {% elif module == "FLEET" %}
           <div class="section-title"><span>08. Fleet & Equipment</span><a href="/admin/assets_fleet/">+ Manage Fleet</a></div>
           <table><thead><tr><th>Plate</th><th>Vehicle</th><th>Driver</th><th>Status</th></tr></thead><tbody>

@@ -189,10 +189,8 @@ def command_dashboard(request):
         visible_modules = list(staff_profile.get_visible_modules())
     else:
         visible_modules = list(all_mod_codes)
-    if ("CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or request.user.is_superuser):
-        for sub_m in ("DOCS_REPO", "CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "CITIZEN_REPORTS"):
-            if sub_m not in visible_modules:
-                visible_modules.append(sub_m)
+    if ("CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or request.user.is_superuser) and "DOCS_REPO" not in visible_modules:
+        visible_modules.append("DOCS_REPO")
 
     if tier == "BARANGAY" and module not in visible_modules:
         module = "OVERVIEW"
@@ -234,7 +232,28 @@ def command_dashboard(request):
                     details=f"Rejected & returned 201 application for {full_nm} ({qr_ref}). Reason: {reason}",
                 )
                 action_notice = f"Rejected 201 submission for {full_nm} ({qr_ref}). Reason: {reason}"
-
+        elif act == "VERIFY_LIVELIHOOD_TIER":
+            target = CitizenProfile.objects.filter(id=request.POST.get("citizen_id"), barangay=active_barangay).first()
+            new_tier = request.POST.get("socioeconomic_tier", "").strip()
+            new_vstat = request.POST.get("livelihood_verification_status", "VERIFIED").strip()
+            v_reason = request.POST.get("verify_reason", "").strip() or "Field & cross-module livelihood verification"
+            if target:
+                if new_tier in ("SUBSISTENCE", "LOW_INCOME", "LOWER_MIDDLE", "SELF_SUSTAINING"):
+                    target.socioeconomic_tier = new_tier
+                if new_vstat in ("UNVERIFIED", "VERIFIED", "UNDER_REVIEW"):
+                    target.livelihood_verification_status = new_vstat
+                target.livelihood_source = "FIELD_VALIDATION"
+                target.livelihood_effective_date = date.today()
+                target.save(update_fields=["socioeconomic_tier", "livelihood_verification_status", "livelihood_source", "livelihood_effective_date"])
+                SystemAuditLog.objects.create(
+                    barangay=active_barangay,
+                    action_type="PORTAL_SYNC_APPROVED",
+                    actor_name=actor_name,
+                    actor_role=actor_role,
+                    reference_code=target.citizen_qr_id,
+                    details=f"Field-validated Livelihood & Socioeconomic Tier for {target.full_name} ({target.citizen_qr_id}) -> {target.get_socioeconomic_tier_display() or 'Unclassified'} [{target.get_livelihood_verification_status_display()}]. Note: {v_reason}",
+                )
+                action_notice = f"Updated Livelihood & Socioeconomic record for {target.full_name} ({target.get_socioeconomic_tier_display() or 'Unclassified'} — {target.get_livelihood_verification_status_display()})."
         elif act == "SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
@@ -472,30 +491,12 @@ def command_dashboard(request):
 
                     if not lname or not fname_c or len(bdate) != 10:
                         continue
-                    prov_c = "".join(ch for ch in active_barangay.city_municipality.province.name.upper() if ch.isalpha())[:3].ljust(3, "X")
-                    city_c = "".join(ch for ch in active_barangay.city_municipality.name.upper() if ch.isalpha())[:3].ljust(3, "X")
-                    brgy_c = "".join(ch for ch in active_barangay.name.upper() if ch.isalpha())[:3].ljust(3, "X")
-                    off_prefix = f"{prov_c}-{city_c}-{brgy_c}-{date.today().year}-"
-                    norm_qr = qr_val
-                    if qr_val and not qr_val.startswith(off_prefix):
-                        tail_digits = ""
-                        for ch in reversed(qr_val):
-                            if ch.isdigit():
-                                tail_digits = ch + tail_digits
-                            elif tail_digits:
-                                break
-                        if tail_digits:
-                            cand_qr = f"{off_prefix}{int(tail_digits):05d}"
-                            if not CitizenProfile.objects.filter(citizen_qr_id=cand_qr).exclude(citizen_qr_id=qr_val).exists():
-                                norm_qr = cand_qr
-                    cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id__in=[q for q in (qr_val, norm_qr) if q]).first() if (qr_val or norm_qr) else None
+                    cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=qr_val).first() if qr_val else None
                     if not cit:
                         cit = CitizenProfile(
                             barangay=active_barangay,
-                            citizen_qr_id=norm_qr or f"CIT-{uuid.uuid4().hex[:6].upper()}",
+                            citizen_qr_id=qr_val or f"CIT-{uuid.uuid4().hex[:6].upper()}",
                         )
-                    elif norm_qr and cit.citizen_qr_id != norm_qr and not CitizenProfile.objects.filter(citizen_qr_id=norm_qr).exclude(id=cit.id).exists():
-                        cit.citizen_qr_id = norm_qr
                     cit.last_name = lname.__getitem__(slice(0, 80))
                     cit.first_name = fname_c.__getitem__(slice(0, 80))
                     cit.middle_name = mname_c.__getitem__(slice(0, 80))
@@ -578,25 +579,6 @@ def command_dashboard(request):
                 action_notice = f"Verified & activated {approved_total} citizen record(s) into the Official 201 Master Registry!"
             else:
                 action_notice = "No pending citizen records were selected for approval."
-        elif act == "MASS_REJECT_201":
-            selected_ids = request.POST.getlist("pending_ids")
-            reason = request.POST.get("reject_reason", "").strip() or "Missing or unverified supporting documents"
-            if selected_ids:
-                qs_rej = CitizenProfile.objects.filter(barangay=active_barangay, status="PENDING_APPROVAL", id__in=selected_ids)
-                rej_count = qs_rej.count()
-                if rej_count > 0:
-                    qs_rej.delete()
-                    SystemAuditLog.objects.create(
-                        barangay=active_barangay,
-                        action_type="PORTAL_SYNC_APPROVED",
-                        actor_name=actor_name,
-                        actor_role=actor_role,
-                        reference_code=f"MASS-REJ-{rej_count}",
-                        details=f"Rejected & returned {rej_count} pending 201 application(s). Reason: {reason}",
-                    )
-                    action_notice = f"Rejected & removed {rej_count} pending 201 submission(s). Reason: {reason}"
-            else:
-                action_notice = "Please select at least one pending row to reject."
         elif act == "BATCH_ZIP_DOCS" and (request.FILES.getlist("photo_files") or request.FILES.getlist("doc_files")):
             import os, zipfile
             from django.core.files.base import ContentFile
@@ -693,23 +675,6 @@ def command_dashboard(request):
     }
 
     from citizens.models import CitizenSupportingDocument
-    if active_barangay:
-        prov_c = "".join(ch for ch in active_barangay.city_municipality.province.name.upper() if ch.isalpha())[:3].ljust(3, "X")
-        city_c = "".join(ch for ch in active_barangay.city_municipality.name.upper() if ch.isalpha())[:3].ljust(3, "X")
-        brgy_c = "".join(ch for ch in active_barangay.name.upper() if ch.isalpha())[:3].ljust(3, "X")
-        off_prefix = f"{prov_c}-{city_c}-{brgy_c}-{date.today().year}-"
-        for leg in CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id__startswith="QR-"):
-            tail_d = ""
-            for ch in reversed(leg.citizen_qr_id):
-                if ch.isdigit():
-                    tail_d = ch + tail_d
-                elif tail_d:
-                    break
-            if tail_d:
-                cand_qr = f"{off_prefix}{int(tail_d):05d}"
-                if not CitizenProfile.objects.filter(citizen_qr_id=cand_qr).exists():
-                    leg.citizen_qr_id = cand_qr
-                    leg.save(update_fields=["citizen_qr_id"])
     citizens = CitizenProfile.objects.select_related("household").filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
     all_repo_docs = CitizenSupportingDocument.objects.select_related("citizen").filter(citizen__barangay=active_barangay) if active_barangay else CitizenSupportingDocument.objects.none()
     households = Household.objects.prefetch_related("members").filter(barangay=active_barangay) if active_barangay else Household.objects.none()
@@ -803,16 +768,16 @@ def command_dashboard(request):
             hh_code = c.household.household_code if c.household else "No Household"
             tags = [t for t, flag in [("Voter", c.is_registered_voter), ("Senior", c.is_senior_citizen), ("PWD", c.is_pwd), ("Solo Parent", c.is_solo_parent), ("4Ps", c.is_4ps_beneficiary), ("Pregnant", c.is_pregnant), ("OFW", c.is_ofw)] if flag]
             detail = f"QR: {c.citizen_qr_id} | {c.purok} | {c.address_line or '-'} | Age {c.age} ({c.get_sex_display()}) | HH: {hh_code} | Job: {c.occupation or '-'} | PhilSys: {c.philsys_id or '-'} | Precinct: {c.precinct_number or '-'} | Mobile: {c.mobile_number or '-'} | {', '.join(tags) or 'General Resident'} | {c.get_status_display()}"
-            search_index.append({"module_label": "02E. 201 Master", "title": f"{c.full_name} [{c.citizen_qr_id}]", "detail": detail, "url": f"/citizen-inspect/{c.id}/"})
+            search_index.append({"module_label": "02B. 201 Master", "title": f"{c.full_name} [{c.citizen_qr_id}]", "detail": detail, "url": f"?tier=BARANGAY&module={target_mod}&q={c.citizen_qr_id}"})
     if "CITIZENS" in visible_modules:
         for rep in citizen_reports:
-            search_index.append({"module_label": "02. Reports", "title": f"{rep.tracking_code} — {rep.get_category_display()}", "detail": f"Resident: {rep.citizen.full_name} | Landmark: {rep.location_landmark} | {rep.description[:80]} | {rep.get_status_display()}", "url": "?tier=BARANGAY&module=CITIZEN_REPORTS"})
+            search_index.append({"module_label": "02. Reports", "title": f"{rep.tracking_code} — {rep.get_category_display()}", "detail": f"Resident: {rep.citizen.full_name} | Landmark: {rep.location_landmark} | {rep.description[:80]} | {rep.get_status_display()}", "url": "?tier=BARANGAY&module=CITIZENS"})
     if "CERTIFICATES" in visible_modules:
         for cert in certificates:
             search_index.append({"module_label": "03. Certificates", "title": f"{cert.control_number} — {cert.get_cert_type_display()}", "detail": f"Citizen: {cert.citizen.full_name} ({cert.citizen.citizen_qr_id}) | Purpose: {getattr(cert, 'purpose', '-')} | Fee: P{getattr(cert, 'fee_amount', 0)} | {cert.get_status_display()}", "url": "?tier=BARANGAY&module=CERTIFICATES"})
     if "BLOTTER" in visible_modules:
         for b in blotter_cases:
-            search_index.append({"module_label": "04. Blotter/VAWC", "title": f"{b.case_number} — {getattr(b, 'masked_parties', b.case_number)}", "detail": f"Stage: {b.get_stage_display()} | Hold Clearance: {'Yes' if getattr(b, 'blocks_clearance', False) else 'No'}", "url": "?tier=BARANGAY&module=BLOTTER"})
+            search_index.append({"module_label": "04. Derogatory Record Flag", "title": f"{b.case_number} — {b.complainant_name} vs {b.respondent_name}", "detail": f"{b.get_category_display()} | {b.get_status_display()}", "url": "/?tier=BARANGAY&module=BLOTTER"})
     if "TREASURY" in visible_modules:
         for r in receipts:
             dt = getattr(r, "issued_date", None) or getattr(r, "created_at", "")
@@ -868,6 +833,12 @@ def command_dashboard(request):
         "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "receipts": receipts, "abuloy_sheets": abuloy_sheets, "total_collections": total_collections,
         "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "associations": associations,
+        "socio_counts": {
+            "subsistence": citizens.filter(status="ACTIVE_RESIDENT", socioeconomic_tier="SUBSISTENCE").count(),
+            "low_income": citizens.filter(status="ACTIVE_RESIDENT", socioeconomic_tier="LOW_INCOME").count(),
+            "lower_middle": citizens.filter(status="ACTIVE_RESIDENT", socioeconomic_tier="LOWER_MIDDLE").count(),
+            "self_sustaining": citizens.filter(status="ACTIVE_RESIDENT", socioeconomic_tier="SELF_SUSTAINING").count(),
+        },
         "vehicles": vehicles, "trips": trips, "equipment_loans": equipment_loans,
         "hazards": hazards, "evac_centers": evac_centers, "kk_youth": kk_youth, "sk_projects": sk_projects,
         "measures": measures, "bdp_projects": bdp_projects, "audit_logs": audit_logs, "dilg_reports": dilg_reports, "coa_audits": coa_audits,
@@ -897,7 +868,6 @@ def theme_settings(request):
         act = request.POST.get("action")
         if act == "CREATE_OFFICER" and can_manage_officers and barangay:
             uname = request.POST.get("officer_username", "").strip()
-            o_email = request.POST.get("officer_email", "").strip().lower()
             pwd = request.POST.get("officer_password", "")
             cit_id = request.POST.get("citizen_id", "").strip()
             linked_cit = CitizenProfile.objects.filter(barangay=barangay, id=cit_id, status="ACTIVE_RESIDENT").first() if cit_id else None
@@ -906,23 +876,15 @@ def theme_settings(request):
             seat_code = request.POST.get("officer_seat_code", "").strip()
             committee = request.POST.get("officer_committee", "").strip()
             chosen_mods = request.POST.getlist("modules") or list(BarangayStaffProfile.ROLE_DEFAULT_MODULES.get(role, ["OVERVIEW", "POLICY"]))
-            if not uname or not o_email or "@" not in o_email or len(pwd) < 6 or not fname:
-                error = "Full name, valid official email (for 2FA/OTP), username, and password (min 6 chars) are required."
+            if not uname or len(pwd) < 6 or not fname:
+                error = "Full name (from 201 or manual), username, and password (min 6 chars) are required."
             elif linked_cit and hasattr(linked_cit, "staff_account") and linked_cit.staff_account is not None:
-                error = f"Non-Dual Guard: {linked_cit.full_name} ({linked_cit.citizen_qr_id}) already has an officer account."
-            elif User.objects.filter(username__iexact=uname).exists():
-                error = f"Non-Dual Guard: Username '{uname}' already exists."
-            elif User.objects.filter(email__iexact=o_email).exists():
-                error = f"Non-Dual Guard: Email '{o_email}' is already registered to another account."
-            elif BarangayStaffProfile.objects.filter(barangay=barangay, full_name__iexact=fname).exists():
-                error = f"Non-Dual Guard: Officer '{fname}' is already appointed in {barangay.name}."
-            elif role == "CAPTAIN" and BarangayStaffProfile.objects.filter(barangay=barangay, role="CAPTAIN", approval_status="ACTIVE").exists():
-                error = f"Non-Dual Guard: {barangay.name} already has an Active Punong Barangay (Captain). Suspend or reassign the existing Captain seat first."
-            elif seat_code and BarangayStaffProfile.objects.filter(barangay=barangay, seat_code__iexact=seat_code, approval_status="ACTIVE").exists():
-                error = f"Non-Dual Guard: Seat / Designation Code '{seat_code}' is already assigned to an active officer."
+                error = f"{linked_cit.full_name} ({linked_cit.citizen_qr_id}) already has an officer account."
+            elif User.objects.filter(username=uname).exists():
+                error = f"Username '{uname}' already exists."
             else:
                 parts = fname.split()
-                new_user = User.objects.create_user(username=uname, email=o_email, password=pwd, first_name=parts, last_name=" ".join(parts[1:]))
+                new_user = User.objects.create_user(username=uname, password=pwd, first_name=parts, last_name=" ".join(parts[1:]))
                 auto_status = "ACTIVE" if (u.is_superuser or (current_prof and current_prof.role == "CAPTAIN")) else "PENDING_CAPTAIN"
                 sp = BarangayStaffProfile.objects.create(
                     user=new_user,
@@ -1170,8 +1132,7 @@ label{display:block;font-weight:700;font-size:.8rem;margin:8px 0 4px}input,selec
       <div><label>Official Role *</label><select id="roleSel" name="officer_role" onchange="applyRolePreset(this.value)">{% for k,v in role_choices %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
       <div><label>Seat / Designation Code</label><input name="officer_seat_code" placeholder="e.g., SEAT-CAPTAIN"></div>
       <div><label>Committee / Unit</label><input name="officer_committee" placeholder="e.g., Executive"></div>
-      <div><label>Official Email (For 2FA / OTP) *</label><input type="email" name="officer_email" placeholder="e.g., abuanwillyval24+captain@gmail.com" required></div>
-      <div><label>Login Username *</label><input name="officer_username" placeholder="e.g., capt.ksample" required></div>
+      <div><label>Login Username *</label><input name="officer_username" placeholder="e.g., capt.reyes" required></div>
       <div><label>Initial Password (min 6 chars) *</label><input type="password" name="officer_password" required></div>
     </div>
     <label style="margin-top:12px;">Configurable Sidebar Modules for This Account:</label>
@@ -1185,7 +1146,7 @@ label{display:block;font-weight:700;font-size:.8rem;margin:8px 0 4px}input,selec
   <form method="post" style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;background:#f8fafc;">{% csrf_token %}
     <input type="hidden" name="action" value="UPDATE_OFFICER_MODULES"><input type="hidden" name="staff_profile_id" value="{{ sp.id }}">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-      <div><strong>{{ sp.full_name }}</strong> (<code>{{ sp.user.username }}</code>{% if sp.user.email %} &bull; <span style="color:#0f766e;font-size:.8rem;">{{ sp.user.email }}</span>{% endif %}) &mdash; <span style="color:#1e3a8a;font-weight:700;">{{ sp.get_role_display }}</span> {% if sp.citizen %}<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:999px;font-size:.72rem;font-weight:700;">201 Linked: {{ sp.citizen.citizen_qr_id }}</span>{% endif %}</div>
+      <div><strong>{{ sp.full_name }}</strong> (<code>{{ sp.user.username }}</code>) &mdash; <span style="color:#1e3a8a;font-weight:700;">{{ sp.get_role_display }}</span> {% if sp.citizen %}<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:999px;font-size:.72rem;font-weight:700;">201 Linked: {{ sp.citizen.citizen_qr_id }}</span>{% endif %}</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <select name="approval_status" style="width:auto;padding:5px 8px;font-size:.8rem;font-weight:700;">{% for k,v in status_choices %}<option value="{{ k }}" {% if sp.approval_status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
         <button type="submit" class="save" style="margin:0;padding:6px 12px;font-size:.8rem;">Save Access</button>
