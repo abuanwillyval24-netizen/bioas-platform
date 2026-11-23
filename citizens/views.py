@@ -256,6 +256,14 @@ def citizen_home(request):
     recent_certs = CertificateRequest.objects.filter(citizen=citizen)[:5] if citizen else []
     recent_reports = CitizenCommunityReport.objects.filter(citizen=citizen)[:5] if citizen else []
 
+    html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "citizen_home.html"
+    tpl = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
+    return HttpResponse(tpl.render({
+        "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
+        "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
+        "recent_certs": recent_certs, "recent_reports": recent_reports,
+    }, request))
+
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 

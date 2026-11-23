@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BIOAS Resident Self-Service Portal</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: #f1f5f9; color: #0f172a; }
+    .top { background: #1e3a8a; color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #f59e0b; }
+    .top a { color: #fff; text-decoration: none; font-weight: 700; font-size: .85rem; }
+    .wrap { max-width: 780px; margin: 20px auto; padding: 0 14px; }
+    .card { background: #fff; border-radius: 10px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 16px; }
+    label { display: block; font-size: .78rem; font-weight: 700; margin: 8px 0 4px; color: #334155; }
+    input, select, textarea { width: 100%; padding: 9px 11px; border: 1px solid #cbd5e1; border-radius: 7px; font-size: .88rem; }
+    button { background: #1e3a8a; color: #fff; border: 0; padding: 10px 16px; border-radius: 7px; font-weight: 700; cursor: pointer; font-size: .86rem; }
+    .btn-gold { background: #f59e0b; color: #0f172a; text-decoration: none; padding: 9px 14px; border-radius: 7px; font-weight: 800; font-size: .84rem; display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <strong>BIOAS Resident Self-Service Portal</strong>
+    <a href="/portal/">&larr; Public Portal</a>
+  </div>
+
+  <div class="wrap">
+    {% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}
+    {% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
+
+    {% if not citizen %}
+    <div class="card" style="border-top:4px solid #1e3a8a;">
+      <h2 style="margin-top:0;font-size:1.1rem;">Resident Digital ID Sign-In</h2>
+      <p style="font-size:.85rem;color:#475569;">Enter your approved <strong>Citizen ID</strong> (e.g., <code>NE-CAB-LAG-2026-00001</code>) to open your synchronized 201 Profile, request clearances, or file community reports.</p>
+      <form method="get">
+        <label>Citizen ID *</label>
+        <input name="qr_id" value="{{ qr_id }}" placeholder="e.g., NE-CAB-LAG-2026-00001" required>
+        <button type="submit" style="margin-top:12px;width:100%;">Access My Synchronized Portal &rarr;</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="card" style="border-top:4px solid #16a34a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+      <div style="display:flex;gap:14px;align-items:center;">
+        {% if citizen.photo %}
+          <img src="{{ citizen.photo.url }}" alt="2x2 Photo" style="width:86px;height:86px;object-fit:cover;border-radius:10px;border:3px solid #f59e0b;">
+        {% endif %}
+        <div>
+          <div style="font-size:1.15rem;font-weight:900;">{{ citizen.full_name }}</div>
+          <div style="font-size:.82rem;color:#475569;margin-top:2px;">ID: <strong>{{ citizen.citizen_qr_id }}</strong> &bull; {{ citizen.purok }}</div>
+          <div style="font-size:.78rem;color:#166534;font-weight:700;margin-top:3px;">&#10003; Verified Active Resident ({{ citizen.profile_completion_pct }}% Complete)</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="/citizen-inspect/{{ citizen.id }}/?qr={{ citizen.citizen_qr_id }}" target="_blank" class="btn-gold">&#128100; View &amp; Print Official 201 Sheet &#8599;</a>
+        <a href="/citizen-home/" style="background:#e2e8f0;color:#0f172a;padding:9px 12px;border-radius:7px;text-decoration:none;font-size:.82rem;font-weight:700;">Sign Out</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;font-size:.98rem;color:#1e3a8a;">1. Request Barangay Certificate / Clearance</h3>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="qr_id" value="{{ citizen.citizen_qr_id }}">
+        <input type="hidden" name="action" value="REQUEST_CERT">
+        <label>Certificate Type *</label>
+        <select name="cert_type">
+          <option value="CLEARANCE">Barangay Clearance</option>
+          <option value="RESIDENCY">Certificate of Residency</option>
+          <option value="INDIGENCY">Certificate of Indigency (Fee Exempt)</option>
+          <option value="FIRST_TIME_JOBSEEKER">First-Time Jobseeker Certification (RA 11261 - Free)</option>
+          <option value="GOOD_MORAL">Certificate of Good Moral Character</option>
+        </select>
+        <label>Purpose *</label>
+        <input name="purpose" placeholder="e.g., Employment, Scholarship, Bank Requirement" required>
+        <button type="submit" style="margin-top:12px;">Submit Certificate Request &rarr;</button>
+      </form>
+      {% if recent_certs %}
+      <div style="margin-top:12px;font-size:.82rem;">
+        <strong>Recent Requests:</strong>
+        {% for rc in recent_certs %}
+          <div style="padding:6px 0;border-bottom:1px solid #e2e8f0;">{{ rc.control_number }} &mdash; {{ rc.get_cert_type_display }} (<strong>{{ rc.get_status_display }}</strong>)</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;font-size:.98rem;color:#0f766e;">2. Submit Community / Incident Report</h3>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="qr_id" value="{{ citizen.citizen_qr_id }}">
+        <input type="hidden" name="action" value="SUBMIT_REPORT">
+        <label>Category *</label>
+        <select name="category">
+          <option value="PEACE_ORDER">Peace &amp; Order / Security</option>
+          <option value="INFRASTRUCTURE">Road / Streetlight / Drainage</option>
+          <option value="SANITATION">Garbage / Sanitation</option>
+          <option value="HEALTH_EMERGENCY">Health / Medical Assistance</option>
+        </select>
+        <label>Exact Location / Landmark *</label>
+        <input name="location_landmark" placeholder="e.g., Near Purok II Basketball Court" required>
+        <label>Details *</label>
+        <textarea name="description" rows="3" placeholder="Describe the issue clearly..." required></textarea>
+        <button type="submit" style="margin-top:12px;background:#0f766e;">Send Report to Barangay &rarr;</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>
