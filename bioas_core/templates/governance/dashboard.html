@@ -728,22 +728,148 @@
             {% for d in dilg_reports %}<tr><td><strong>{{ d.get_report_category_display }}</strong></td><td>{{ d.reporting_period }}</td><td><span class="badge">{{ d.get_status_display }}</span></td><td>{{ d.transmittal_reference }}</td></tr>{% empty %}<tr><td colspan="4">No DILG reports logged yet.</td></tr>{% endfor %}
           </tbody></table>
         {% else %}
-          <div class="grid">
-            <div class="card"><h3>Active Barangay</h3><div class="stat">{{ active_barangay.name|default:"Not Set" }}</div><small>{{ active_barangay.tenant_code }}</small></div>
-            <div class="card"><h3>02. 201 Citizens</h3><div class="stat">{{ citizens|length }}</div><small>{{ citizen_reports|length }} Community Reports</small></div>
-            <div class="card"><h3>03. Certificates</h3><div class="stat">{{ certificates|length }}</div><small>Clearances & Indigency</small></div>
-            <div class="card"><h3>04. Derogatory Record Flag</h3><div class="stat">{{ blotter_cases|length }}</div></div>
-            <div class="card"><h3>05. Treasury</h3><div class="stat">₱{{ total_collections|floatformat:2 }}</div><small>{{ receipts|length }} Official Receipts | {{ abuloy_sheets|length }} Welfare Sheets</small></div>
-            <div class="card"><h3>06. Health Station</h3><div class="stat">{{ health_records|length }}</div><small>{{ medicines|length }} Med Items</small></div>
-      
-                    <div class="card"><h3>07. Associations & Aid</h3><div class="stat">{{ associations|length }}</div><small>Groups | {{ social_aids|length }} Aid Releases</small></div>
-            <div class="card"><h3>08. Fleet & Assets</h3><div class="stat">{{ vehicles|length }}</div><small>{{ trips|length }} Trips</small></div>
-            <div class="card"><h3>09. BDRRMC Alerts</h3><div class="stat">{{ hazards|length }}</div><small>{{ evac_centers|length }} Evac Centers</small></div>
-            <div class="card"><h3>10. SK Youth (KK)</h3><div class="stat">{{ kk_youth|length }}</div><small>{{ sk_projects|length }} Projects</small></div>
-            <div class="card"><h3>11. Legislation</h3><div class="stat">{{ measures|length }}</div><small>{{ bdp_projects|length }} BDP</small></div>
-            <div class="card"><h3>12. COA & DILG Audit</h3><div class="stat">{{ coa_audits|length }}</div><small>COA | {{ dilg_reports|length }} DILG</small></div>
-            <div class="card"><h3>13. Governance Turnover</h3><div class="stat">{{ total_pending_turnover }}</div><small>Pending BGTT Handover Items</small></div>
-            <div class="card"><h3>14. Policy & Glossary</h3><div class="stat">6 Laws</div><small>RA 7160, 11261, 9262 & SOPs</small></div>
+          <style>
+            .cmd-hero {
+              max-width: 620px;
+              margin: 4px auto 22px;
+              background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+              border: 1px solid #cbd5e1;
+              border-top: 5px solid var(--primary);
+              border-radius: 14px;
+              padding: 20px 26px;
+              text-align: center;
+              box-shadow: 0 6px 20px rgba(15, 23, 42, .07);
+            }
+            .cmd-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+              gap: 15px;
+            }
+            .mod-card {
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              background: #ffffff;
+              border: 1px solid #e2e8f0;
+              border-top: 4px solid var(--primary);
+              border-radius: 12px;
+              padding: 16px 18px;
+              text-decoration: none;
+              color: inherit;
+              box-shadow: 0 2px 6px rgba(15, 23, 42, .05);
+              transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+              cursor: pointer;
+            }
+            .mod-card:hover {
+              transform: translateY(-4px);
+              box-shadow: 0 12px 24px rgba(30, 58, 138, .15);
+              border-color: var(--primary);
+            }
+            .mod-card .mod-head {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              gap: 6px;
+              margin-bottom: 8px;
+            }
+            .mod-card h3 {
+              margin: 0;
+              font-size: .75rem;
+              font-weight: 800;
+              color: #475569;
+              text-transform: uppercase;
+              letter-spacing: .04em;
+            }
+            .mod-card .mod-arrow {
+              font-size: .85rem;
+              font-weight: 800;
+              color: #94a3b8;
+              transition: transform .2s ease, color .2s ease;
+            }
+            .mod-card:hover .mod-arrow {
+              color: var(--primary);
+              transform: translate(2px, -2px);
+            }
+            .mod-card .stat {
+              font-size: 1.55rem;
+              font-weight: 900;
+              color: var(--primary);
+              line-height: 1.15;
+              margin-bottom: 6px;
+            }
+            .mod-card small {
+              display: block;
+              font-size: .78rem;
+              color: #64748b;
+              font-weight: 600;
+            }
+          </style>
+
+          <div class="cmd-hero">
+            <div style="font-size:.72rem;font-weight:800;letter-spacing:.08em;color:#64748b;text-transform:uppercase;">Active Barangay Command Jurisdiction</div>
+            <div style="font-size:1.75rem;font-weight:900;color:var(--primary);margin:4px 0 6px;line-height:1.15;">{{ active_barangay.name|default:"Unassigned" }}</div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;font-size:.8rem;color:#475569;font-weight:700;">
+              <span style="background:#f1f5f9;border:1px solid #cbd5e1;padding:2px 10px;border-radius:999px;color:#0f172a;">{{ active_barangay.tenant_code }}</span>
+              {% if active_barangay %}
+                <span style="background:#dbeafe;color:#1e40af;padding:2px 10px;border-radius:999px;">{{ active_barangay.get_barangay_classification_display }}</span>
+                <span>&bull; {{ active_barangay.city_municipality.name }}, {{ active_barangay.city_municipality.province.name }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="cmd-grid">
+            <a href="?tier=BARANGAY&module=CITIZENS" class="mod-card">
+              <div><div class="mod-head"><h3>02. 201 Citizens</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ citizens|length }}</div></div>
+              <small>{{ citizen_reports|length }} Community Reports</small>
+            </a>
+            <a href="?tier=BARANGAY&module=CERTIFICATES" class="mod-card">
+              <div><div class="mod-head"><h3>03. Certificates</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ certificates|length }}</div></div>
+              <small>Clearances &amp; Indigency</small>
+            </a>
+            <a href="?tier=BARANGAY&module=BLOTTER" class="mod-card">
+              <div><div class="mod-head"><h3>04. Derogatory Record Flag</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ blotter_cases|length }}</div></div>
+              <small>Case &amp; Clearance Hold Registry</small>
+            </a>
+            <a href="?tier=BARANGAY&module=TREASURY" class="mod-card">
+              <div><div class="mod-head"><h3>05. Treasury</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">&#8369;{{ total_collections|floatformat:2 }}</div></div>
+              <small>{{ receipts|length }} Official Receipts | {{ abuloy_sheets|length }} Welfare Sheets</small>
+            </a>
+            <a href="?tier=BARANGAY&module=HEALTH" class="mod-card">
+              <div><div class="mod-head"><h3>06. Health Station</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ health_records|length }}</div></div>
+              <small>{{ medicines|length }} Med Items</small>
+            </a>
+            <a href="?tier=BARANGAY&module=SOCIAL" class="mod-card">
+              <div><div class="mod-head"><h3>07. Associations &amp; Aid</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ associations|length }}</div></div>
+              <small>Groups | {{ social_aids|length }} Aid Releases</small>
+            </a>
+            <a href="?tier=BARANGAY&module=ASSETS" class="mod-card">
+              <div><div class="mod-head"><h3>08. Fleet &amp; Assets</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ vehicles|length }}</div></div>
+              <small>{{ trip_tickets|length }} Trips</small>
+            </a>
+            <a href="?tier=BARANGAY&module=DRRM" class="mod-card">
+              <div><div class="mod-head"><h3>09. BDRRMC Alerts</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ hazards|length }}</div></div>
+              <small>{{ evac_centers|length }} Evac Centers</small>
+            </a>
+            <a href="?tier=BARANGAY&module=SK_YOUTH" class="mod-card">
+              <div><div class="mod-head"><h3>10. SK Youth (KK)</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ kk_youth|length }}</div></div>
+              <small>{{ sk_projects|length }} Projects</small>
+            </a>
+            <a href="?tier=BARANGAY&module=LEGISLATION" class="mod-card">
+              <div><div class="mod-head"><h3>11. Legislation</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ measures|length }}</div></div>
+              <small>{{ bdp_projects|length }} BDP</small>
+            </a>
+            <a href="?tier=BARANGAY&module=AUDIT" class="mod-card">
+              <div><div class="mod-head"><h3>12. COA &amp; DILG Audit</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ coa_audits|length }}</div></div>
+              <small>COA | {{ dilg_reports|length }} DILG</small>
+            </a>
+            <a href="?tier=BARANGAY&module=TURNOVER" class="mod-card">
+              <div><div class="mod-head"><h3>13. Governance Turnover</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ total_pending_turnover }}</div></div>
+              <small>Pending BGTT Handover Items</small>
+            </a>
+            <a href="?tier=BARANGAY&module=GLOSSARY" class="mod-card">
+              <div><div class="mod-head"><h3>14. Policy &amp; Glossary</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">6 Laws</div></div>
+              <small>RA 7160, 11261, 9262 &amp; SOPs</small>
+            </a>
           </div>
           {% endif %}
       {% elif tier == "CITY" %}
