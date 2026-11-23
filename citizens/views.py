@@ -401,98 +401,43 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
         "citizen": citizen, "repo_docs": repo_docs, "cert_docs": cert_docs,
         "p_col": p_col, "s_col": s_col, "notice": notice, "error": error,
     }, request))
-@login_required(login_url="/login/")
 def citizen_201_inspect(request, citizen_id):
+    from django.shortcuts import redirect
+    from django.utils import timezone
+    from governance.models import SystemAuditLog
     c = get_object_or_404(CitizenProfile, id=citizen_id)
+    qr_param = request.GET.get("qr", "").strip().upper()
+    is_official = request.user.is_authenticated
+    is_owner_citizen = (not is_official) and bool(qr_param) and (qr_param == c.citizen_qr_id.upper()) and (c.status == "ACTIVE_RESIDENT")
+    if not is_official and not is_owner_citizen:
+        return redirect("/login/")
+
+    ua = request.META.get("HTTP_USER_AGENT", "")
+    is_mobile_ua = any(k in ua for k in ("Mobile", "Android", "iPhone", "iPad", "Opera Mini", "IEMobile"))
+    view_mode = request.GET.get("view", "").strip().lower()
+    if view_mode not in ("mobile", "sheet"):
+        view_mode = "mobile" if (is_mobile_ua and is_owner_citizen) else "sheet"
+    device_label = "Mobile Phone" if is_mobile_ua else "Desktop Computer"
+
+    if is_owner_citizen:
+        SystemAuditLog.objects.create(
+            barangay=c.barangay,
+            action_type="PORTAL_SYNC_APPROVED",
+            actor_name=c.full_name,
+            actor_role=f"CITIZEN_SELF_SERVICE ({device_label})",
+            reference_code=c.citizen_qr_id,
+            details=f"Resident viewed synchronized 201 profile ({view_mode.upper()} mode) via {device_label}.",
+        )
+
     p_col = c.barangay.default_primary_color if c.barangay else "#1E3A8A"
     s_col = c.barangay.default_secondary_color if c.barangay else "#F59E0B"
     repo_docs = list(c.repository_docs.all())
-    tpl = """<!DOCTYPE html><html><head><meta charset="UTF-8"><title>201 Verification Sheet — {{ c.full_name }}</title>
-<style>
-*{box-sizing:border-box;font-family:system-ui,sans-serif}body{margin:0;background:#f1f5f9;color:#0f172a}
-.top{background:{{ p_col }};color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid {{ s_col }}}
-.wrap{max-width:920px;margin:22px auto;padding:0 16px}
-.card{background:#fff;border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
-.item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px}
-.lbl{font-size:.7rem;text-transform:uppercase;color:#64748b;font-weight:700;letter-spacing:.03em}
-.val{font-size:.9rem;font-weight:700;color:#0f172a;margin-top:3px}
-.badge{display:inline-block;background:#dbeafe;color:#1e40af;padding:3px 9px;border-radius:999px;font-size:.74rem;font-weight:700;margin-right:4px}
-</style></head><body>
-<div class="top">
-  <div><strong>Official 201 Master Record Verification Sheet</strong> &mdash; {{ c.barangay.name }}</div>
-  <button type="button" onclick="window.close()" style="background:rgba(255,255,255,.18);color:#fff;border:0;padding:7px 14px;border-radius:6px;font-weight:700;cursor:pointer;">Close Tab &#10005;</button>
-</div>
-<div class="wrap">
-  <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;border-top:4px solid {{ p_col }};">
-    <div style="display:flex;gap:14px;align-items:center;">
-      {% if c.photo %}<img src="{{ c.photo.url }}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid {{ s_col }};">{% endif %}
-      <div>
-        <div style="font-size:1.2rem;font-weight:800;">{{ c.full_name }} <span class="badge">{{ c.citizen_qr_id }}</span></div>
-        <div style="font-size:.84rem;color:#475569;margin-top:3px;">Status: <strong>{{ c.get_status_display }}</strong> &bull; Registered: {{ c.created_at|date:"Y-m-d H:i" }}</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      {% if c.supporting_document %}
-        <a href="{{ c.supporting_document.url }}" target="_blank" style="background:#0f766e;color:#fff;padding:9px 14px;border-radius:7px;text-decoration:none;font-size:.82rem;font-weight:800;">Open Supporting Proof (New Tab) &#8599;</a>
-      {% elif repo_docs %}
-        <a href="/citizen-docs/{{ c.citizen_qr_id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:9px 14px;border-radius:7px;text-decoration:none;font-size:.82rem;font-weight:800;">Open Supporting Vault ({{ repo_docs|length }}) &#8599;</a>
-      {% else %}
-        <span style="background:#fee2e2;color:#991b1b;padding:8px 12px;border-radius:7px;font-size:.8rem;font-weight:800;">&#9888; No Supporting Document Attached</span>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin:0 0 12px;font-size:.95rem;color:{{ p_col }};">1. Personal &amp; Residency Details</h3>
-    <div class="grid">
-      <div class="item"><div class="lbl">Last Name</div><div class="val">{{ c.last_name }}</div></div>
-      <div class="item"><div class="lbl">First Name</div><div class="val">{{ c.first_name }}</div></div>
-      <div class="item"><div class="lbl">Middle Name / Suffix</div><div class="val">{{ c.middle_name|default:"-" }} {{ c.suffix }}</div></div>
-      <div class="item"><div class="lbl">Sex &amp; Age</div><div class="val">{{ c.get_sex_display }} &bull; {{ c.age }} yrs old</div></div>
-      <div class="item"><div class="lbl">Birthdate</div><div class="val">{{ c.birth_date|date:"Y-m-d" }}</div></div>
-      <div class="item"><div class="lbl">Birthplace</div><div class="val">{{ c.birth_place|default:"-" }}</div></div>
-      <div class="item"><div class="lbl">Civil Status</div><div class="val">{{ c.get_civil_status_display }}</div></div>
-      <div class="item"><div class="lbl">Purok / Zone</div><div class="val">{{ c.purok }}</div></div>
-      <div class="item" style="grid-column:span 2;"><div class="lbl">Complete Street / House Address</div><div class="val">{{ c.address_line|default:"-" }}</div></div>
-      <div class="item"><div class="lbl">Residency Status</div><div class="val">{{ c.get_residency_status_display }}</div></div>
-      <div class="item"><div class="lbl">Household &amp; Role</div><div class="val">{% if c.household %}{{ c.household.household_code }} ({{ c.get_relationship_to_head_display }}){% else %}-{% endif %}</div></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin:0 0 12px;font-size:.95rem;color:{{ p_col }};">2. Government IDs, Contact &amp; Livelihood</h3>
-    <div class="grid">
-      <div class="item"><div class="lbl">PhilSys National ID</div><div class="val">{{ c.philsys_id|default:"-" }}</div></div>
-      <div class="item"><div class="lbl">COMELEC Voter &amp; Precinct</div><div class="val">{% if c.is_registered_voter %}Registered ({{ c.precinct_number|default:"No Precinct" }}){% else %}Non-Voter{% endif %}</div></div>
-      <div class="item"><div class="lbl">Mobile Number</div><div class="val">{{ c.mobile_number|default:"-" }}</div></div>
-      <div class="item"><div class="lbl">Email Address</div><div class="val">{{ c.email_address|default:"-" }}</div></div>
-      <div class="item"><div class="lbl">Highest Education</div><div class="val">{{ c.get_education_level_display|default:"-" }}</div></div>
-      <div class="item"><div class="lbl">Occupation / Livelihood</div><div class="val">{{ c.occupation|default:"-" }}</div></div>
-      <div class="item"><div class="lbl">Employer / Business</div><div class="val">{{ c.employer_or_business|default:"-" }}</div></div>
-      <div class="item"><div class="lbl">Emergency Contact</div><div class="val">{{ c.emergency_contact_name|default:"-" }} ({{ c.emergency_contact_phone|default:"-" }})</div></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin:0 0 10px;font-size:.95rem;color:{{ p_col }};">3. Sectoral &amp; Vital Registry Classifications</h3>
-    <div>
-      {% if c.is_registered_voter %}<span class="badge">COMELEC Registered Voter</span>{% endif %}
-      {% if c.is_senior_citizen %}<span class="badge">Senior Citizen (60+)</span>{% endif %}
-      {% if c.is_pwd %}<span class="badge">Person with Disability (PWD)</span>{% endif %}
-      {% if c.is_solo_parent %}<span class="badge">Solo Parent</span>{% endif %}
-      {% if c.is_4ps_beneficiary %}<span class="badge">4Ps Beneficiary</span>{% endif %}
-      {% if c.is_first_time_jobseeker %}<span class="badge">First-Time Jobseeker</span>{% endif %}
-      {% if c.is_ofw %}<span class="badge">OFW</span>{% endif %}
-      {% if c.is_pregnant %}<span class="badge">Pregnant</span>{% endif %}
-      {% if not c.is_registered_voter and not c.is_senior_citizen and not c.is_pwd and not c.is_solo_parent and not c.is_4ps_beneficiary and not c.is_first_time_jobseeker and not c.is_ofw and not c.is_pregnant %}
-        <span style="color:#64748b;font-size:.85rem;">General Resident (No special sectoral tags)</span>
-      {% endif %}
-    </div>
-  </div>
-</div></body></html>"""
-    return HttpResponse(engines["django"].from_string(tpl).render({
+    html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "citizen_201_inspect.html"
+    tpl = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
+    return HttpResponse(tpl.render({
         "c": c, "p_col": p_col, "s_col": s_col, "repo_docs": repo_docs,
+        "view_mode": view_mode, "device_label": device_label,
+        "qr_param": qr_param, "now_ts": timezone.now(),
     }, request))
 
 
