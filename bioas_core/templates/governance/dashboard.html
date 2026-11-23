@@ -297,7 +297,10 @@
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
                 <a href="/?download_201_template=1" style="background:#fff;color:#0f766e;border:1px solid #0f766e;padding:8px 12px;border-radius:6px;font-weight:700;font-size:.8rem;text-decoration:none;white-space:nowrap;">&#11015; Download 201 Template</a>
-                <input id="bulk201File" type="file" name="excel_file" accept=".xlsx,.csv" required style="background:#fff;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <div style="display:inline-flex;align-items:center;gap:4px;background:#fff;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;">
+                  <input id="bulk201File" type="file" name="excel_file" accept=".xlsx,.csv" required onchange="document.getElementById('clearBulk201Btn').style.display=this.files.length?'inline-flex':'none';" style="font-size:.82rem;border:0;background:transparent;">
+                  <button type="button" id="clearBulk201Btn" title="Remove selected file" onclick="const i=document.getElementById('bulk201File');i.value='';this.style.display='none';" style="display:none;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:0;background:#fee2e2;color:#dc2626;font-weight:900;font-size:.75rem;cursor:pointer;">&#10005;</button>
+                </div>
                 <button type="button" onclick="const f=document.getElementById('bulk201File');if(!f.files.length){alert('Please choose an .xlsx or .csv file first.');return;}document.getElementById('confirmFileName').innerText=f.files[0].name;document.getElementById('confirmUploadModal').style.display='flex';" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Stage for Approval &rarr;</button>
               </div>
             </form>
@@ -313,11 +316,17 @@
               <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
                 <div>
                   <label style="display:block;font-size:.72rem;font-weight:800;color:#1e3a8a;margin-bottom:3px;">1. 2x2 Profile Photos (Image Only)</label>
-                  <input id="batchPhotoInp" type="file" name="photo_files" accept=".png,.jpg,.jpeg,.webp,.zip" multiple style="background:#fff;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;">
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:#fff;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;">
+                    <input id="batchPhotoInp" type="file" name="photo_files" accept=".png,.jpg,.jpeg,.webp,.zip" multiple onchange="document.getElementById('clearPhotoBtn').style.display=this.files.length?'inline-flex':'none';" style="font-size:.78rem;border:0;background:transparent;">
+                    <button type="button" id="clearPhotoBtn" title="Remove selected photos" onclick="const i=document.getElementById('batchPhotoInp');i.value='';this.style.display='none';" style="display:none;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;border:0;background:#fee2e2;color:#dc2626;font-weight:900;font-size:.72rem;cursor:pointer;">&#10005;</button>
+                  </div>
                 </div>
                 <div>
                   <label style="display:block;font-size:.72rem;font-weight:800;color:#0f766e;margin-bottom:3px;">2. Supporting Docs (Auto-PDF)</label>
-                  <input id="batchDocInp" type="file" name="doc_files" accept=".pdf,.png,.jpg,.jpeg,.webp,.zip" multiple style="background:#fff;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;">
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:#fff;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;">
+                    <input id="batchDocInp" type="file" name="doc_files" accept=".pdf,.png,.jpg,.jpeg,.webp,.zip" multiple onchange="document.getElementById('clearDocBtn').style.display=this.files.length?'inline-flex':'none';" style="font-size:.78rem;border:0;background:transparent;">
+                    <button type="button" id="clearDocBtn" title="Remove selected documents" onclick="const i=document.getElementById('batchDocInp');i.value='';this.style.display='none';" style="display:none;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;border:0;background:#fee2e2;color:#dc2626;font-weight:900;font-size:.72rem;cursor:pointer;">&#10005;</button>
+                  </div>
                 </div>
                 <button type="button" onclick="const p=document.getElementById('batchPhotoInp').files.length,d=document.getElementById('batchDocInp').files.length;if(!p&&!d){alert('Please select at least one 2x2 Profile Photo or Supporting Document first.');return;}document.getElementById('batchSummaryText').innerHTML='You selected <strong>'+p+'</strong> 2x2 Profile Photo item(s) and <strong>'+d+'</strong> Supporting Document item(s) for exact Citizen ID matching.';document.getElementById('confirmBatchDocsModal').style.display='flex';" style="background:#1e3a8a;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:700;font-size:.8rem;cursor:pointer;white-space:nowrap;">Upload &amp; Match QR Files &rarr;</button>
               </div>
