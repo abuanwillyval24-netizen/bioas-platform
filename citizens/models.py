@@ -92,6 +92,7 @@ class CitizenProfile(models.Model):
     house_lot_no = models.CharField(max_length=80, blank=True)
     street_name = models.CharField(max_length=140, blank=True)
     address_line = models.CharField(max_length=220, blank=True)
+    current_address = models.CharField(max_length=250, blank=True)
     purok = models.CharField(max_length=40, default="Purok I")
     residency_status = models.CharField(max_length=20, choices=RESIDENCY_CHOICES, default="PERMANENT")
     years_in_barangay = models.PositiveIntegerField(default=1)
