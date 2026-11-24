@@ -221,20 +221,32 @@ def command_dashboard(request):
                     try:
                         from django.core.mail import send_mail
                         from django.conf import settings as dj_settings
+                        login_link = request.build_absolute_uri("/citizen-home/")
+                        uname_disp = target.portal_username or target.citizen_qr_id.lower()
                         send_mail(
-                            subject=f"[{active_barangay.name}] Account Approved ? Complete Your 201 Profile",
+                            subject=f"[{active_barangay.name}] Official 201 Account Approved & Activated - {target.citizen_qr_id}",
                             message=(
                                 f"Good day {target.full_name},\n\n"
-                                f"Your Barangay registration ({target.citizen_qr_id}) has been verified and approved into the Official 201 Master Registry.\n"
-                                f"Next Step: Please sign in at /citizen-home/ using your Citizen ID ({target.citizen_qr_id}) and complete your profile.\n\n"
-                                f"? {active_barangay.name} Office of the Barangay Secretary"
+                                f"Congratulations! Your Barangay 201 Citizen Registration has been verified and officially APPROVED by {active_barangay.name}.\n\n"
+                                f"========================================\n"
+                                f"OFFICIAL CITIZEN ACCOUNT DETAILS\n"
+                                f"Reference Citizen ID : {target.citizen_qr_id}\n"
+                                f"Portal Username      : {uname_disp}\n"
+                                f"Account Status       : ACTIVE VERIFIED RESIDENT\n"
+                                f"Resident Portal Link : {login_link}\n"
+                                f"========================================\n\n"
+                                f"NEXT STEP - COMPLETE YOUR 201 PROFILE:\n"
+                                f"Please sign in at {login_link} using your Portal Username ({uname_disp}) and password to complete your remaining 201 profile details and access Barangay certificates.\n\n"
+                                f"Respectfully,\n"
+                                f"Office of the Barangay Secretary\n"
+                                f"{active_barangay.name}"
                             ),
                             from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
                             recipient_list=[target.email_address],
-                            fail_silently=True,
+                            fail_silently=False,
                         )
-                    except Exception:
-                        pass
+                    except Exception as mail_err:
+                        print("BIOAS_APPROVAL_EMAIL_ERROR:", repr(mail_err))
                 action_notice = f"Approved {target.full_name} ({target.citizen_qr_id}) into 201 Master & 02E Gallery! Sent 'Complete your profile' notification."
         elif act == "REJECT_CITIZEN":
             target = CitizenProfile.objects.filter(id=request.POST.get("citizen_id"), barangay=active_barangay).first()
@@ -255,8 +267,8 @@ def command_dashboard(request):
                                 f"Good day {full_nm},\n\n"
                                 f"Your Barangay 201 registration ({qr_ref}) was returned for revision.\n"
                                 f"Reason: {reason}\n\n"
-                                f"Please log in at /citizen-home/ using your Citizen ID ({qr_ref}) to update your details or supporting documents and resubmit.\n\n"
-                                f"? {active_barangay.name} Office of the Barangay Secretary"
+                                f"Please log in at /citizen-home/ using your Portal Username ({target.portal_username or qr_ref}) to update your details or supporting documents and resubmit.\n\n"
+                                f"-- {active_barangay.name} Office of the Barangay Secretary"
                             ),
                             from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
                             recipient_list=[target.email_address],
