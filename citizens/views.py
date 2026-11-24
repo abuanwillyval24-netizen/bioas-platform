@@ -345,8 +345,7 @@ def citizen_home(request):
     elif citizen and citizen.status != "ACTIVE_RESIDENT":
         error = f"Account Status: {citizen.get_status_display()}."
         citizen = None
-    elif citizen and request.method == "GET":
-        notice = "Account Approved & Verified! Please complete your remaining 201 profile details below so your full Barangay 201 Master Record is up to date."
+
 
     if request.method == "POST" and citizen:
         act = request.POST.get("action")
