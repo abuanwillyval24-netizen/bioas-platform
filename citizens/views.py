@@ -259,6 +259,7 @@ def citizen_portal(request):
         "active_barangay": active_barangay,
         "submitted_citizen": submitted_citizen,
         "submitted_email": submitted_email,
+        "privacy_policy_tpl": __import__("governance.models", fromlist=["OfficialFormTemplate"]).OfficialFormTemplate.objects.filter(barangay=active_barangay, category="DATA_PRIVACY_POLICY").first() if active_barangay else None,
         "wizard_step": wizard_step,
         "draft": draft,
         "error": error,

@@ -991,6 +991,16 @@ def command_dashboard(request):
                 ("WALKIN_RECOVERY_LETTER", "BIOAS-FRM-06", "Sworn Walk-In Account Recovery Request Letter", "Mandatory signed request letter for residents requesting manual credential reset.", "REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nREQUEST FOR WALK-IN PORTAL ACCOUNT RECOVERY\nDate: ____________________________________\n\nTo: The Punong Barangay\nThru: Office of the Barangay Secretary\n\nI, __________________________, of legal age, resident of Purok _____, with Citizen Reference ID __________________, respectfully request manual reset of my BIOAS Resident Portal credentials due to loss of access to my registered email/device. Attached is a photocopy of my valid government ID.\n\n______________________________\nSignature Over Printed Name of Resident"),
             ]:
                 OfficialFormTemplate.objects.create(barangay=active_barangay, category=cat, form_code=code, title=ttl, description=desc, body_template=body, updated_by="System Default")
+        if not OfficialFormTemplate.objects.filter(barangay=active_barangay, category="DATA_PRIVACY_POLICY").exists():
+            OfficialFormTemplate.objects.create(
+                barangay=active_barangay,
+                category="DATA_PRIVACY_POLICY",
+                form_code="BIOAS-PRIV-01",
+                title="Barangay Data Privacy Policy & Terms of Use (RA 10173)",
+                description="Displayed in the Citizen Sign-Up consent pop-up window.",
+                body_template="REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nDATA PRIVACY NOTICE & BARANGAY PURPOSE (RA 10173)\n\n1. Purpose of Collection: Your personal information, 2x2 photo, and supporting residency documents are collected exclusively for maintaining the official Registry of Barangay Inhabitants (RBI / 201 Master File), issuing Barangay Clearances/Certificates, health & social welfare delivery, and disaster response.\n2. Data Protection & Access: Records are protected under the Data Privacy Act of 2012 (RA 10173) and accessible only to authorized Barangay Officials.\n3. Resident Declaration: I certify that all information and documents submitted are true, accurate, and genuine.",
+                updated_by="System Default",
+            )
     html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "dashboard.html"
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(template.render({

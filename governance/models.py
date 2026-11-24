@@ -426,6 +426,7 @@ class OfficialFormTemplate(models.Model):
         ("ASSET_PROFILE", "Asset Profile"),
         ("WORK_ORDER", "Work Order"),
         ("WALKIN_RECOVERY_LETTER", "Walk-In Account Recovery Request Letter"),
+        ("DATA_PRIVACY_POLICY", "Data Privacy Policy & Terms of Use"),
         ("OTHER", "Other Official Form"),
     ]
     barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="form_templates")
