@@ -87,7 +87,11 @@
         <div>
           <div style="font-size:1.15rem;font-weight:900;">{{ citizen.full_name }}</div>
           <div style="font-size:.82rem;color:#475569;margin-top:2px;">ID: <strong>{{ citizen.citizen_qr_id }}</strong> &bull; {{ citizen.purok }}</div>
-          <div style="font-size:.78rem;color:#166534;font-weight:700;margin-top:3px;">&#10003; Verified Active Resident ({{ citizen.profile_completion_pct }}% Complete)</div>
+          {% if citizen.status == "REJECTED_RETURNED" %}
+            <div style="font-size:.78rem;color:#b91c1c;font-weight:800;margin-top:3px;">&#9888; Returned for Revision &mdash; Fix &amp; Resubmit Below</div>
+          {% else %}
+            <div style="font-size:.78rem;color:#166534;font-weight:700;margin-top:3px;">&#10003; Verified Active Resident ({{ citizen.profile_completeness }}% Complete)</div>
+          {% endif %}
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -96,6 +100,7 @@
       </div>
     </div>
 
+    {% if citizen.status == "ACTIVE_RESIDENT" %}
     <div class="card">
       <h3 style="margin-top:0;font-size:.98rem;color:#1e3a8a;">1. Request Barangay Certificate / Clearance</h3>
       <form method="post">

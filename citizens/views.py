@@ -271,7 +271,7 @@ def citizen_home(request):
                 request.session["citizen_auth_id"] = cand.id
                 citizen, notice = cand, f"Password updated! Signed in as {cand.portal_username or cand.citizen_qr_id}."
     else:
-        if request.GET.get("logout") == "1":
+        if request.method == "GET":
             request.session.pop("citizen_auth_id", None)
         auth_cid = request.session.get("citizen_auth_id")
         if auth_cid:
@@ -389,11 +389,14 @@ def citizen_home(request):
 
     html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "citizen_home.html"
     tpl = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
-    return HttpResponse(tpl.render({
+    resp = HttpResponse(tpl.render({
         "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
         "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
         "recent_certs": recent_certs, "recent_reports": recent_reports, "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
     }, request))
+    resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp["Pragma"] = "no-cache"
+    return resp
 
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
