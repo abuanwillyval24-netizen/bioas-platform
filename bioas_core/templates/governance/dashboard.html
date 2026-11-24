@@ -306,7 +306,7 @@
                 <div style="font-size:.8rem;color:#475569;margin-top:2px;">Uploads stage into <strong>Pending Citizen Approvals</strong> first (keeping your verified 201 Master File strictly intact). Supports unlimited rows &amp; multi-sheet workbooks divided by Purok.</div>
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-                <a href="/?download_201_template=1" style="background:#fff;color:#0f766e;border:1px solid #0f766e;padding:8px 12px;border-radius:6px;font-weight:700;font-size:.8rem;text-decoration:none;white-space:nowrap;">&#11015; Download 201 Template</a>
+                <a href="?tier=BARANGAY&module=TEMPLATES" style="background:#fff;color:#0f766e;border:1px solid #0f766e;padding:6px 11px;border-radius:7px;font-size:.76rem;font-weight:800;text-decoration:none;">Get 201 Template in Module 15 &nearr;</a>
                 <div style="display:inline-flex;align-items:center;gap:4px;background:#fff;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;">
                   <input id="bulk201File" type="file" name="excel_file" accept=".xlsx,.csv" required onchange="document.getElementById('clearBulk201Btn').style.display=this.files.length?'inline-flex':'none';" style="font-size:.82rem;border:0;background:transparent;">
                   <button type="button" id="clearBulk201Btn" title="Remove selected file" onclick="const i=document.getElementById('bulk201File');i.value='';this.style.display='none';" style="display:none;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:0;background:#fee2e2;color:#dc2626;font-weight:900;font-size:.75rem;cursor:pointer;">&#10005;</button>
@@ -575,14 +575,36 @@
               });
               updatePendCount();
             }
-            function submitMassReject() {
-              const cnt = document.querySelectorAll('#pendQueueTable .pend-chk:checked').length;
-              if (!cnt) { alert('Please check or slide across at least one row to reject.'); return; }
-              const reason = prompt(`Reject ${cnt} selected pending citizen row(s)? Enter rejection remark:`, 'Missing or unverified supporting documents');
-              if (reason === null) return;
-              document.getElementById('massActionInp').value = 'MASS_REJECT_201';
-              document.getElementById('massRejectReasonInp').value = reason;
-              document.getElementById('massApproveForm').submit();
+            function submitMassReject(){
+              const chks=Array.from(document.querySelectorAll('.pend-chk:checked'));
+              if(!chks.length){alert('Please check at least one resident row to reject/return.');return;}
+              let box=document.getElementById('indivRejectModal');
+              if(!box){
+                box=document.createElement('div');box.id='indivRejectModal';
+                box.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+                document.body.appendChild(box);
+              }
+              let rowsHtml='';
+              chks.forEach(c=>{
+                const tr=c.closest('tr');
+                const qr=tr.cells[1]?.innerText.trim()||'';
+                const nm=tr.cells[2]?.querySelector('a')?.innerText.trim()||tr.cells[2]?.innerText.trim()||'Resident';
+                rowsHtml+='<div style="padding:10px;border:1px solid #fecaca;border-radius:8px;background:#fef2f2;margin-bottom:8px;"><div style="font-size:.82rem;font-weight:800;color:#991b1b;margin-bottom:4px;">'+nm+' <span style="color:#64748b;font-weight:600;">('+qr+')</span></div><input type="text" data-cid="'+c.value+'" class="indiv-rej-inp" placeholder="Enter specific deficiency / rejection remark for '+nm+' *" style="width:100%;padding:7px 10px;border:1px solid #fca5a5;border-radius:6px;font-size:.8rem;background:#fff;"></div>';
+              });
+              box.innerHTML='<div style="background:#fff;max-width:560px;width:100%;max-height:85vh;overflow:auto;border-radius:14px;padding:22px;box-shadow:0 24px 48px rgba(15,23,42,.3);border-top:5px solid #dc2626;"><h3 style="margin:0 0 6px;color:#991b1b;font-size:1.05rem;">Individual Rejection / Return Remarks ('+chks.length+' Selected)</h3><p style="margin:0 0 12px;font-size:.8rem;color:#475569;">Enter each resident&rsquo;s specific deficiency remark below so they receive an individualized email and portal notice:</p>'+rowsHtml+'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;"><button type="button" onclick="document.getElementById(\'indivRejectModal\').style.display=\'none\'" style="background:#e2e8f0;color:#0f172a;border:0;padding:8px 14px;border-radius:7px;font-weight:700;cursor:pointer;">Cancel</button><button type="button" onclick="confirmIndivReject()" style="background:#dc2626;color:#fff;border:0;padding:8px 16px;border-radius:7px;font-weight:800;cursor:pointer;">Return &amp; Email Each Resident &rarr;</button></div></div>';
+              box.style.display='flex';
+            }
+            function confirmIndivReject(){
+              const f=document.getElementById('massApproveForm');
+              f.querySelectorAll('.dyn-rem-hid').forEach(e=>e.remove());
+              const inps=Array.from(document.querySelectorAll('.indiv-rej-inp'));
+              for(const inp of inps){
+                if(!inp.value.trim()){inp.focus();alert('Please enter a specific rejection remark for every selected resident.');return;}
+                const h=document.createElement('input');h.type='hidden';h.name='remark_'+inp.dataset.cid;h.value=inp.value.trim();h.className='dyn-rem-hid';f.appendChild(h);
+              }
+              document.getElementById('massActionInp').value='MASS_REJECT_INDIVIDUAL';
+              document.getElementById('indivRejectModal').style.display='none';
+              f.submit();
             }
             let isDraggingPend = false;
             let dragTargetState = true;
@@ -1081,7 +1103,7 @@
             {% for m in measures %}<tr><td><strong>{{ m.series_number }}</strong></td><td>{{ m.title }}</td><td>{{ m.authored_by }}</td><td><span class="badge">{{ m.get_status_display }}</span></td></tr>{% endfor %}
           </tbody></table>
                   {% elif module == "TEMPLATES" %}
-          <div class="section-title"><span>15. Official Barangay Forms &amp; Operational Templates ({{ form_templates|length }})</span></div>
+          <div class="section-title"><span>15. Official Barangay Forms &amp; Operational Templates ({{ form_templates|length }})</span><a href="/?download_201_template=1" style="background:#0f766e;color:#fff;padding:7px 13px;border-radius:7px;font-size:.78rem;font-weight:800;text-decoration:none;">&#128229; Download Multi-Sheet 201 Bulk Excel Template (.xlsx)</a></div>
           <div class="card" style="border-top:4px solid var(--primary);margin-bottom:18px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
               <h3 id="tplEditorHeading" style="margin:0;font-size:.95rem;color:var(--primary);">+ Add or Replace Official Form Template</h3>

@@ -567,6 +567,27 @@ def command_dashboard(request):
                         cit.household = hh
                         cit.relationship_to_head = rel_val
                     cit.save()
+                    if not cit.portal_username or not cit.portal_password_hash:
+                        import random, secrets
+                        from django.contrib.auth.hashers import make_password
+                        from django.core.mail import send_mail
+                        from django.conf import settings as dj_settings
+                        t_pw = f"Bioas@{secrets.randbelow(9000)+1000}!"
+                        t_otp = f"{random.randint(100000, 999999)}"
+                        cit.portal_username = cit.portal_username or cit.citizen_qr_id.lower()
+                        cit.portal_password_hash = make_password(t_pw)
+                        cit.save(update_fields=["portal_username", "portal_password_hash"])
+                        if cit.email_address:
+                            try:
+                                send_mail(
+                                    subject=f"[{active_barangay.name}] Staged 201 Portal Credentials & Initial OTP - {cit.citizen_qr_id}",
+                                    message=f"Good day {cit.full_name},\n\nYour 201 record has been staged for Barangay verification.\nReference Citizen ID : {cit.citizen_qr_id}\nPortal Username      : {cit.portal_username}\nTemporary Password   : {t_pw}\n6-Digit Initial OTP  : {t_otp}\n\nYou will receive an activation notice once approved by the Barangay Secretary.",
+                                    from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                                    recipient_list=[cit.email_address],
+                                    fail_silently=True,
+                                )
+                            except Exception:
+                                pass
                     imported_count += 1
 
             if imported_count > 0:
@@ -582,11 +603,42 @@ def command_dashboard(request):
             else:
                 action_notice = f"0 rows staged from '{up_file.name}'. {diag_note or 'Ensure last_name, first_name, and birth_date (YYYY-MM-DD or MM/DD/YYYY) are filled in.'}"
         elif act == "MASS_APPROVE_201":
+            import random, secrets
+            from django.contrib.auth.hashers import make_password
+            from django.core.mail import send_mail
+            from django.conf import settings as dj_settings
             selected_ids = request.POST.getlist("pending_ids")
             qs_pend = CitizenProfile.objects.filter(barangay=active_barangay, status="PENDING_APPROVAL")
             if selected_ids:
                 qs_pend = qs_pend.filter(id__in=selected_ids)
-            approved_total = qs_pend.update(status="ACTIVE_RESIDENT")
+            login_link = request.build_absolute_uri("/citizen-home/")
+            approved_total, emailed_total = 0, 0
+            for c_item in qs_pend:
+                upd = ["status"]
+                c_item.status = "ACTIVE_RESIDENT"
+                extra_cred = ""
+                if not c_item.portal_username:
+                    c_item.portal_username = c_item.citizen_qr_id.lower()
+                    upd.append("portal_username")
+                if not c_item.portal_password_hash:
+                    t_pw = f"Bioas@{secrets.randbelow(9000)+1000}!"
+                    c_item.portal_password_hash = make_password(t_pw)
+                    upd.append("portal_password_hash")
+                    extra_cred = f"Temporary Password   : {t_pw}\nInitial 6-Digit OTP  : {random.randint(100000, 999999)}\n"
+                c_item.save(update_fields=upd)
+                approved_total += 1
+                if c_item.email_address:
+                    try:
+                        send_mail(
+                            subject=f"[{active_barangay.name}] Official 201 Account Approved & Activated - {c_item.citizen_qr_id}",
+                            message=f"Good day {c_item.full_name},\n\nYour Barangay 201 Citizen Registration has been officially APPROVED by {active_barangay.name}.\n\nReference Citizen ID : {c_item.citizen_qr_id}\nPortal Username      : {c_item.portal_username}\n{extra_cred}Resident Portal Link : {login_link}\n\nPlease sign in at {login_link} to complete your remaining 201 profile details.\n\nRespectfully,\nOffice of the Barangay Secretary\n{active_barangay.name}",
+                            from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                            recipient_list=[c_item.email_address],
+                            fail_silently=True,
+                        )
+                        emailed_total += 1
+                    except Exception:
+                        pass
             if approved_total > 0:
                 SystemAuditLog.objects.create(
                     barangay=active_barangay,
@@ -594,11 +646,38 @@ def command_dashboard(request):
                     actor_name=actor_name,
                     actor_role=actor_role,
                     reference_code=f"MASS-201-{approved_total}",
-                    details=f"Verified and mass-approved {approved_total} pending citizen record(s) into the official 201 Master Registry.",
+                    details=f"Verified and mass-approved {approved_total} pending citizen record(s) into 201 Master; emailed {emailed_total} activation notice(s).",
                 )
-                action_notice = f"Verified & activated {approved_total} citizen record(s) into the Official 201 Master Registry!"
+                action_notice = f"Verified & activated {approved_total} citizen record(s) into 201 Master and emailed {emailed_total} activation credential notice(s)!"
             else:
                 action_notice = "No pending citizen records were selected for approval."
+        elif act == "MASS_REJECT_INDIVIDUAL":
+            from django.core.mail import send_mail
+            from django.conf import settings as dj_settings
+            selected_ids = request.POST.getlist("pending_ids")
+            qs_rej = CitizenProfile.objects.filter(barangay=active_barangay, status="PENDING_APPROVAL", id__in=selected_ids)
+            login_link = request.build_absolute_uri("/citizen-home/")
+            rej_total = 0
+            for c_item in qs_rej:
+                indiv_note = (request.POST.get(f"remark_{c_item.id}") or "").strip() or "Incomplete or unverified supporting documents."
+                c_item.status = "REJECTED_RETURNED"
+                c_item.rejection_reason = indiv_note
+                c_item.save(update_fields=["status", "rejection_reason", "updated_at"])
+                rej_total += 1
+                if c_item.email_address:
+                    try:
+                        send_mail(
+                            subject=f"[{active_barangay.name}] 201 Registration Returned for Revision - {c_item.citizen_qr_id}",
+                            message=f"Good day {c_item.full_name},\n\nYour Barangay 201 registration ({c_item.citizen_qr_id}) was returned for revision.\nIndividual Remarks: {indiv_note}\n\nPlease sign in at {login_link} using your Portal Username ({c_item.portal_username or c_item.citizen_qr_id.lower()}) to update your details or documents and resubmit.\n\n-- {active_barangay.name} Office of the Barangay Secretary",
+                            from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                            recipient_list=[c_item.email_address],
+                            fail_silently=True,
+                        )
+                    except Exception:
+                        pass
+            if rej_total > 0:
+                SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=f"REJ-201-{rej_total}", details=f"Returned {rej_total} citizen application(s) with individual per-resident remarks.")
+                action_notice = f"Returned {rej_total} citizen application(s) with individual remarks and sent individualized emails!"
         elif act == "BATCH_ZIP_DOCS" and (request.FILES.getlist("photo_files") or request.FILES.getlist("doc_files")):
             import os, zipfile
             from django.core.files.base import ContentFile
