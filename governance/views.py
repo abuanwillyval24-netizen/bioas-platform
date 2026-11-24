@@ -188,7 +188,7 @@ def command_dashboard(request):
                     try:
                         from django.core.mail import send_mail
                         from django.conf import settings as dj_settings
-                        login_link = request.build_absolute_uri("/citizen-home/")
+                        login_link = request.build_absolute_uri("/login/?role=CITIZEN")
                         uname_disp = target.portal_username or target.citizen_qr_id.lower()
                         send_mail(
                             subject=f"[{active_barangay.name}] Official 201 Account Approved & Activated - {target.citizen_qr_id}",
@@ -196,12 +196,16 @@ def command_dashboard(request):
                                 f"Good day {target.full_name},\n\n"
                                 f"Congratulations! Your Barangay 201 Citizen Registration has been verified and officially APPROVED by {active_barangay.name}.\n\n"
                                 f"========================================\n"
-                                f"OFFICIAL CITIZEN ACCOUNT DETAILS\n"
-                                f"Reference Citizen ID : {target.citizen_qr_id}\n"
-                                f"Portal Username      : {uname_disp}\n"
-                                f"Account Status       : ACTIVE VERIFIED RESIDENT\n"
-                                f"Resident Portal Link : {login_link}\n"
-                                f"========================================\n\n"
+                                f"OFFICIAL CITIZEN SIGN-IN & REFERENCE DETAILS\n"
+                                f"Citizen Unique Reference ID : {target.citizen_qr_id}\n"
+                                f"Portal Sign-In Username     : {uname_disp}\n"
+                                f"Account Status              : ACTIVE VERIFIED RESIDENT\n"
+                                f"Unified Citizen Sign-In URL : {login_link}\n"
+                                f"========================================\n"
+                                f"HOW TO SIGN IN:\n"
+                                f"1. Open {login_link}\n"
+                                f"2. Enter your Portal Username ({uname_disp}) and your registered password.\n"
+                                f"3. Keep your Citizen Unique Reference ID ({target.citizen_qr_id}) saved for Barangay Hall transactions, clearances, and account recovery.\n\n"
                                 f"NEXT STEP - COMPLETE YOUR 201 PROFILE:\n"
                                 f"Please sign in at {login_link} using your Portal Username ({uname_disp}) and password to complete your remaining 201 profile details and access Barangay certificates.\n\n"
                                 f"Respectfully,\n"
@@ -611,7 +615,7 @@ def command_dashboard(request):
             qs_pend = CitizenProfile.objects.filter(barangay=active_barangay, status="PENDING_APPROVAL")
             if selected_ids:
                 qs_pend = qs_pend.filter(id__in=selected_ids)
-            login_link = request.build_absolute_uri("/citizen-home/")
+            login_link = request.build_absolute_uri("/login/?role=CITIZEN")
             approved_total, emailed_total = 0, 0
             for c_item in qs_pend:
                 upd = ["status"]
@@ -656,7 +660,7 @@ def command_dashboard(request):
             from django.conf import settings as dj_settings
             selected_ids = request.POST.getlist("pending_ids")
             qs_rej = CitizenProfile.objects.filter(barangay=active_barangay, status="PENDING_APPROVAL", id__in=selected_ids)
-            login_link = request.build_absolute_uri("/citizen-home/")
+            login_link = request.build_absolute_uri("/login/?role=CITIZEN")
             rej_total = 0
             for c_item in qs_rej:
                 indiv_note = (request.POST.get(f"remark_{c_item.id}") or "").strip() or "Incomplete or unverified supporting documents."
