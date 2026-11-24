@@ -88,19 +88,23 @@
         <div><label>Last Name *</label><input name="last_name" value="{{ draft.last_name }}" required></div>
         <div><label>First Name *</label><input name="first_name" value="{{ draft.first_name }}" required></div>
         <div>
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;white-space:nowrap;">
             <label style="margin:0;">Middle Name</label>
-            <label style="margin:0;font-size:.69rem;font-weight:700;color:#475569;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="noMidChk" onchange="toggleIdleField('noMidChk','midNameInp')" style="width:13px;height:13px;"> I don&rsquo;t have a middle name</label>
+            <label style="margin:0;font-size:.66rem;font-weight:700;color:#475569;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="noMidChk" onchange="toggleIdleField('noMidChk','midNameInp')" style="width:12px;height:12px;margin:0;"> No middle name</label>
           </div>
+          <input id="midNameInp" name="middle_name" value="{{ draft.middle_name }}">
+        </div></div>
           <input id="midNameInp" name="middle_name" value="{{ draft.middle_name }}" style="margin-top:4px;">
         </div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
         <div>
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;white-space:nowrap;">
             <label style="margin:0;">Suffix</label>
-            <label style="margin:0;font-size:.69rem;font-weight:700;color:#475569;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="naSufChk" onchange="toggleIdleField('naSufChk','sufNameInp')" style="width:13px;height:13px;"> Not applicable</label>
+            <label style="margin:0;font-size:.66rem;font-weight:700;color:#475569;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="naSufChk" onchange="toggleIdleField('naSufChk','sufNameInp')" style="width:12px;height:12px;margin:0;"> Not applicable</label>
           </div>
+          <input id="sufNameInp" name="suffix" value="{{ draft.suffix }}" placeholder="Jr., Sr., III">
+        </div></div>
           <input id="sufNameInp" name="suffix" value="{{ draft.suffix }}" placeholder="Jr., Sr., III" style="margin-top:4px;">
         </div>
         <div><label>Alias / Palayaw</label><input name="alias_nickname" value="{{ draft.alias_nickname }}"></div>
@@ -115,7 +119,14 @@
         <div><label>Barangay *</label><select name="barangay_id">{% for b in barangays %}<option value="{{ b.id }}" {% if draft.barangay_id == b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}</select></div>
         <div><label>Purok / Zone *</label><input name="purok" value="{{ draft.purok }}" placeholder="e.g., Purok I" required></div>
       </div>
-      <div style="margin-top:10px;"><label>Complete House / Street Address *</label><input name="address_line" value="{{ draft.address_line }}" placeholder="e.g., Blk 2 Lot 5 Rizal St." required></div>
+      <div style="margin-top:10px;"><label>Permanent Barangay Address (House / Street) *</label><input id="permAddrInp" name="address_line" value="{{ draft.address_line }}" placeholder="e.g., Blk 2 Lot 5 Rizal St." oninput="syncCurAddr()" required></div>
+      <div style="margin-top:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+          <label style="margin:0;">Current Address (If currently residing outside Barangay for work/study)</label>
+          <label style="margin:0;font-size:.69rem;font-weight:700;color:#1e3a8a;display:inline-flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="sameAddrChk" onchange="syncCurAddr()" style="width:13px;height:13px;margin:0;"> Same as permanent address</label>
+        </div>
+        <input id="curAddrInp" name="current_address" value="{{ draft.current_address }}" placeholder="e.g., Apt 4B Makati City or check if same">
+      </div>
       <div class="grid-2" style="margin-top:10px;">
         <div><label>Email Address (For OTP &amp; Activation) *</label><input type="email" name="email_address" value="{{ draft.email_address }}" placeholder="name@example.com" required></div>
         <div><label>Mobile Number *</label><input name="mobile_number" value="{{ draft.mobile_number }}" placeholder="09XX-XXX-XXXX" required></div>
@@ -185,6 +196,7 @@
     applyPortalView(autoMob);
   });
   function toggleIdleField(chkId,inpId){const c=document.getElementById(chkId).checked,i=document.getElementById(inpId);if(c){i.value='';i.disabled=true;i.style.background='#e2e8f0';}else{i.disabled=false;i.style.background='#f8fafc';}}
+  function syncCurAddr(){const chk=document.getElementById('sameAddrChk'),cur=document.getElementById('curAddrInp'),perm=document.getElementById('permAddrInp');if(!chk||!cur||!perm)return;if(chk.checked){const brgy=document.querySelector('[name=barangay_id]')?.selectedOptions?.text||'';const prk=document.querySelector('[name=purok]')?.value||'';cur.value=[perm.value.trim(),prk.trim(),brgy.trim()].filter(Boolean).join(', ');cur.readOnly=true;cur.style.background='#e2e8f0';}else{cur.readOnly=false;cur.style.background='#f8fafc';}}
   let uTimer=null, uAvailable=true;
   function checkUserAvail(val){const b=document.getElementById('uAvailBadge'),u=val.trim();if(u.length<4){b.textContent='';uAvailable=false;return;}clearTimeout(uTimer);uTimer=setTimeout(()=>{fetch('/portal/?check_username='+encodeURIComponent(u)).then(r=>r.json()).then(d=>{uAvailable=d.available;b.style.color=d.available?'#16a34a':'#dc2626';b.textContent=d.available?'? Username Available':'? '+(d.message||'Unavailable');b.dataset.msg=d.message||'Username is unavailable.';});},250);}
   function checkPwRules(){const p=document.getElementById('pwInp')?.value||'',c=document.getElementById('pwConfInp')?.value||'';const setR=(id,ok)=>{const el=document.getElementById(id);if(el){el.className='chk-item'+(ok?' ok':'');el.innerHTML=(ok?'&#10003; ':'&#9675; ')+el.innerHTML.slice(2);}};setR('rLen',p.length>=8);setR('rUp',/[A-Z]/.test(p));setR('rNum',/[0-9]/.test(p));setR('rSpec',/[^A-Za-z0-9]/.test(p));const mt=document.getElementById('pwMatchTag');if(mt){mt.style.color=(c&&p===c)?'#16a34a':'#dc2626';mt.textContent=c?(p===c?'? Match':'? Mismatch'):'';}}

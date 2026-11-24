@@ -11,6 +11,7 @@ class Household(models.Model):
     household_head_name = models.CharField(max_length=150)
     purok = models.CharField(max_length=40, default="Purok I")
     address_line = models.CharField(max_length=220, blank=True)
+    current_address = models.CharField(max_length=240, blank=True, help_text="Current temporary/work/study address if residing outside Barangay")
     monthly_income_bracket = models.CharField(max_length=80, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
