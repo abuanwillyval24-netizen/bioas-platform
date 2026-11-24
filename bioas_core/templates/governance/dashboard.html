@@ -256,7 +256,7 @@
           </div>
           <script>function filterCitizenReports(){const q=(document.getElementById('repSearchInput')?.value||'').trim().toLowerCase();const st=document.getElementById('repStatusFilter')?.value||'';document.querySelectorAll('#citizenReportsTable .rep-row').forEach(tr=>{tr.style.display=(!q||(tr.dataset.search||'').includes(q))&&(!st||tr.dataset.status===st)?'':'none';});}</script>
         {% elif module == "CITIZENS_INTAKE" %}
-          <div class="section-title" style="margin-top:20px;"><span>Walk-In Citizen 201 Desk &amp; Pending Verification Queue</span></div>
+          <div id="walkinHeaderDock" style="position:sticky;top:0;z-index:88;background:#f1f5f9;padding:8px 0 10px;transition:transform .2s ease,opacity .18s ease;"><div class="section-title" style="margin-top:4px;"><span>Walk-In Citizen 201 Desk &amp; Pending Verification Queue</span></div>
           <style>
             .intake-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #cbd5e1; }
             .intake-box { background: #ffffff; border: 1px solid #cbd5e1; border-top: 4px solid var(--primary); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-shadow: 0 2px 6px rgba(15,23,42,.05); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
@@ -279,7 +279,7 @@
               });
             }
           </script>
-          <div id="walkinStickyDeck" class="intake-grid" style="position:sticky;top:12px;z-index:85;transition:transform .26s ease,opacity .22s ease;">
+          <div id="walkinStickyDeck" class="intake-grid">
             <div class="intake-box" style="border-top-color:#1e3a8a;">
               <div>
                 <span class="ib-tag">02B-3 &bull; WALK-IN DESK</span>
@@ -288,6 +288,7 @@
               </div>
               <button type="button" id="btnToggle201Form" class="intake-btn" onclick="toggleIntakeDrawer('walkin201Box')">Open Walk-In Encoder &#9662;</button>
             </div>
+          </div>
           </div>
           {% if action_notice %}
           <div id="resultOkModal" style="position:fixed;inset:0;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;">
@@ -366,7 +367,1667 @@
 
 
           {% if turnover_summary.pending_citizens > 0 %}
-          <form method="post" id="massApproveForm" style="margin-bottom:18px;">
+          <form method="post" id="massApproveForm" data-dockable="1" style="margin-bottom:18px;">
+            {% csrf_token %}
+            <input type="hidden" id="massActionInp" name="action" value="MASS_APPROVE_201"><input type="hidden" id="massRejectReasonInp" name="reject_reason" value="">
+            <div id="pendStickyBar" class="section-title" style="position:sticky;top:-22px;z-index:30;background:#ffffff;padding:12px 14px;margin:0 -4px 10px;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:10px;box-shadow:0 4px 14px rgba(15,23,42,.08);flex-wrap:wrap;gap:8px;">
+              <span>02B. Pending Citizen Verification Queue ({{ turnover_summary.pending_citizens }} Awaiting Official Check)</span>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input id="pendSearchInput" value="{{ search_query }}" oninput="filterPendQueue()" placeholder="Filter pending by Name, QR ID, or Purok..." style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;min-width:200px;"><span id="pendSelBadge" style="background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;">0 Selected</span><button type="button" onclick="selectNoDocRows()" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Select No-Doc Rows</button><button type="button" onclick="submitMassReject()" style="background:#dc2626;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Reject Selected &#10005;</button>
+                <button type="submit" onclick="return confirm('Approve ONLY the checked citizen records into the official 201 Master File?')" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">&#9989; Approve Checked</button>
+<button type="button" id="toggleRejTabBtn" onclick="toggleRejectedTab()" style="background:#fee2e2;color:#991b1b;border:1px solid #f87171;padding:6px 13px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&#128683; Rejected / Returned ({{ rejected_citizens|length }})</button>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table id="pendQueueTable" style="width:100%;border-collapse:collapse;"><thead><tr>
+                <th style="width:34px;text-align:center;"><input type="checkbox" onclick="document.querySelectorAll('.pend-chk').forEach(c=>{c.checked=this.checked;c.closest('tr').classList.toggle('is-checked',this.checked);});updatePendCount();"></th>
+                <th style="white-space:nowrap;">QR ID</th>
+                <th style="white-space:nowrap;">Full Name <small style="font-weight:500;color:#64748b;">(Click to Inspect Full 201 &#8599;)</small></th>
+                <th style="white-space:nowrap;">Purok</th>
+                <th style="white-space:nowrap;">Supporting Doc</th>
+                <th style="white-space:nowrap;text-align:right;">Verify &amp; Decide</th>
+              </tr></thead><tbody>
+                {% for c in citizens %}{% if c.status == "PENDING_APPROVAL" %}
+                <tr data-has-doc="{% if c.supporting_doc_data_uri or c.supporting_document or c.repository_docs.all|length > 0 %}1{% else %}0{% endif %}">
+                  <td style="text-align:center;"><input type="checkbox" class="pend-chk" onchange="this.closest('tr').classList.toggle('is-checked',this.checked);updatePendCount();" name="pending_ids" value="{{ c.id }}"></td>
+                  <td style="white-space:nowrap;"><strong>{{ c.citizen_qr_id }}</strong></td>
+                  <td>
+                    <a href="/citizen-inspect/{{ c.id }}/" target="_blank" style="color:#1e3a8a;font-weight:800;text-decoration:none;font-size:.9rem;">{{ c.full_name }} &#8599;</a>
+                  </td>
+                  <td style="white-space:nowrap;"><strong>{{ c.purok }}</strong></td>
+                  <td style="white-space:nowrap;">
+                    {% if c.supporting_doc_data_uri or c.supporting_document %}
+                      <a href="/citizen-proof/{{ c.id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">View Proof &#8599;</a>
+                    {% elif c.repository_docs.all|length > 0 %}
+                      <a href="/citizen-docs/{{ c.citizen_qr_id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">View Docs ({{ c.repository_docs.all|length }}) &#8599;</a>
+                    {% else %}
+                      <span style="background:#fee2e2;color:#991b1b;padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:800;">&#9888; No File Attached</span>
+                    {% endif %}
+                  </td>
+                  <td style="white-space:nowrap;text-align:right;">
+                    <button type="button" onclick="const f=document.getElementById('singleAppForm');f.citizen_id.value='{{ c.id }}';f.submit();" style="background:#16a34a;color:#fff;border:0;padding:5px 11px;border-radius:6px;font-size:.76rem;font-weight:700;cursor:pointer;">Approve &rarr;</button>
+                    <button type="button" onclick="const r=prompt('Enter rejection / return remarks for {{ c.full_name|escapejs }}:','Incomplete supporting proof / mismatched 201 details');if(r!==null){const f=document.getElementById('singleRejForm');f.citizen_id.value='{{ c.id }}';f.reject_reason.value=r;f.submit();}" style="margin-left:4px;background:#dc2626;color:#fff;border:0;padding:5px 11px;border-radius:6px;font-size:.76rem;font-weight:700;cursor:pointer;">Reject &#10005;</button>
+                  </td>
+                </tr>
+                {% endif %}{% endfor %}
+              </tbody></table>
+            </div>
+            <div id="pendPagerBar" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px;padding:10px 14px;background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;color:#334155;font-weight:700;">
+                <span>Rows per page:</span>
+                <select id="pendPageSize" onchange="sessionStorage.setItem('bioas_pend_page_size',this.value);pendPage=1;renderPendQueue();" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.8rem;font-weight:700;background:#f8fafc;color:#0f172a;">
+                  <option value="20" selected>20 Rows (Default)</option>
+                  <option value="50">50 Rows</option>
+                  <option value="100">100 Rows</option>
+                  <option value="ALL">Display All</option>
+                </select>
+                <span id="pendPageInfo" style="color:#64748b;margin-left:6px;"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button type="button" id="pendPrevBtn" onclick="if(pendPage>1){pendPage--;renderPendQueue();}" style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&larr; Prev</button>
+                <span id="pendPageBadge" style="background:#dbeafe;color:#1e40af;padding:5px 11px;border-radius:6px;font-size:.78rem;font-weight:800;">Page 1</span>
+                <button type="button" id="pendNextBtn" onclick="pendPage++;renderPendQueue();" style="background:var(--primary);color:#ffffff;border:0;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">Next &rarr;</button>
+              </div>
+            </div>
+          </form>
+          <form id="singleAppForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="APPROVE_CITIZEN"><input type="hidden" name="citizen_id" value=""></form>
+          <form id="singleRejForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_CITIZEN"><input type="hidden" name="citizen_id" value=""><input type="hidden" name="reject_reason" value=""></form>
+          {% endif %}
+
+          <div id="rejectedQueueBox" style="{% if turnover_summary.pending_citizens > 0 %}display:none;{% endif %}margin-bottom:18px;">
+            <div class="section-title" style="background:#fef2f2;padding:10px 14px;border:1px solid #fecaca;border-left:5px solid #dc2626;border-radius:8px;">
+              <span style="color:#991b1b;">&#128683; Rejected / Returned Applications ({{ rejected_citizens|length }} &bull; Sorted 1st-In, 1st-Rejected)</span>
+              {% if turnover_summary.pending_citizens > 0 %}
+                <button type="button" onclick="toggleRejectedTab()" style="background:#1e3a8a;color:#fff;border:0;padding:5px 12px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">&larr; Back to Pending Queue ({{ turnover_summary.pending_citizens }})</button>
+              {% endif %}
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="white-space:nowrap;"># (FIFO Order)</th>
+                    <th style="white-space:nowrap;">Rejected Date &amp; Time</th>
+                    <th style="white-space:nowrap;">QR ID</th>
+                    <th style="white-space:nowrap;">Full Name</th>
+                    <th style="white-space:nowrap;">Purok</th>
+                    <th>Rejection / Return Reason</th>
+                    <th style="white-space:nowrap;text-align:right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for rc in rejected_citizens %}
+                  <tr>
+                    <td style="font-weight:800;color:#64748b;">{{ forloop.counter }}</td>
+                    <td style="white-space:nowrap;font-size:.78rem;">{{ rc.updated_at|date:"Y-m-d H:i" }}</td>
+                    <td style="white-space:nowrap;"><strong>{{ rc.citizen_qr_id }}</strong></td>
+                    <td><a href="/citizen-inspect/{{ rc.id }}/" target="_blank" style="color:#1e3a8a;font-weight:800;text-decoration:none;">{{ rc.full_name }} &#8599;</a></td>
+                    <td style="white-space:nowrap;">{{ rc.purok }}</td>
+                    <td style="color:#991b1b;font-weight:700;font-size:.8rem;">{{ rc.rejection_reason|default:"Incomplete or unverified supporting documents" }}</td>
+                    <td style="white-space:nowrap;text-align:right;">
+                      <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="APPROVE_CITIZEN">
+                        <input type="hidden" name="citizen_id" value="{{ rc.id }}">
+                        <button type="submit" style="background:#16a34a;color:#fff;border:0;padding:5px 11px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;">Approve Now &rarr;</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="7" style="text-align:center;color:#64748b;padding:16px;">No rejected or returned applications.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <script>
+            function toggleRejectedTab() {
+              const pendForm = document.getElementById('massApproveForm');
+              const rejBox = document.getElementById('rejectedQueueBox');
+              if (!rejBox) return;
+              const showingRej = rejBox.style.display !== 'none';
+              if (pendForm) pendForm.style.display = showingRej ? '' : 'none';
+              rejBox.style.display = showingRej ? 'none' : '';
+            }
+            let pendPage = 1;
+            (function(){
+              const savedSize = sessionStorage.getItem('bioas_pend_page_size');
+              const sel = document.getElementById('pendPageSize');
+              if (savedSize && sel) sel.value = savedSize;
+            })();
+            function updatePendCount() {
+              const cnt = document.querySelectorAll('#pendQueueTable .pend-chk:checked').length;
+              const b = document.getElementById('pendSelBadge');
+              if (b) b.textContent = cnt + ' Selected';
+            }
+            function renderPendQueue() {
+              const q = (document.getElementById('pendSearchInput')?.value || '').trim().toLowerCase();
+              const sizeVal = document.getElementById('pendPageSize')?.value || '20';
+              const allRows = Array.from(document.querySelectorAll('#pendQueueTable tbody tr'));
+              const matched = allRows.filter(tr => !q || tr.textContent.toLowerCase().includes(q));
+              const total = matched.length;
+              const pageSize = (sizeVal === 'ALL') ? Math.max(1, total) : parseInt(sizeVal, 10);
+              const totalPages = Math.max(1, Math.ceil(total / pageSize));
+              if (pendPage > totalPages) pendPage = totalPages;
+              const startIdx = (pendPage - 1) * pageSize;
+              const endIdx = (sizeVal === 'ALL') ? total : Math.min(total, startIdx + pageSize);
+
+              allRows.forEach(tr => tr.style.display = 'none');
+              matched.slice(startIdx, endIdx).forEach(tr => tr.style.display = '');
+
+              const info = document.getElementById('pendPageInfo');
+              if (info) info.textContent = total === 0 ? 'Showing 0 records' : `Showing ${startIdx + 1}–${endIdx} of ${total}`;
+              const badge = document.getElementById('pendPageBadge');
+              if (badge) badge.textContent = `Page ${pendPage} of ${totalPages}`;
+              const prevBtn = document.getElementById('pendPrevBtn');
+              const nextBtn = document.getElementById('pendNextBtn');
+              if (prevBtn) { prevBtn.disabled = (pendPage <= 1); prevBtn.style.opacity = (pendPage <= 1) ? '0.45' : '1'; }
+              if (nextBtn) { nextBtn.disabled = (pendPage >= totalPages); nextBtn.style.opacity = (pendPage >= totalPages) ? '0.45' : '1'; }
+            }
+            function filterPendQueue() {
+              pendPage = 1;
+              renderPendQueue();
+            }
+            function selectNoDocRows() {
+              document.querySelectorAll('#pendQueueTable tbody tr').forEach(tr => {
+                const chk = tr.querySelector('.pend-chk');
+                if (!chk) return;
+                const noDoc = tr.dataset.hasDoc === '0';
+                chk.checked = noDoc;
+                tr.classList.toggle('is-checked', noDoc);
+              });
+              updatePendCount();
+            }
+            function submitMassReject(){
+              const chks=Array.from(document.querySelectorAll('.pend-chk:checked'));
+              if(!chks.length){alert('Please check at least one resident row to reject/return.');return;}
+              let box=document.getElementById('indivRejectModal');
+              if(!box){
+                box=document.createElement('div');box.id='indivRejectModal';
+                box.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+                document.body.appendChild(box);
+              }
+              let rowsHtml='';
+              chks.forEach(c=>{
+                const tr=c.closest('tr');
+                const qr=tr.cells[1]?.innerText.trim()||'';
+                const nm=tr.cells[2]?.querySelector('a')?.innerText.trim()||tr.cells[2]?.innerText.trim()||'Resident';
+                rowsHtml+='<div style="padding:10px;border:1px solid #fecaca;border-radius:8px;background:#fef2f2;margin-bottom:8px;"><div style="font-size:.82rem;font-weight:800;color:#991b1b;margin-bottom:4px;">'+nm+' <span style="color:#64748b;font-weight:600;">('+qr+')</span></div><input type="text" data-cid="'+c.value+'" class="indiv-rej-inp" placeholder="Enter specific deficiency / rejection remark for '+nm+' *" style="width:100%;padding:7px 10px;border:1px solid #fca5a5;border-radius:6px;font-size:.8rem;background:#fff;"></div>';
+              });
+              box.innerHTML='<div style="background:#fff;max-width:560px;width:100%;max-height:85vh;overflow:auto;border-radius:14px;padding:22px;box-shadow:0 24px 48px rgba(15,23,42,.3);border-top:5px solid #dc2626;"><h3 style="margin:0 0 6px;color:#991b1b;font-size:1.05rem;">Individual Rejection / Return Remarks ('+chks.length+' Selected)</h3><p style="margin:0 0 12px;font-size:.8rem;color:#475569;">Enter each resident&rsquo;s specific deficiency remark below so they receive an individualized email and portal notice:</p>'+rowsHtml+'<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;"><button type="button" onclick="document.getElementById(\'indivRejectModal\').style.display=\'none\'" style="background:#e2e8f0;color:#0f172a;border:0;padding:8px 14px;border-radius:7px;font-weight:700;cursor:pointer;">Cancel</button><button type="button" onclick="confirmIndivReject()" style="background:#dc2626;color:#fff;border:0;padding:8px 16px;border-radius:7px;font-weight:800;cursor:pointer;">Return &amp; Email Each Resident &rarr;</button></div></div>';
+              box.style.display='flex';
+            }
+            function confirmIndivReject(){
+              const f=document.getElementById('massApproveForm');
+              f.querySelectorAll('.dyn-rem-hid').forEach(e=>e.remove());
+              const inps=Array.from(document.querySelectorAll('.indiv-rej-inp'));
+              for(const inp of inps){
+                if(!inp.value.trim()){inp.focus();alert('Please enter a specific rejection remark for every selected resident.');return;}
+                const h=document.createElement('input');h.type='hidden';h.name='remark_'+inp.dataset.cid;h.value=inp.value.trim();h.className='dyn-rem-hid';f.appendChild(h);
+              }
+              document.getElementById('massActionInp').value='MASS_REJECT_INDIVIDUAL';
+              document.getElementById('indivRejectModal').style.display='none';
+              f.submit();
+            }
+            let isDraggingPend = false;
+            let dragTargetState = true;
+            document.addEventListener('mouseup', () => { isDraggingPend = false; });
+            document.querySelectorAll('#pendQueueTable tbody tr').forEach(tr => {
+              const chk = tr.querySelector('.pend-chk');
+              if (!chk) return;
+              tr.addEventListener('mousedown', e => {
+                if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
+                isDraggingPend = true;
+                dragTargetState = e.target === chk ? !chk.checked : !chk.checked;
+                if (e.target !== chk) {
+                  chk.checked = dragTargetState;
+                  tr.classList.toggle('is-checked', dragTargetState);
+                  updatePendCount();
+                }
+              });
+              tr.addEventListener('mouseenter', () => {
+                if (!isDraggingPend) return;
+                chk.checked = dragTargetState;
+                tr.classList.toggle('is-checked', dragTargetState);
+                updatePendCount();
+              });
+            });
+            renderPendQueue();
+          </script>
+        {% elif module == "HOUSEHOLDS" %}
+          <div class="section-title"><span>02D. Household &amp; Family Tree Breakdown (Head &rarr; Members &rarr; Relationships)</span></div>
+          <table><thead><tr><th>Household ID</th><th>Head of Family (Purok)</th><th>Members &amp; Relationships</th><th>Children (Unmarried / Married)</th><th>Seniors / PWD / Solo / Pregnant</th></tr></thead><tbody>
+            {% for hr in household_rows %}
+            <tr>
+              <td><strong>{{ hr.household.household_code }}</strong></td>
+              <td><strong>{{ hr.household.household_head_name }}</strong><br><small>{{ hr.household.purok }}</small></td>
+              <td>{% for m in hr.members %}<span class="badge" style="margin:2px 2px 2px 0;">{{ m.full_name }} ({{ m.get_relationship_to_head_display }}, {{ m.age }}y, {{ m.get_civil_status_display }})</span>{% empty %}No active members{% endfor %}</td>
+              <td><strong>{{ hr.children_count }}</strong> ({{ hr.unmarried_children }} / {{ hr.married_children }})</td>
+              <td>{{ hr.seniors }} / {{ hr.pwds }} / {{ hr.solo_parents }} / {{ hr.pregnant }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="5">No households linked yet. Enter a Household Code (e.g., HH-001) above or in the Citizen Portal to auto-group family members.</td></tr>{% endfor %}
+          </tbody></table>
+
+        {% elif module == "SHARED_GALLERY" %}
+          <div class="section-title" style="margin-top:8px;">
+            <span>02E. Shared Citizen Profiles Gallery (Official &amp; Citizen Synchronized View &mdash; {{ pop_stats.total_residents }})</span>
+            <a href="/citizen-home/" target="_blank" style="background:var(--primary);color:#ffffff !important;padding:7px 14px;border-radius:7px;font-size:.78rem;font-weight:800;text-decoration:none;">Open Citizen Self-Service View &#8599;</a>
+          </div>
+          <div class="card" style="padding:16px 18px;border-top:4px solid var(--primary);margin-bottom:20px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+              <input id="galSearchInput" oninput="updateSharedGallery()" onkeydown="if(event.key==='Enter'){event.preventDefault();updateSharedGallery(true);}" placeholder="Search approved resident by Full Name, Citizen ID, Purok / Sitio / Street..." style="flex:1;min-width:230px;padding:8px 12px;border:1px solid #cbd5e1;border-radius:7px;font-size:.83rem;">
+              <button type="button" onclick="updateSharedGallery(true)" style="background:var(--primary);color:#fff;border:0;padding:8px 14px;border-radius:7px;font-size:.82rem;font-weight:800;cursor:pointer;">Search</button>
+              <span id="galMatchBadge" style="background:#dbeafe;color:#1e40af;padding:6px 10px;border-radius:7px;font-size:.78rem;font-weight:800;white-space:nowrap;"></span>
+              <select id="galPurokFilter" onchange="updateSharedGallery()" style="padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:600;background:#f8fafc;">
+                <option value="">All Puroks / Sitios / Streets</option>
+                {% for pr in pop_stats.purok_rows %}
+                  <option value="{{ pr.name|lower }}">{{ pr.name }} ({{ pr.count }})</option>
+                {% endfor %}
+              </select>
+              <select id="galSortSelect" onchange="updateSharedGallery()" style="padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:700;background:#f8fafc;color:#0f172a;">
+                <option value="purok" selected>Sort: Purok / Sitio / Street (Default)</option>
+                <option value="name">Sort: Full Name (A &rarr; Z)</option>
+                <option value="date_desc">Sort: Date Registered (Newest)</option>
+                <option value="date_asc">Sort: Date Registered (Oldest)</option>
+                <option value="status">Sort: Residency Status</option>
+              </select>
+            </div>
+            <div id="sharedProfileGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px;">
+              {% for c in citizens %}{% if c.status == 'ACTIVE_RESIDENT' %}
+              <a
+                href="/citizen-inspect/{{ c.id }}/"
+                target="_blank"
+                class="gal-card"
+                data-purok="{{ c.purok|lower }} {{ c.street_name|lower }}"
+                data-name="{{ c.last_name|lower }}, {{ c.first_name|lower }}"
+                data-date="{{ c.created_at|date:'YmdHis' }}"
+                data-status="{{ c.get_residency_status_display|lower }}"
+                data-search="{{ c.full_name|lower }} {{ c.citizen_qr_id|lower }} {{ c.purok|lower }} {{ c.street_name|lower }}"
+                style="display:flex;flex-direction:column;align-items:center;text-align:center;background:#f8fafc;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:12px;padding:15px 12px;text-decoration:none;color:inherit;transition:transform .2s ease,box-shadow .2s ease;"
+                onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 20px rgba(30,58,138,.14)';"
+                onmouseout="this.style.transform='none';this.style.boxShadow='none';"
+              >
+                {% if c.photo_data_uri %}
+                  <img src="{{ c.photo_data_uri }}" alt="2x2" style="width:78px;height:78px;object-fit:cover;border-radius:50%;border:3px solid #f59e0b;margin-bottom:8px;">
+                {% elif c.photo %}
+                  <img src="{{ c.photo.url }}" alt="2x2" style="width:78px;height:78px;object-fit:cover;border-radius:50%;border:3px solid #f59e0b;margin-bottom:8px;">
+                {% else %}
+                  <div style="width:78px;height:78px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:#475569;margin-bottom:8px;">2x2 Photo</div>
+                {% endif %}
+                <div style="font-weight:800;font-size:.9rem;color:#0f172a;line-height:1.25;">{{ c.full_name }}</div>
+                <span class="badge" style="margin-top:5px;font-size:.72rem;background:#dbeafe;color:#1e40af;">{{ c.citizen_qr_id }}</span>
+                <div style="font-size:.76rem;font-weight:700;color:#334155;margin-top:5px;">{{ c.purok }}{% if c.street_name %} &bull; {{ c.street_name }}{% endif %}</div>
+                <div style="font-size:.72rem;color:#64748b;margin-top:2px;">{{ c.get_residency_status_display }} &bull; {{ c.age }} yrs</div>
+                <div style="font-size:.72rem;font-weight:800;color:var(--primary);margin-top:7px;">Open Shared 201 Profile &#8599;</div>
+              </a>
+              {% endif %}{% endfor %}
+            </div>
+          </div>
+          <script>
+            function updateSharedGallery(onEnter = false) {
+              const grid = document.getElementById('sharedProfileGrid');
+              if (!grid) return;
+              const q = (document.getElementById('galSearchInput')?.value || '').trim().toLowerCase();
+              const pf = (document.getElementById('galPurokFilter')?.value || '').trim().toLowerCase();
+              const mode = document.getElementById('galSortSelect')?.value || 'purok';
+              const cards = Array.from(grid.querySelectorAll('.gal-card'));
+              cards.sort((a, b) => {
+                if (mode === 'name') return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+                if (mode === 'date_desc') return (b.dataset.date || '').localeCompare(a.dataset.date || '');
+                if (mode === 'date_asc') return (a.dataset.date || '').localeCompare(b.dataset.date || '');
+                if (mode === 'status') return (a.dataset.status || '').localeCompare(b.dataset.status || '');
+                const cmpP = (a.dataset.purok || '').localeCompare(b.dataset.purok || '', undefined, {numeric: true});
+                return cmpP !== 0 ? cmpP : (a.dataset.name || '').localeCompare(b.dataset.name || '');
+              });
+              cards.forEach(el => {
+                const matchQ = !q || (el.dataset.search || '').includes(q);
+                const matchP = !pf || (el.dataset.purok || '').includes(pf);
+                el.style.display = (matchQ && matchP) ? 'flex' : 'none';
+                grid.appendChild(el);
+              });
+              const vis = cards.filter(c => c.style.display !== 'none');
+              const badge = document.getElementById('galMatchBadge');
+              if (badge) badge.textContent = `Showing ${vis.length} of ${cards.length}`;
+              if (onEnter && vis.length === 1 && vis.href) {
+                window.open(vis.href, '_blank');
+              }
+            }
+            updateSharedGallery();
+          </script>
+        {% elif module == "LEDGER_201" %}
+          <style>
+            .main{max-width:100% !important;}
+            #xl201Table { width: max-content !important; min-width: 100% !important; table-layout: auto !important; }
+            #xl201Table th, #xl201Table td { white-space: nowrap !important; padding: 9px 14px !important; vertical-align: middle !important; }
+            #xl201Table th[data-col="0"], #xl201Table td[data-col="0"] { min-width: 195px !important; left: 0 !important; }
+            #xl201Table th[data-col="1"], #xl201Table td[data-col="1"] { left: 195px !important; }
+          </style>
+          <div class="section-title">
+            <span>02C. Master 201 Approved Resident Ledger (Full-Screen Excel Grid &mdash; <span id="xlCount">0</span> Rows)</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <button type="button" onclick="toggleColMenu()" style="background:#334155;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Customize Columns &#9662;</button>
+              <button type="button" onclick="resetColPrefs()" style="background:#475569;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Show All Columns</button>
+              <button type="button" onclick="export201CSV()" style="background:#16a34a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Export Excel (.CSV)</button>
+              <button type="button" onclick="print201Ledger()" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Print Ledger</button>
+            </div>
+          </div>
+
+          <div class="card" style="padding:12px;margin-bottom:12px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;align-items:center;">
+              <input id="xlSearch" oninput="filter201Table()" placeholder="Search Name, QR, Address, Job..." style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlPurok" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <option value="">All Puroks</option>
+                <option value="Purok I">Purok I</option><option value="Purok II">Purok II</option><option value="Purok III">Purok III</option>
+                <option value="Purok IV">Purok IV</option><option value="Purok V">Purok V</option><option value="Purok VI">Purok VI</option><option value="Purok VII">Purok VII</option>
+              </select>
+              <select id="xlSex" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <option value="">All Sexes</option><option value="Male">Male</option><option value="Female">Female</option>
+              </select>
+              <select id="xlVoter" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <option value="">All Voter Status</option><option value="Voter">Registered Voter</option><option value="Non-Voter">Non-Voter</option>
+              </select>
+              <select id="xlClass" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+                <option value="">All Classifications</option>
+                <option value="Senior">Senior Citizen</option><option value="PWD">PWD</option><option value="Solo Parent">Solo Parent</option>
+                <option value="4Ps">4Ps Beneficiary</option><option value="Pregnant">Pregnant</option><option value="OFW">OFW</option>
+              </select>
+              <button type="button" onclick="reset201Filters()" style="background:#e2e8f0;color:#0f172a;border:0;padding:7px 10px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Reset Filters</button>
+            </div>
+            <div id="xlColMenu" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0;flex-wrap:wrap;gap:8px;font-size:.76rem;font-weight:700;"></div>
+          </div>
+
+          <div id="xlPrintArea" style="overflow-x:auto;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:18px;border:1px solid #cbd5e1;">
+            <table id="xl201Table" style="margin:0;min-width:2200px;border-collapse:collapse;">
+              <thead>
+                <tr style="background:#0f172a;color:#fff;">
+                  <th data-col="0" style="background:#0f172a;color:#fff;position:sticky;left:0;z-index:3;">QR ID</th>
+                  <th data-col="1" style="background:#0f172a;color:#fff;position:sticky;left:195px;z-index:3;">Full Name</th>
+                  <th data-col="2" style="background:#0f172a;color:#fff;">Birthdate</th>
+                  <th data-col="3" style="background:#0f172a;color:#fff;">Age</th>
+                  <th data-col="4" style="background:#0f172a;color:#fff;">Sex</th>
+                  <th data-col="5" style="background:#0f172a;color:#fff;">Civil Status</th>
+                  <th data-col="6" style="background:#0f172a;color:#fff;">Purok</th>
+                  <th data-col="7" style="background:#0f172a;color:#fff;">Address</th>
+                  <th data-col="8" style="background:#0f172a;color:#fff;">Residency</th>
+                  <th data-col="9" style="background:#0f172a;color:#fff;">Household ID</th>
+                  <th data-col="10" style="background:#0f172a;color:#fff;">Relationship</th>
+                  <th data-col="11" style="background:#0f172a;color:#fff;">Mobile</th>
+                  <th data-col="12" style="background:#0f172a;color:#fff;">Email</th>
+                  <th data-col="13" style="background:#0f172a;color:#fff;">Education</th>
+                  <th data-col="14" style="background:#0f172a;color:#fff;">Occupation</th>
+                  <th data-col="15" style="background:#0f172a;color:#fff;">PhilSys ID</th>
+                  <th data-col="16" style="background:#0f172a;color:#fff;">Voter Status</th>
+                  <th data-col="17" style="background:#0f172a;color:#fff;">Precinct</th>
+                  <th data-col="18" style="background:#0f172a;color:#fff;">Senior</th>
+                  <th data-col="19" style="background:#0f172a;color:#fff;">PWD</th>
+                  <th data-col="20" style="background:#0f172a;color:#fff;">Solo Parent</th>
+                  <th data-col="21" style="background:#0f172a;color:#fff;">4Ps</th>
+                  <th data-col="22" style="background:#0f172a;color:#fff;">Pregnant</th>
+                  <th data-col="23" style="background:#0f172a;color:#fff;">Supporting Docs Repository</th>
+                  <th data-col="24" style="background:#0f172a;color:#fff;">Portal Edit (Approval)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in citizens %}{% if c.status == "ACTIVE_RESIDENT" %}
+                <tr class="xl-row" data-purok="{{ c.purok }}" data-sex="{{ c.get_sex_display }}" data-voter="{% if c.is_registered_voter %}Voter{% else %}Non-Voter{% endif %}" data-class="{% if c.is_senior_citizen %}Senior {% endif %}{% if c.is_pwd %}PWD {% endif %}{% if c.is_solo_parent %}Solo Parent {% endif %}{% if c.is_4ps_beneficiary %}4Ps {% endif %}{% if c.is_pregnant %}Pregnant {% endif %}{% if c.is_ofw %}OFW{% endif %}">
+                  <td data-col="0" style="position:sticky;left:0;background:#f8fafc;font-weight:800;z-index:2;">{{ c.citizen_qr_id }}</td>
+                  <td data-col="1" style="position:sticky;left:195px;background:#f8fafc;font-weight:700;z-index:2;white-space:nowrap;">{{ c.full_name }}</td>
+                  <td data-col="2" style="white-space:nowrap;">{{ c.birth_date|date:"Y-m-d" }}</td>
+                  <td data-col="3"><strong>{{ c.age }}</strong></td>
+                  <td data-col="4">{{ c.get_sex_display }}</td>
+                  <td data-col="5">{{ c.get_civil_status_display }}</td>
+                  <td data-col="6" style="white-space:nowrap;">{{ c.purok }}</td>
+                  <td data-col="7" style="white-space:nowrap;">{{ c.address_line|default:"-" }}</td>
+                  <td data-col="8">{{ c.get_residency_status_display }}</td>
+                  <td data-col="9"><strong>{{ c.household.household_code|default:"-" }}</strong></td>
+                  <td data-col="10">{{ c.get_relationship_to_head_display }}</td>
+                  <td data-col="11">{{ c.mobile_number|default:"-" }}</td>
+                  <td data-col="12">{{ c.email_address|default:"-" }}</td>
+                  <td data-col="13">{{ c.get_education_level_display|default:"-" }}</td>
+                  <td data-col="14">{{ c.occupation|default:"-" }}</td>
+                  <td data-col="15">{{ c.philsys_id|default:"-" }}</td>
+                  <td data-col="16">{% if c.is_registered_voter %}<span class="badge">Voter</span>{% else %}Non-Voter{% endif %}</td>
+                  <td data-col="17">{{ c.precinct_number|default:"-" }}</td>
+                  <td data-col="18">{% if c.is_senior_citizen %}Yes{% else %}-{% endif %}</td>
+                  <td data-col="19">{% if c.is_pwd %}Yes{% else %}-{% endif %}</td>
+                  <td data-col="20">{% if c.is_solo_parent %}Yes{% else %}-{% endif %}</td>
+                  <td data-col="21">{% if c.is_4ps_beneficiary %}Yes{% else %}-{% endif %}</td>
+                  <td data-col="22">{% if c.is_pregnant %}<span class="badge badge-warn">Yes</span>{% else %}-{% endif %}</td>
+                  <td data-col="23" style="white-space:nowrap;"><a href="/citizen-docs/{{ c.citizen_qr_id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">View Docs ({{ c.repository_docs.count }}) &#8599;</a></td>
+                  <td data-col="24" style="white-space:nowrap;"><a href="/citizen-home/?qr_id={{ c.citizen_qr_id }}" target="_blank" style="background:#1e3a8a;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">Portal Edit &rarr;</a></td>
+                </tr>
+                {% endif %}{% empty %}
+                <tr><td colspan="25">No approved residents in the 201 ledger yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <script>
+            const XL_PREF_KEY='bioas_201_hidden_cols';
+            function getHiddenCols(){try{return JSON.parse(localStorage.getItem(XL_PREF_KEY)||'[]');}catch(e){return[];}}
+            function saveHiddenCols(arr){localStorage.setItem(XL_PREF_KEY,JSON.stringify(arr));}
+            (function(){
+              const tbl=document.getElementById('xl201Table');if(!tbl)return;
+              const menu=document.getElementById('xlColMenu');
+              const hidden=getHiddenCols();
+              tbl.querySelectorAll('thead th').forEach((th,idx)=>{
+                const isVis=!hidden.includes(idx);
+                if(!isVis)toggle201Col(idx,false,false);
+                const lbl=document.createElement('label');
+                lbl.style.cssText='display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;padding:4px 8px;border-radius:5px;cursor:pointer;';
+                const cb=document.createElement('input');cb.type='checkbox';cb.checked=isVis;cb.dataset.colIdx=idx;
+                cb.onchange=()=>toggle201Col(idx,cb.checked,true);
+                lbl.appendChild(cb);lbl.appendChild(document.createTextNode(' '+th.innerText.trim()));
+                menu.appendChild(lbl);
+              });
+              filter201Table();
+            })();
+            function toggleColMenu(){const m=document.getElementById('xlColMenu');m.style.display=m.style.display==='none'?'flex':'none';}
+            function toggle201Col(idx,show,persist){
+              document.querySelectorAll('#xl201Table [data-col="'+idx+'"]').forEach(el=>{el.style.display=show?'':'none';});
+              if(persist){
+                let h=getHiddenCols().filter(x=>x!==idx);
+                if(!show)h.push(idx);
+                saveHiddenCols(h);
+              }
+            }
+            function resetColPrefs(){
+              saveHiddenCols([]);
+              document.querySelectorAll('#xlColMenu input[type="checkbox"]').forEach(cb=>{cb.checked=true;toggle201Col(Number(cb.dataset.colIdx),true,false);});
+            }
+            function filter201Table(){
+              const q=document.getElementById('xlSearch').value.toLowerCase();
+              const pk=document.getElementById('xlPurok').value;
+              const sx=document.getElementById('xlSex').value;
+              const vt=document.getElementById('xlVoter').value;
+              const cl=document.getElementById('xlClass').value;
+              let vis=0;
+              document.querySelectorAll('#xl201Table tbody tr.xl-row').forEach(tr=>{
+                const ok=(!q||tr.innerText.toLowerCase().includes(q))&&(!pk||tr.dataset.purok===pk)&&(!sx||tr.dataset.sex===sx)&&(!vt||tr.dataset.voter===vt)&&(!cl||tr.dataset.class.includes(cl));
+                tr.style.display=ok?'':'none';if(ok)vis++;
+              });
+              document.getElementById('xlCount').innerText=vis;
+            }
+            function reset201Filters(){
+              ['xlSearch','xlPurok','xlSex','xlVoter','xlClass'].forEach(id=>document.getElementById(id).value='');filter201Table();
+            }
+            function export201CSV(){
+              const tbl=document.getElementById('xl201Table');const rows=[];
+              tbl.querySelectorAll('tr').forEach(tr=>{
+                if(tr.style.display==='none')return;
+                const cols=[];
+                tr.querySelectorAll('th,td').forEach((cell,i)=>{
+                  if(cell.style.display==='none'||i===23)return;
+                  cols.push('"'+cell.innerText.replace(/\s+/g,' ').trim().replace(/"/g,'""')+'"');
+                });
+                if(cols.length)rows.push(cols.join(','));
+              });
+              const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+              const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Barangay_201_Master_Ledger.csv';a.click();
+            }
+            function print201Ledger(){
+              const w=window.open('','','width=1200,height=800');
+              w.document.write('<html><head><title>Barangay 201 Master Ledger</title><style>body{font-family:Arial,sans-serif;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:4px 6px;text-align:left}th{background:#1e3a8a;color:#fff}@page{size:landscape;margin:10mm}</style></head><body><h2>Official Barangay 201 Master Resident Ledger</h2>'+document.getElementById('xlPrintArea').innerHTML+'  {% if module != "CITIZENS_INTAKE" %}<script>sessionStorage.removeItem('bioas_pend_page_size');</script>{% endif %}
+<div id="wkPrivacyModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;max-width:520px;width:100%;border-radius:16px;padding:24px;box-shadow:0 24px 50px rgba(15,23,42,.32);border-top:5px solid #1e3a8a;"><h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:800;color:#1e3a8a;">Barangay Data Privacy Policy &amp; Terms of Use (RA 10173)</h3><div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:14px;max-height:220px;overflow:auto;font-size:.8rem;line-height:1.55;color:#334155;white-space:pre-wrap;margin-bottom:14px;">Your personal information and documents are collected exclusively for official Barangay 201 Registry, clearances, health, social welfare, and disaster response purposes under RA 10173 (Data Privacy Act of 2012).</div><div style="display:flex;gap:18px;align-items:center;padding:10px 12px;background:#eff6ff;border-radius:9px;margin-bottom:14px;"><label style="margin:0;display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:800;color:#166534;cursor:pointer;"><input type="radio" name="wk_priv_choice" id="wkPrivAgree" value="AGREE"> I agree and consent</label><label style="margin:0;display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:700;color:#991b1b;cursor:pointer;"><input type="radio" name="wk_priv_choice" id="wkPrivDecline" value="DECLINE"> I do not agree</label></div><button type="button" onclick="applyWkPrivacy()" style="width:100%;background:#1e3a8a;color:#fff;border:0;padding:10px;border-radius:8px;font-weight:800;cursor:pointer;">Done</button></div></div><script>function openWkPrivacyModal(){document.getElementById("wkPrivacyModal").style.display="flex";}function applyWkPrivacy(){const ag=document.getElementById("wkPrivAgree").checked,dc=document.getElementById("wkPrivDecline").checked,chk=document.getElementById("wkConsentChk");if(ag){chk.checked=true;document.getElementById("wkPrivacyModal").style.display="none";}else if(dc){chk.checked=false;document.getElementById("wkPrivacyModal").style.display="none";alert("Resident must consent to the Data Privacy Policy before 201 registration can proceed.");}else{alert("Please select Agree or Do not agree first.");}}</script></body></html>');
+              w.document.close();w.focus();w.print();
+            }
+          </script>
+
+
+        {% elif module == "CERTIFICATES" %}
+          <div class="section-title"><span>03. Certificates & Clearances</span><a href="/admin/documents/certificaterequest/add/">+ Issue Certificate</a></div>
+          <table><thead><tr><th>Control No.</th><th>Citizen</th><th>Document</th><th>Status</th><th>Action</th></tr></thead><tbody>
+            {% for cert in certificates %}<tr><td><strong>{{ cert.control_number }}</strong></td><td>{{ cert.citizen.full_name }}</td><td>{{ cert.get_cert_type_display }}</td><td><span class="badge">{{ cert.get_status_display }}</span></td><td><a href="/certificate/{{ cert.control_number }}/" target="_blank">Print →</a></td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "BLOTTER" %}
+          <div class="section-title"><span>04. Derogatory Record Flag Vault</span><a href="/admin/blotter/blottercase/add/">+ Log Case</a></div>
+          <table><thead><tr><th>Case No.</th><th>Parties (VAWC Masked)</th><th>Stage</th><th>Clearance</th></tr></thead><tbody>
+            {% for b in blotter_cases %}<tr><td><strong>{{ b.case_number }}</strong></td><td>{{ b.masked_title }}</td><td><span class="badge">{{ b.get_stage_display }}</span></td><td>{% if b.blocks_clearance %}<span class="badge badge-warn">Blocked</span>{% else %}<span class="badge">Cleared</span>{% endif %}</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "TREASURY" %}
+          <div class="section-title"><span>05A. Pending Official Receipt (OR) Clearance Unlock Queue</span></div>
+          <table><thead><tr><th>Control No.</th><th>Citizen</th><th>Document</th><th>Fee</th><th>Action</th></tr></thead><tbody>
+            {% for pc in pending_or_certs %}<tr><td><strong>{{ pc.control_number }}</strong></td><td>{{ pc.citizen.full_name }}</td><td>{{ pc.get_cert_type_display }}</td><td>₱{{ pc.fee_amount }}</td><td><a href="/issue-or/{{ pc.id }}/" style="background:#16a34a;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:0.78rem;font-weight:700;">Issue OR & Unlock →</a></td></tr>{% empty %}<tr><td colspan="5">No certificates waiting for Official Receipt payment.</td></tr>{% endfor %}
+          </tbody></table>
+          <div class="section-title"><span>05. Treasury Receipts & Bereavement Welfare Sheets</span><a href="/admin/treasury/">+ Manage Treasury</a></div>
+          <table><thead><tr><th>Ref / Serial</th><th>Payor / Beneficiary</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+            {% for r in receipts %}<tr><td><strong>OR #{{ r.or_number }}</strong></td><td>{{ r.payor_name }}</td><td>₱{{ r.amount_paid }}</td><td><span class="badge">OR Paid</span></td></tr>{% endfor %}
+            {% for a in abuloy_sheets %}<tr><td><strong>{{ a.serial_number }}</strong></td><td>Deceased: {{ a.deceased_name }}</td><td>₱{{ a.total_collected }}</td><td><span class="badge">{{ a.get_status_display }}</span></td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "HEALTH" %}
+          <div class="section-title"><span>06. Health Station</span><a href="/admin/health_station/">+ Manage Health</a></div>
+          <table><thead><tr><th>Date</th><th>Citizen</th><th>Program</th><th>Medicine</th></tr></thead><tbody>
+            {% for h in health_records %}<tr><td>{{ h.visit_date }}</td><td><strong>{{ h.citizen.full_name }}</strong></td><td>{{ h.get_program_type_display }}</td><td>{{ h.vaccine_or_medicine_given }}</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "WELFARE" %}
+          <div class="section-title"><span>07A. Configurable Association Groups & Assigned Heads</span><a href="/admin/social_welfare/associationgroup/add/">+ Add Association Group</a></div>
+          <table><thead><tr><th>Code</th><th>Association Group</th><th>Assigned Association Head</th><th>Members</th><th>Status</th></tr></thead><tbody>
+            {% for ag in associations %}<tr><td><strong>{{ ag.group_code }}</strong></td><td>{{ ag.group_name }}</td><td><strong>{{ ag.display_head }}</strong></td><td>{{ ag.member_count }}</td><td><span class="badge">{% if ag.is_active %}Active{% else %}Inactive{% endif %}</span></td></tr>{% empty %}<tr><td colspan="5">No association groups configured yet.</td></tr>{% endfor %}
+          </tbody></table>
+          <div class="section-title"><span>07B. Social Welfare & Aid Releases</span><a href="/admin/social_welfare/socialaiddistribution/add/">+ Log Aid Release</a></div>
+          <table><thead><tr><th>Beneficiary</th><th>Program</th><th>Cycle</th><th>Amount</th></tr></thead><tbody>
+            {% for s in social_aids %}<tr><td><strong>{{ s.citizen.full_name }}</strong></td><td>{{ s.get_program_category_display }}</td><td>{{ s.distribution_cycle }}</td><td>₱{{ s.amount_or_pack_value }}</td></tr>{% empty %}<tr><td colspan="4">No aid releases recorded yet.</td></tr>{% endfor %}
+          </tbody></table>
+                    <div class="section-title" style="margin-top:20px;">
+            <span>07C. Livelihood &amp; Socioeconomic Priority Screening (4-Layer Anti-Palakasan Engine)</span>
+            <span style="font-size:.75rem;color:#475569;font-weight:700;">Neutral Census Tiers &bull; Cross-Module Verified</span>
+          </div>
+          <div class="grid" style="margin-bottom:14px;">
+            <div class="card" style="border-top-color:#dc2626;cursor:pointer;" onclick="document.getElementById('socioTierFilter').value='SUBSISTENCE';filterSocioTable();">
+              <h3>Subsistence / Priority Support</h3>
+              <div class="stat" style="color:#dc2626;">{{ socio_counts.subsistence }}</div>
+            </div>
+            <div class="card" style="border-top-color:#d97706;cursor:pointer;" onclick="document.getElementById('socioTierFilter').value='LOW_INCOME';filterSocioTable();">
+              <h3>Low-Income / Vulnerable</h3>
+              <div class="stat" style="color:#d97706;">{{ socio_counts.low_income }}</div>
+            </div>
+            <div class="card" style="border-top-color:#2563eb;cursor:pointer;" onclick="document.getElementById('socioTierFilter').value='LOWER_MIDDLE';filterSocioTable();">
+              <h3>Lower-Middle / Marginal</h3>
+              <div class="stat" style="color:#2563eb;">{{ socio_counts.lower_middle }}</div>
+            </div>
+            <div class="card" style="border-top-color:#16a34a;cursor:pointer;" onclick="document.getElementById('socioTierFilter').value='SELF_SUSTAINING';filterSocioTable();">
+              <h3>Self-Sustaining</h3>
+              <div class="stat" style="color:#16a34a;">{{ socio_counts.self_sustaining }}</div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:14px 16px;margin-bottom:18px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+              <input id="socioSearchInp" oninput="filterSocioTable()" placeholder="Search Resident, QR ID, Primary/Secondary Livelihood, or Purok..." style="flex:1;min-width:220px;padding:7px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;">
+              <select id="socioTierFilter" onchange="filterSocioTable()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.8rem;font-weight:700;background:#f8fafc;">
+                <option value="">All Socioeconomic Tiers (Priority Order)</option>
+                <option value="SUBSISTENCE">1. Subsistence / Priority Support</option>
+                <option value="LOW_INCOME">2. Low-Income / Vulnerable</option>
+                <option value="LOWER_MIDDLE">3. Lower-Middle / Marginal</option>
+                <option value="SELF_SUSTAINING">4. Self-Sustaining</option>
+                <option value="UNSET">Unclassified / Pending Assessment</option>
+              </select>
+              <select id="socioVerifyFilter" onchange="filterSocioTable()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.8rem;font-weight:700;background:#f8fafc;">
+                <option value="">All Verification States</option>
+                <option value="VERIFIED">Field Verified Only</option>
+                <option value="UNVERIFIED">Unverified Declarations</option>
+                <option value="UNDER_REVIEW">Under Review</option>
+              </select>
+            </div>
+            <div style="overflow-x:auto;">
+              <table id="socioScreenTable" style="margin:0;width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="white-space:nowrap;">Priority Tier (Layer 3)</th>
+                    <th style="white-space:nowrap;">Resident &amp; Purok</th>
+                    <th style="white-space:nowrap;">Economic Activity &amp; Income (Layers 1 &amp; 2)</th>
+                    <th style="white-space:nowrap;">Anti-Palakasan Cross-Checks</th>
+                    <th style="white-space:nowrap;">Provenance (Layer 4)</th>
+                    <th style="white-space:nowrap;text-align:right;">Field Validation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in citizens %}{% if c.status == "ACTIVE_RESIDENT" %}
+                  <tr data-tier="{{ c.socioeconomic_tier|default:'UNSET' }}" data-rank="{% if c.socioeconomic_tier == 'SUBSISTENCE' %}1{% elif c.socioeconomic_tier == 'LOW_INCOME' %}2{% elif c.socioeconomic_tier == 'LOWER_MIDDLE' %}3{% elif c.socioeconomic_tier == 'SELF_SUSTAINING' %}4{% else %}5{% endif %}" data-verify="{{ c.livelihood_verification_status|default:'UNVERIFIED' }}">
+                    <td style="white-space:nowrap;">
+                      {% if c.socioeconomic_tier == "SUBSISTENCE" %}
+                        <span class="badge" style="background:#fee2e2;color:#991b1b;">Subsistence / Priority Support</span>
+                      {% elif c.socioeconomic_tier == "LOW_INCOME" %}
+                        <span class="badge" style="background:#fef3c7;color:#92400e;">Low-Income / Vulnerable</span>
+                      {% elif c.socioeconomic_tier == "LOWER_MIDDLE" %}
+                        <span class="badge" style="background:#dbeafe;color:#1e40af;">Lower-Middle / Marginal</span>
+                      {% elif c.socioeconomic_tier == "SELF_SUSTAINING" %}
+                        <span class="badge" style="background:#dcfce7;color:#166534;">Self-Sustaining</span>
+                      {% else %}
+                        <span class="badge" style="background:#f1f5f9;color:#475569;">Pending Assessment</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <a href="/citizen-inspect/{{ c.id }}/" target="_blank" style="font-weight:800;color:#1e3a8a;text-decoration:none;">{{ c.full_name }} &#8599;</a>
+                      <div style="font-size:.73rem;color:#64748b;">{{ c.citizen_qr_id }} &bull; {{ c.purok }}</div>
+                    </td>
+                    <td>
+                      <strong>{{ c.occupation|default:"Not Declared" }}</strong>{% if c.secondary_livelihood %} <small style="color:#0f766e;">(+ {{ c.secondary_livelihood }})</small>{% endif %}
+                      <div style="font-size:.73rem;color:#475569;">Income: {{ c.monthly_income|default:"Not Disclosed" }}</div>
+                    </td>
+                    <td>
+                      <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                        {% if c.is_4ps_beneficiary %}<span class="badge" style="background:#fef3c7;color:#92400e;font-size:.68rem;">4Ps</span>{% endif %}
+                        {% if c.is_solo_parent %}<span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:.68rem;">Solo Parent</span>{% endif %}
+                        {% if c.is_pwd %}<span class="badge" style="background:#fce7f3;color:#9d174d;font-size:.68rem;">PWD</span>{% endif %}
+                        {% if c.is_senior_citizen %}<span class="badge" style="background:#f3e8ff;color:#6b21a8;font-size:.68rem;">Senior</span>{% endif %}
+                        <span class="badge" style="background:#f1f5f9;color:#334155;font-size:.68rem;">Ayuda Grants: {{ c.aid_distributions.all|length }}</span>
+                      </div>
+                    </td>
+                    <td style="white-space:nowrap;font-size:.75rem;">
+                      <div><strong>{{ c.get_livelihood_source_display|default:"Citizen Declaration" }}</strong></div>
+                      <span style="color:{% if c.livelihood_verification_status == 'VERIFIED' %}#16a34a{% elif c.livelihood_verification_status == 'UNDER_REVIEW' %}#d97706{% else %}#64748b{% endif %};font-weight:800;">{{ c.get_livelihood_verification_status_display|default:"Unverified" }}</span>
+                      {% if c.livelihood_effective_date %}<small style="color:#64748b;">({{ c.livelihood_effective_date|date:"Y-m-d" }})</small>{% endif %}
+                    </td>
+                    <td style="white-space:nowrap;text-align:right;">
+                      <form method="post" style="display:inline-flex;gap:4px;align-items:center;" onsubmit="const r=prompt('Enter Field Validation / Committee Note (logged to Audit Trail):','Field & cross-module livelihood verification');if(r===null)return false;this.querySelector('[name=verify_reason]').value=r;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="VERIFY_LIVELIHOOD_TIER">
+                        <input type="hidden" name="citizen_id" value="{{ c.id }}">
+                        <input type="hidden" name="verify_reason" value="">
+                        <select name="socioeconomic_tier" style="padding:4px 6px;border:1px solid #cbd5e1;border-radius:5px;font-size:.73rem;">
+                          <option value="SUBSISTENCE" {% if c.socioeconomic_tier == 'SUBSISTENCE' %}selected{% endif %}>Subsistence / Priority</option>
+                          <option value="LOW_INCOME" {% if c.socioeconomic_tier == 'LOW_INCOME' %}selected{% endif %}>Low-Income / Vulnerable</option>
+                          <option value="LOWER_MIDDLE" {% if c.socioeconomic_tier == 'LOWER_MIDDLE' %}selected{% endif %}>Lower-Middle / Marginal</option>
+                          <option value="SELF_SUSTAINING" {% if c.socioeconomic_tier == 'SELF_SUSTAINING' %}selected{% endif %}>Self-Sustaining</option>
+                        </select>
+                        <button type="submit" style="background:#0f766e;color:#fff;border:0;padding:5px 9px;border-radius:5px;font-size:.72rem;font-weight:800;cursor:pointer;">Verify &#10003;</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% endif %}{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <script>
+            function filterSocioTable() {
+              const tbody = document.querySelector('#socioScreenTable tbody');
+              if (!tbody) return;
+          <script>
+            function filterSocioTable() {
+              const tbody = document.querySelector('#socioScreenTable tbody');
+              if (!tbody) return;
+              const q = (document.getElementById('socioSearchInp')?.value || '').trim().toLowerCase();
+              const tf = document.getElementById('socioTierFilter')?.value || '';
+              const vf = document.getElementById('socioVerifyFilter')?.value || '';
+              const rows = Array.from(tbody.querySelectorAll('tr'));
+              rows.sort((a, b) => parseInt(a.dataset.rank || '5', 10) - parseInt(b.dataset.rank || '5', 10));
+              rows.forEach(tr => {
+                const okQ = !q || tr.textContent.toLowerCase().includes(q);
+                const okT = !tf || tr.dataset.tier === tf;
+                const okV = !vf || tr.dataset.verify === vf;
+                tr.style.display = (okQ && okT && okV) ? '' : 'none';
+                tbody.appendChild(tr);
+              });
+            }
+            filterSocioTable();
+          </script>
+
+          
+        {% elif module == "FLEET" %}
+          <div class="section-title"><span>08. Fleet & Equipment</span><a href="/admin/assets_fleet/">+ Manage Fleet</a></div>
+          <table><thead><tr><th>Plate</th><th>Vehicle</th><th>Driver</th><th>Status</th></tr></thead><tbody>
+            {% for v in vehicles %}<tr><td><strong>{{ v.plate_or_body_number }}</strong></td><td>{{ v.vehicle_name }}</td><td>{{ v.assigned_driver }}</td><td><span class="badge">{{ v.get_status_display }}</span></td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "DRRM" %}
+          <div class="section-title"><span>09. BDRRMC & Evacuation</span><a href="/admin/drrm/">+ Manage DRRM</a></div>
+          <table><thead><tr><th>Code</th><th>Alert</th><th>Level</th><th>Families</th></tr></thead><tbody>
+            {% for hz in hazards %}<tr><td><strong>{{ hz.alert_code }}</strong></td><td>{{ hz.title }}</td><td><span class="badge badge-warn">{{ hz.get_alert_level_display }}</span></td><td>{{ hz.affected_families_count }}</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "SK" %}
+          <div class="section-title"><span>10. SK & Youth (KK)</span><a href="/admin/sk_youth/">+ Manage SK</a></div>
+          <table><thead><tr><th>Code</th><th>Project</th><th>Budget</th><th>Status</th></tr></thead><tbody>
+            {% for sk in sk_projects %}<tr><td><strong>{{ sk.project_code }}</strong></td><td>{{ sk.title }}</td><td>₱{{ sk.allocated_budget }}</td><td><span class="badge">{{ sk.get_status_display }}</span></td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "LEGISLATION" %}
+          <div class="section-title"><span>11. Ordinances & BDP</span><a href="/admin/planning_legislation/">+ Manage Measures</a></div>
+          <table><thead><tr><th>Series</th><th>Title</th><th>Author</th><th>Status</th></tr></thead><tbody>
+            {% for m in measures %}<tr><td><strong>{{ m.series_number }}</strong></td><td>{{ m.title }}</td><td>{{ m.authored_by }}</td><td><span class="badge">{{ m.get_status_display }}</span></td></tr>{% endfor %}
+          </tbody></table>
+                  {% elif module == "TEMPLATES" %}
+          <div class="section-title"><span>15. Official Barangay Forms &amp; Operational Templates ({{ form_templates|length }})</span><a href="/?download_201_template=1" style="background:#0f766e;color:#fff;padding:7px 13px;border-radius:7px;font-size:.78rem;font-weight:800;text-decoration:none;">&#128229; Download Multi-Sheet 201 Bulk Excel Template (.xlsx)</a></div>
+          <div class="card" style="border-top:4px solid var(--primary);margin-bottom:18px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <h3 id="tplEditorHeading" style="margin:0;font-size:.95rem;color:var(--primary);">+ Add or Replace Official Form Template</h3>
+              <button type="button" id="tplResetBtn" onclick="resetTplEditor()" style="display:none;background:#e2e8f0;color:#0f172a;border:0;padding:4px 10px;border-radius:6px;font-size:.74rem;font-weight:700;cursor:pointer;">Cancel Replace / New Form</button>
+            </div>
+            <form id="tplEditorForm" method="post" enctype="multipart/form-data" onsubmit="const isPol=this.querySelector('[name=category]').value==='DATA_PRIVACY_POLICY';return confirm(isPol?'LEGAL COMPLIANCE WARNING: Modifying the Barangay Data Privacy Policy & Terms of Use (RA 10173) requires Punong Barangay (Captain) approval before taking effect on Citizen Sign-Up. Submit revision for Captain approval?':'WARNING: Are you sure you want to save / replace this Official Form Template? Please confirm before proceeding.')" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
+              {% csrf_token %}<input type="hidden" name="action" value="SAVE_FORM_TEMPLATE"><input type="hidden" name="template_id" id="tplEditId" value="">
+              <select name="category" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
+                <option value="COMPLETION_REPORT">Completion Report</option>
+                <option value="ACCEPTANCE_REPORT">Acceptance Report</option>
+                <option value="INSPECTION_REPORT">Inspection Report</option>
+                <option value="ASSET_PROFILE">Asset Profile</option>
+                <option value="WORK_ORDER">Work Order</option>
+                <option value="WALKIN_RECOVERY_LETTER">Walk-In Account Recovery Request Letter</option>
+                <option value="DATA_PRIVACY_POLICY">Data Privacy Policy &amp; Terms of Use</option>
+                <option value="OTHER">Other Official Form</option>
+              </select>
+              <input name="form_code" placeholder="Form Code (e.g., BIOAS-FRM-07)" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
+              <input name="title" placeholder="Official Form Title *" required style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
+              <div style="display:flex;align-items:center;gap:6px;border:1px solid #cbd5e1;border-radius:7px;padding:4px 8px;background:#fff;">
+                <input type="file" id="tplFileInput" name="template_file" accept=".doc,.docx,.xls,.xlsx,.csv" onchange="document.getElementById('tplFileClearBtn').style.display=this.value?'inline-flex':'none';document.getElementById('tplExistingFileTag').textContent=this.files[0]?this.files[0].name:'';" style="border:0;padding:2px;font-size:.78rem;width:100%;">
+                <input type="hidden" name="clear_existing_file" id="tplClearExisting" value="0">
+                <span id="tplExistingFileTag" style="font-size:.72rem;color:#0f766e;font-weight:700;white-space:nowrap;"></span>
+                <button type="button" id="tplFileClearBtn" title="Remove attached file" onclick="clearTplFile()" style="background:#fee2e2;color:#dc2626;border:0;width:24px;height:24px;border-radius:6px;font-weight:900;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;">&#10005;</button>
+              </div>
+              <input name="description" placeholder="Short purpose / description" style="grid-column:1/-1;padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
+              <textarea name="body_template" rows="4" placeholder="Printable / copyable standard template text..." style="grid-column:1/-1;padding:8px;border:1px solid #cbd5e1;border-radius:7px;font-family:monospace;font-size:.8rem;"></textarea>
+              <button type="submit" style="background:var(--primary);color:#fff;border:0;padding:9px 14px;border-radius:7px;font-weight:800;cursor:pointer;">Save Template &rarr;</button>
+            </form>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px;">
+            {% for ft in form_templates %}
+            <div class="card" style="border-top:4px solid #1e3a8a;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                  <span class="badge">{{ ft.get_category_display }}</span>{% if ft.has_pending_approval %}<span class="badge" style="background:#fef3c7;color:#92400e;">&#9203; Pending Captain Approval</span>{% endif %}
+                  <strong style="font-size:.74rem;color:#64748b;">{{ ft.form_code }}</strong>
+                </div>
+                <h4 style="margin:8px 0 4px;font-size:.95rem;color:#0f172a;">{{ ft.title }}</h4>
+                <p style="margin:0 0 8px;font-size:.78rem;color:#475569;">{{ ft.description }}</p>
+                {% if ft.body_template %}<pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:.72rem;white-space:pre-wrap;max-height:170px;overflow:auto;margin:0;">{{ ft.body_template }}</pre>{% endif %}
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                {% if ft.file_data_uri %}<a href="{{ ft.file_data_uri }}" download="{{ ft.file_name|default:'template' }}" style="background:#0f766e;color:#fff;padding:6px 11px;border-radius:6px;text-decoration:none;font-size:.75rem;font-weight:700;">Download File &darr;</a>{% endif %}
+                <button type="button" onclick="const w=window.open('','_blank');w.document.write('<pre style=font-family:serif;font-size:13pt;white-space:pre-wrap;padding:28px>'+(this.closest('.card').querySelector('pre')?.innerText||'')+'</pre>');w.print();" style="background:#1e3a8a;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;">Print Template &#128424;</button>
+                <button type="button" data-id="{{ ft.id }}" data-cat="{{ ft.category }}" data-code="{{ ft.form_code }}" data-title="{{ ft.title }}" data-desc="{{ ft.description }}" data-fname="{{ ft.file_name }}" onclick="loadTplForReplace(this)" style="background:#d97706;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Replace With Custom Template &#9998;</button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <script>
+            function loadTplForReplace(btn){
+              const f=document.getElementById('tplEditorForm');
+              document.getElementById('tplEditId').value=btn.dataset.id||'';
+              f.querySelector('[name=category]').value=btn.dataset.cat||'OTHER';
+              f.querySelector('[name=form_code]').value=btn.dataset.code||'';
+              f.querySelector('[name=title]').value=btn.dataset.title||'';
+              f.querySelector('[name=description]').value=btn.dataset.desc||'';
+              const pre=btn.closest('.card').querySelector('pre');
+              f.querySelector('[name=body_template]').value=pre?pre.innerText:'';
+              document.getElementById('tplEditorHeading').textContent='Replacing / Editing Template: '+(btn.dataset.title||'');
+              document.getElementById('tplClearExisting').value='0';
+              const fn=btn.dataset.fname||'';
+              document.getElementById('tplExistingFileTag').textContent=fn;
+              document.getElementById('tplFileClearBtn').style.display=fn?'inline-flex':'none';
+              document.getElementById('tplResetBtn').style.display='inline-block';
+              f.scrollIntoView({behavior:'smooth',block:'center'});
+            }
+            function resetTplEditor(){
+              const f=document.getElementById('tplEditorForm');
+              f.reset();
+              document.getElementById('tplEditId').value='';
+              document.getElementById('tplEditorHeading').textContent='+ Add or Replace Official Form Template';
+              document.getElementById('tplResetBtn').style.display='none';
+              clearTplFile();
+            }
+            function clearTplFile(){
+              const inp=document.getElementById('tplFileInput');
+              if(inp) inp.value='';
+              document.getElementById('tplExistingFileTag').textContent='';
+              document.getElementById('tplFileClearBtn').style.display='none';
+              document.getElementById('tplClearExisting').value='1';
+            }
+          </script>
+          <hr style="border:0;border-top:2px dashed #cbd5e1;margin:28px 0 20px;">
+          <div class="section-title" style="flex-wrap:wrap;gap:8px;">
+            <span>15B. Initial Data Migration &amp; Bulk Onboarding Tools (One-Time Setup)</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <a href="/?download_201_template=1" style="background:#0f766e;color:#fff;padding:6px 12px;border-radius:7px;font-size:.76rem;font-weight:800;text-decoration:none;">&#128229; Download 201 Bulk Excel Template (.xlsx)</a>
+              {% if turnover_summary.pending_citizens > 0 %}
+              <form method="post" style="display:inline;margin:0;" onsubmit="return confirm('ONE-TIME MIGRATION APPROVAL: Mass-approve ALL {{ turnover_summary.pending_citizens }} staged citizen records into the Official 201 Master Registry and email activation credentials?')">
+                {% csrf_token %}<input type="hidden" name="action" value="MASS_APPROVE_201">
+                <button type="submit" style="background:#16a34a;color:#fff;border:0;padding:6px 13px;border-radius:7px;font-size:.76rem;font-weight:800;cursor:pointer;">&#9889; Mass Approve All Staged ({{ turnover_summary.pending_citizens }})</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          <div id="excelIntakeBox" class="card" style="display:block;margin-bottom:14px;border-top:4px solid #0f766e;background:#f0fdfa;">
+            <form id="bulk201Form" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="BULK_IMPORT_201">
+              <div style="flex:1;min-width:260px;">
+                <strong style="color:#0f766e;font-size:.95rem;">&#128229; Universal Multi-Sheet Excel / CSV 201 Staging Importer</strong>
+                <div style="font-size:.8rem;color:#475569;margin-top:2px;">Uploads stage into <strong>Pending Citizen Approvals</strong> first (keeping your verified 201 Master File strictly intact). Supports unlimited rows &amp; multi-sheet workbooks divided by Purok.</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                <a href="?tier=BARANGAY&module=TEMPLATES" style="background:#fff;color:#0f766e;border:1px solid #0f766e;padding:6px 11px;border-radius:7px;font-size:.76rem;font-weight:800;text-decoration:none;">Get 201 Template in Module 15 &nearr;</a>
+                <div style="display:inline-flex;align-items:center;gap:4px;background:#fff;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;">
+                  <input id="bulk201File" type="file" name="excel_file" accept=".xlsx,.csv" required onchange="document.getElementById('clearBulk201Btn').style.display=this.files.length?'inline-flex':'none';" style="font-size:.82rem;border:0;background:transparent;">
+                  <button type="button" id="clearBulk201Btn" title="Remove selected file" onclick="const i=document.getElementById('bulk201File');i.value='';this.style.display='none';" style="display:block;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:0;background:#fee2e2;color:#dc2626;font-weight:900;font-size:.75rem;cursor:pointer;">&#10005;</button>
+                </div>
+                <button type="button" onclick="const f=document.getElementById('bulk201File');if(!f.files.length){alert('Please choose an .xlsx or .csv file first.');return;}document.getElementById('confirmFileName').innerText=f.files[0].name;document.getElementById('confirmUploadModal').style.display='flex';" style="background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:6px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">Upload &amp; Stage for Approval &rarr;</button>
+              </div>
+            </form>
+          </div>
+          <div id="batchQrIntakeBox" class="card" style="display:block;margin-bottom:14px;border-top:4px solid var(--primary);background:#eff6ff;">
+            <form id="batchQrDocsForm" method="post" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="BATCH_ZIP_DOCS">
+              <div style="flex:1;min-width:240px;">
+                <strong style="color:#1e3a8a;font-size:.88rem;">&#128230; Batch QR-Matched 2x2 Photos &amp; Supporting Docs Uploader</strong>
+                <div style="font-size:.76rem;color:#334155;margin-top:2px;">Files must start with the exact <strong>Citizen ID</strong> (e.g., <code>LAG-2026-0115_2x2.png</code>, <code>LAG-2026-0008_supporting_doc.pdf</code>). Select individual files or a <code>.zip</code> per slot.</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+                <div>
+                  <label style="display:block;font-size:.72rem;font-weight:800;color:#1e3a8a;margin-bottom:3px;">1. 2x2 Profile Photos (Image Only)</label>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:#fff;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;">
+                    <input id="batchPhotoInp" type="file" name="photo_files" accept=".png,.jpg,.jpeg,.webp,.zip" multiple onchange="document.getElementById('clearPhotoBtn').style.display=this.files.length?'inline-flex':'none';" style="font-size:.78rem;border:0;background:transparent;">
+                    <button type="button" id="clearPhotoBtn" title="Remove selected photos" onclick="const i=document.getElementById('batchPhotoInp');i.value='';this.style.display='none';" style="display:block;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;border:0;background:#fee2e2;color:#dc2626;font-weight:900;font-size:.72rem;cursor:pointer;">&#10005;</button>
+                  </div>
+                </div>
+                <div>
+                  <label style="display:block;font-size:.72rem;font-weight:800;color:#0f766e;margin-bottom:3px;">2. Supporting Docs (Auto-PDF)</label>
+                  <div style="display:inline-flex;align-items:center;gap:4px;background:#fff;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;">
+                    <input id="batchDocInp" type="file" name="doc_files" accept=".pdf,.png,.jpg,.jpeg,.webp,.zip" multiple onchange="document.getElementById('clearDocBtn').style.display=this.files.length?'inline-flex':'none';" style="font-size:.78rem;border:0;background:transparent;">
+                    <button type="button" id="clearDocBtn" title="Remove selected documents" onclick="const i=document.getElementById('batchDocInp');i.value='';this.style.display='none';" style="display:block;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;border:0;background:#fee2e2;color:#dc2626;font-weight:900;font-size:.72rem;cursor:pointer;">&#10005;</button>
+                  </div>
+                </div>
+                <button type="button" onclick="const p=document.getElementById('batchPhotoInp').files.length,d=document.getElementById('batchDocInp').files.length;if(!p&&!d){alert('Please select at least one 2x2 Profile Photo or Supporting Document first.');return;}document.getElementById('batchSummaryText').innerHTML='You selected <strong>'+p+'</strong> 2x2 Profile Photo item(s) and <strong>'+d+'</strong> Supporting Document item(s) for exact Citizen ID matching.';document.getElementById('confirmBatchDocsModal').style.display='flex';" style="background:#1e3a8a;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-weight:700;font-size:.8rem;cursor:pointer;white-space:nowrap;">Upload &amp; Match QR Files &rarr;</button>
+              </div>
+            </form>
+          </div>
+          <div id="confirmBatchDocsModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);align-items:center;justify-content:center;z-index:9998;padding:16px;">
+            <div style="background:#fff;max-width:500px;width:100%;border-radius:12px;padding:22px;box-shadow:0 20px 45px rgba(0,0,0,.3);border-top:5px solid #f59e0b;">
+              <h3 style="margin:0 0 8px;color:#92400e;font-size:1.05rem;">&#9888;&#65039; Confirm Batch QR Photo &amp; Document Upload</h3>
+              <p id="batchSummaryText" style="margin:0 0 10px;font-size:.86rem;color:#334155;line-height:1.5;"></p>
+              <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:.79rem;color:#78350f;margin-bottom:16px;">
+                <strong>Strict Citizen ID Matching Notice:</strong> Only files starting with an exact registered <strong>Citizen ID</strong> (e.g., <code>LAG-2026-0115_2x2.png</code>, <code>NE-CAB-LAG-2026-00001_supporting_doc.pdf</code>) will attach. Any unmatched filename will be safely skipped and reported.
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button type="button" onclick="document.getElementById('confirmBatchDocsModal').style.display='none'" style="background:#e2e8f0;color:#0f172a;border:0;padding:8px 16px;border-radius:7px;font-weight:700;cursor:pointer;">Cancel</button>
+                <button type="button" onclick="document.getElementById('confirmBatchDocsModal').style.display='none';document.getElementById('uploadingProgressModal').style.display='flex';document.getElementById('batchQrDocsForm').submit();" style="background:#1e3a8a;color:#fff;border:0;padding:8px 18px;border-radius:7px;font-weight:800;cursor:pointer;">Confirm &amp; Upload Now &rarr;</button>
+              </div>
+            </div>
+          </div>
+
+          <style>
+            @keyframes bioasHourglassFlip { 0%, 35% { transform: rotate(0deg); } 50%, 85% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
+            @keyframes bioasBarSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+            .bioas-hg-spin { display: inline-block; font-size: 2.35rem; margin-bottom: 10px; animation: bioasHourglassFlip 3.2s ease-in-out infinite; }
+            .bioas-bar-track { height: 7px; width: 100%; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 14px; }
+            .bioas-bar-fill { height: 100%; width: 42%; background: linear-gradient(90deg, #1e3a8a, #0f766e); border-radius: 999px; animation: bioasBarSlide 1.8s ease-in-out infinite; }
+          </style>
+          <div id="uploadingProgressModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.68);backdrop-filter:blur(2px);align-items:center;justify-content:center;z-index:9999;padding:16px;">
+            <div style="background:#fff;max-width:440px;width:100%;border-radius:12px;padding:24px;text-align:center;box-shadow:0 20px 45px rgba(0,0,0,.35);border-top:5px solid #1e3a8a;">
+              <div class="bioas-hg-spin">&#9203;</div>
+              <h3 style="margin:0 0 8px;color:#1e3a8a;font-size:1.05rem;">Uploading &amp; Matching Citizen Files...</h3>
+              <p style="margin:0;font-size:.84rem;color:#475569;line-height:1.5;">Please wait while BIOAS verifies each Citizen ID, converts supporting docs to PDF, and links them to your pending queue. Do not close this tab.</p>
+              <div class="bioas-bar-track"><div class="bioas-bar-fill"></div></div>
+            </div>
+          </div>
+          </div>
+
+        {% elif module == "AUDIT" %}
+          <div class="section-title"><span>12A. COA Audit &amp; Liquidation Packages</span><a href="/admin/audit_analytics/coaauditcompliance/add/">+ Log COA Package</a></div>
+          <table><thead><tr><th>Reference</th><th>Audit Type</th><th>Period</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+            {% for ca in coa_audits %}<tr><td><strong>{{ ca.audit_reference }}</strong></td><td>{{ ca.get_audit_type_display }}</td><td>{{ ca.period_covered }}</td><td>&#8369;{{ ca.amount_involved }}</td><td><span class="badge">{{ ca.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No COA audit packages logged yet.</td></tr>{% endfor %}
+          </tbody></table>
+
+          <div class="section-title"><span>12B. DILG Compliance &amp; Full Disclosure Reports</span><a href="/admin/audit_analytics/dilgcompliancereport/add/">+ Log DILG Report</a></div>
+          <table><thead><tr><th>Category</th><th>Period</th><th>Due Date</th><th>Transmittal Ref</th><th>Status</th></tr></thead><tbody>
+            {% for dr in dilg_reports %}<tr><td><strong>{{ dr.get_report_category_display }}</strong></td><td>{{ dr.reporting_period }}</td><td>{{ dr.due_date }}</td><td>{{ dr.transmittal_reference|default:"-" }}</td><td><span class="badge">{{ dr.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No DILG reports logged yet.</td></tr>{% endfor %}
+          </tbody></table>
+
+          <div class="section-title">
+            <span>12C. Silent System Audit Trail (Account Creation, Permissions &amp; 201 Sync Logs)</span>
+            <button type="button" onclick="const box=document.getElementById('silentAuditBox');const open=box.style.display==='none';box.style.display=open?'block':'none';this.innerHTML=open?'Hide Silent Audit Trail &#9652;':'View Silent Audit Trail ({{ audit_logs|length }} Logs) &#9662;';" style="background:#0f172a;color:#fbbf24;border:1px solid #f59e0b;padding:6px 13px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">View Silent Audit Trail ({{ audit_logs|length }} Logs) &#9662;</button>
+          </div>
+          <div id="silentAuditBox" style="display:none;">
+            <table><thead><tr><th>Timestamp</th><th>Officer / Actor</th><th>Role</th><th>Action</th><th>Ref Code</th><th>Details</th></tr></thead><tbody>
+              {% for log in audit_logs %}
+              <tr>
+                <td style="white-space:nowrap;">{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+                <td><strong>{{ log.actor_name }}</strong></td>
+                <td>{{ log.actor_role }}</td>
+                <td><span class="badge">{{ log.get_action_type_display }}</span></td>
+                <td><code>{{ log.reference_code }}</code></td>
+                <td>{{ log.details }}</td>
+              </tr>
+              {% empty %}<tr><td colspan="6">No system audit events recorded yet.</td></tr>{% endfor %}
+            </tbody></table>
+          </div>
+        {% elif module == "DOCS_REPO" %}
+          <div class="section-title">
+            <span>02C. Entire Barangay Supporting Docs Repository (<span id="repoDocCount">{{ all_repo_docs|length }}</span> Uploaded Files)</span>
+            <a href="?tier=BARANGAY&module=LEDGER_201">&larr; Back to 201 Excel Ledger</a>
+          </div>
+          <div class="card" style="padding:12px;margin-bottom:14px;">
+            <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:center;">
+              <input id="repoSearch" oninput="filterRepoDocs()" placeholder="Search by Citizen Name, QR ID (CIT-...), Document Title, or Uploader..." style="padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.84rem;">
+              <select id="repoSource" onchange="filterRepoDocs()" style="padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.84rem;">
+                <option value="">All Submission Sources</option>
+                <option value="PORTAL_SIGNUP">Online Citizen Portal Sign-Up</option>
+                <option value="WALKIN_DESK">Walk-In / Desk Encoding</option>
+                <option value="CERTIFICATE_REQ">Certificate Attachment</option>
+                <option value="STAFF_REPOSITORY">Direct Repository Upload</option>
+              </select>
+              <button type="button" onclick="document.getElementById('repoSearch').value='';document.getElementById('repoSource').value='';filterRepoDocs();" style="background:#e2e8f0;color:#0f172a;border:0;padding:8px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Reset</button>
+            </div>
+          </div>
+          <table><thead><tr><th>Uploaded Date</th><th>Citizen Name &amp; QR ID</th><th>Document Title</th><th>Source Channel</th><th>Uploaded By</th><th>Actions</th></tr></thead><tbody>
+            {% for d in all_repo_docs %}
+            <tr class="repo-row" data-src="{{ d.source_channel }}">
+              <td style="white-space:nowrap;">{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
+              <td><strong>{{ d.citizen.full_name }}</strong><br><small><code>{{ d.citizen.citizen_qr_id }}</code> &bull; {{ d.citizen.purok }}</small></td>
+              <td><strong>{{ d.document_title }}</strong></td>
+              <td><span class="badge">{{ d.get_source_channel_display }}</span></td>
+              <td>{{ d.uploaded_by|default:"System" }}</td>
+              <td style="white-space:nowrap;">
+                <a href="{{ d.file.url }}" target="_blank" style="background:#0f766e;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">View File &#8599;</a>
+                <a href="/citizen-docs/{{ d.citizen.citizen_qr_id }}/" target="_blank" style="margin-left:4px;background:#1e3a8a;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">Citizen Vault &#8599;</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6">No supporting documents uploaded across the Barangay yet. Upload via Citizen Sign-Up Portal or Walk-In 201 Encoder.</td></tr>
+            {% endfor %}
+          </tbody></table>
+          <script>
+            function filterRepoDocs(){
+              const q=document.getElementById('repoSearch').value.toLowerCase();
+              const src=document.getElementById('repoSource').value;
+              let vis=0;
+              document.querySelectorAll('tr.repo-row').forEach(tr=>{
+                const ok=(!q||tr.innerText.toLowerCase().includes(q))&&(!src||tr.dataset.src===src);
+                tr.style.display=ok?'':'none';if(ok)vis++;
+              });
+              document.getElementById('repoDocCount').innerText=vis;
+            }
+          </script>
+
+        {% elif module == "TURNOVER" %}
+          <div class="section-title"><span>13A. Incumbent-to-Incoming Officials Pending Handover Summary (BGTT)</span><a href="/admin/governance/officialturnoverrecord/add/">+ Log Turnover Record</a></div>
+          <div class="grid">
+            <div class="card"><h3>Pending Portal Sign-Ups</h3><div class="stat">{{ turnover_summary.pending_citizens }}</div><small>Awaiting Secretary Approval</small></div>
+            <div class="card"><h3>Open Citizen Reports</h3><div class="stat">{{ turnover_summary.open_citizen_reports }}</div><small>Unresolved Community Issues</small></div>
+            <div class="card"><h3>Pending OR Certificates</h3><div class="stat">{{ turnover_summary.pending_or_certs }}</div><small>Unpaid / Unreleased Clearances</small></div>
+            <div class="card"><h3>Active Blotter Holds</h3><div class="stat">{{ turnover_summary.active_blotter_holds }}</div><small>Ongoing Lupon / VAWC Cases</small></div>
+            <div class="card"><h3>Open Welfare Sheets</h3><div class="stat">{{ turnover_summary.open_welfare_sheets }}</div><small>Unremitted Bereavement Sheets</small></div>
+            <div class="card"><h3>Unreturned Equipment</h3><div class="stat">{{ turnover_summary.unreturned_equipment }}</div><small>Items Currently Out on Loan</small></div>
+            <div class="card"><h3>Pending COA Packages</h3><div class="stat">{{ turnover_summary.pending_coa }}</div><small>For Liquidation / City Acct</small></div>
+            <div class="card"><h3>Pending DILG Reports</h3><div class="stat">{{ turnover_summary.pending_dilg }}</div><small>Awaiting DILG Transmittal</small></div>
+          </div>
+          <div class="section-title"><span>13B. Official Transition & Sign-Off Log (Incumbent vs. Newly Elected)</span></div>
+          <table><thead><tr><th>Transition Cycle</th><th>Outgoing Punong Barangay</th><th>Incoming Punong Barangay</th><th>Date</th><th>Status</th></tr></thead><tbody>
+            {% for t in turnovers %}<tr><td><strong>{{ t.transition_cycle }}</strong></td><td>{{ t.outgoing_punong_barangay }}</td><td><strong>{{ t.incoming_punong_barangay }}</strong></td><td>{{ t.turnover_date }}</td><td><span class="badge">{{ t.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No formal turnover sign-off records logged yet. Click "+ Log Turnover Record" above to start BGTT handover.</td></tr>{% endfor %}
+          </tbody></table>
+        {% elif module == "POLICY" %}
+          <div class="section-title"><span>14A. Philippine Statutory & Legal Policy Framework</span></div>
+          <table><thead><tr><th>Law / Issuance</th><th>Operational Rule Enforced in BIOAS</th></tr></thead><tbody>
+            <tr><td><strong>RA 7160 (Local Government Code)</strong></td><td>Governs Barangay executive/legislative powers, Katarungang Pambarangay mediation before court filing, and the 20% Barangay Development Plan (BDP).</td></tr>
+            <tr><td><strong>RA 11261 (First-Time Jobseekers Act)</strong></td><td>Enforces a 100% fee waiver on Barangay Clearances and certifications for qualified first-time jobseekers with Oath of Undertaking.</td></tr>
+            <tr><td><strong>RA 9262 (Anti-VAWC Act)</strong></td><td>Automatically masks victim and respondent identities (<em>CONFIDENTIAL — RA 9262</em>) on the dashboard while maintaining clearance holds.</td></tr>
+            <tr><td><strong>RA 10173 (Data Privacy Act)</strong></td><td>Restricts 201 resident data access by LGU tier (Barangay full access vs. City/Province aggregated statistics only).</td></tr>
+            <tr><td><strong>RA 11032 (Ease of Doing Business / ARTA)</strong></td><td>Tracks certificate issuance turnaround times and standardizes frontline service requirements.</td></tr>
+            <tr><td><strong>RA 10121 (PDRRM Act)</strong></td><td>Tracks BDRRMC hazard alerts, evacuation center occupancy, and 70% Mitigation / 30% Quick Response Fund (QRF) COA liquidation.</td></tr>
+          </tbody></table>
+          <div class="section-title"><span>14B. BIOAS System User Guide & Operational Glossary</span></div>
+          <table><thead><tr><th>Term / Feature</th><th>Definition & Staff Standard Operating Procedure (SOP)</th></tr></thead><tbody>
+            <tr><td><strong>201 Master & Citizen QR ID</strong></td><td>Permanent digital resident record (e.g., <em>CIT-LAG-001</em>) linking households, certificates, health visits, social welfare, and portal logins.</td></tr>
+            <tr><td><strong>OR Unlock Rule</strong></td><td>Paid certificates stay in <em>Pending OR</em> status until the Barangay Treasurer logs the Official Receipt number, unlocking printing.</td></tr>
+            <tr><td><strong>Bereavement Welfare Sheet</strong></td><td>Serialized collection sheet for community bereavement assistance (<em>Abuloy</em>) with full remitter-to-family turnover tracking.</td></tr>
+            <tr><td><strong>BGTT Governance Turnover</strong></td><td>Barangay Governance Transition Team summary tallying all pending cases, cash/COA items, and borrowed assets between outgoing and incoming officials.</td></tr>
+            <tr><td><strong>ABYIP & BDP</strong></td><td>Annual Barangay Youth Investment Program (SK) and Barangay Development Plan tracked for DILG and COA compliance.</td></tr>
+          </tbody></table>
+        {% elif module == "AUDIT" %}
+          <div class="section-title"><span>12A. COA Audit & Financial Liquidation</span><a href="/admin/audit_analytics/coaauditcompliance/add/">+ Add COA Package</a></div>
+          <table><thead><tr><th>Ref</th><th>COA Audit Package</th><th>Period</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+            {% for coa in coa_audits %}<tr><td><strong>{{ coa.audit_reference }}</strong></td><td>{{ coa.get_audit_type_display }}</td><td>{{ coa.period_covered }}</td><td>₱{{ coa.amount_involved }}</td><td><span class="badge">{{ coa.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No COA audit packages logged yet.</td></tr>{% endfor %}
+          </tbody></table>
+          <div class="section-title"><span>12B. DILG Mandatory Reports & System Audit Trail</span><a href="/admin/audit_analytics/dilgcompliancereport/add/">+ Add DILG Report</a></div>
+          <table><thead><tr><th>Report</th><th>Period</th><th>Status</th><th>Ref</th></tr></thead><tbody>
+            {% for d in dilg_reports %}<tr><td><strong>{{ d.get_report_category_display }}</strong></td><td>{{ d.reporting_period }}</td><td><span class="badge">{{ d.get_status_display }}</span></td><td>{{ d.transmittal_reference }}</td></tr>{% empty %}<tr><td colspan="4">No DILG reports logged yet.</td></tr>{% endfor %}
+          </tbody></table>
+        {% else %}
+          {% if is_captain_or_admin and pending_policy_updates %}
+          <div class="card" style="border-top:4px solid #1e3a8a;background:#eff6ff;margin-bottom:16px;">
+            <div style="font-weight:900;color:#1e3a8a;font-size:.95rem;margin-bottom:8px;">&#9878; Punong Barangay Approval Queue: Data Privacy Policy &amp; Terms of Use Revisions ({{ pending_policy_updates|length }})</div>
+            <table style="margin:0;background:#fff;"><thead><tr><th>Policy Title</th><th>Proposed Policy Text</th><th>Submitted By</th><th style="text-align:right;">Captain Decision</th></tr></thead><tbody>
+              {% for pp in pending_policy_updates %}
+              <tr>
+                <td><strong>{{ pp.pending_title|default:pp.title }}</strong><div style="font-size:.74rem;color:#64748b;">{{ pp.form_code }}</div></td>
+                <td style="max-width:420px;"><pre style="margin:0;white-space:pre-wrap;font-size:.73rem;max-height:110px;overflow:auto;background:#f8fafc;padding:6px;border-radius:6px;border:1px solid #e2e8f0;">{{ pp.pending_body_template }}</pre></td>
+                <td>{{ pp.pending_submitted_by }}</td>
+                <td style="text-align:right;white-space:nowrap;">
+                  <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="APPROVE_POLICY_TEMPLATE"><input type="hidden" name="template_id" value="{{ pp.id }}"><button type="submit" style="background:#16a34a;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Approve &amp; Publish &#10003;</button></form>
+                  <form method="post" style="display:inline;margin-left:4px;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_POLICY_TEMPLATE"><input type="hidden" name="template_id" value="{{ pp.id }}"><button type="submit" style="background:#dc2626;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Reject &#10005;</button></form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody></table>
+          </div>
+          {% endif %}
+          {% if is_captain_or_admin and pending_recoveries %}
+          <div class="card" style="border-top:4px solid #d97706;background:#fffbeb;margin-bottom:16px;">
+            <div style="font-weight:900;color:#92400e;font-size:.95rem;margin-bottom:8px;">&#128273; Punong Barangay Approval Queue: Walk-In Account Recovery Requests ({{ pending_recoveries|length }})</div>
+            <table style="margin:0;background:#fff;"><thead><tr><th>Resident &amp; Ref ID</th><th>Requested Username</th><th>Signed Request Letter</th><th>Submitted By</th><th style="text-align:right;">Captain Decision</th></tr></thead><tbody>
+              {% for pr in pending_recoveries %}
+              <tr>
+                <td><strong>{{ pr.citizen.full_name }}</strong><div style="font-size:.74rem;color:#64748b;">{{ pr.citizen.citizen_qr_id }}</div></td>
+                <td><strong>{{ pr.requested_username }}</strong></td>
+                <td>{% if pr.signed_request_letter_uri %}<a href="{{ pr.signed_request_letter_uri }}" target="_blank" style="color:#1e3a8a;font-weight:700;">View Signed Letter ({{ pr.signed_request_letter_name|default:"PDF/Image" }}) &nearr;</a>{% else %}-{% endif %}</td>
+                <td>{{ pr.submitted_by_name }}<div style="font-size:.72rem;color:#64748b;">{{ pr.created_at|date:"M d, Y H:i" }}</div></td>
+                <td style="text-align:right;white-space:nowrap;">
+                  <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="APPROVE_WALKIN_RECOVERY"><input type="hidden" name="recovery_id" value="{{ pr.id }}"><button type="submit" style="background:#16a34a;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Approve &amp; Activate &#10003;</button></form>
+                  <form method="post" style="display:inline;margin-left:4px;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_WALKIN_RECOVERY"><input type="hidden" name="recovery_id" value="{{ pr.id }}"><button type="submit" style="background:#dc2626;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Reject &#10005;</button></form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody></table>
+          </div>
+          {% endif %}
+          <style>
+            .cmd-hero {
+              max-width: 620px;
+              margin: 4px auto 22px;
+              background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+              border: 1px solid #cbd5e1;
+              border-top: 5px solid var(--primary);
+              border-radius: 14px;
+              padding: 20px 26px;
+              text-align: center;
+              box-shadow: 0 6px 20px rgba(15, 23, 42, .07);
+            }
+            .cmd-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+              gap: 15px;
+            }
+            .mod-card {
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              background: #ffffff;
+              border: 1px solid #e2e8f0;
+              border-top: 4px solid var(--primary);
+              border-radius: 12px;
+              padding: 16px 18px;
+              text-decoration: none;
+              color: inherit;
+              box-shadow: 0 2px 6px rgba(15, 23, 42, .05);
+              transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+              cursor: pointer;
+            }
+            .mod-card:hover {
+              transform: translateY(-4px);
+              box-shadow: 0 12px 24px rgba(30, 58, 138, .15);
+              border-color: var(--primary);
+            }
+            .mod-card .mod-head {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              gap: 6px;
+              margin-bottom: 8px;
+            }
+            .mod-card h3 {
+              margin: 0;
+              font-size: .75rem;
+              font-weight: 800;
+              color: #475569;
+              text-transform: uppercase;
+              letter-spacing: .04em;
+            }
+            .mod-card .mod-arrow {
+              font-size: .85rem;
+              font-weight: 800;
+              color: #94a3b8;
+              transition: transform .2s ease, color .2s ease;
+            }
+            .mod-card:hover .mod-arrow {
+              color: var(--primary);
+              transform: translate(2px, -2px);
+            }
+            .mod-card .stat {
+              font-size: 1.55rem;
+              font-weight: 900;
+              color: var(--primary);
+              line-height: 1.15;
+              margin-bottom: 6px;
+            }
+            .mod-card small {
+              display: block;
+              font-size: .78rem;
+              color: #64748b;
+              font-weight: 600;
+            }
+          </style>
+
+          <div class="cmd-hero">
+            <div style="font-size:.72rem;font-weight:800;letter-spacing:.08em;color:#64748b;text-transform:uppercase;">Active Barangay Command Jurisdiction</div>
+            <div style="font-size:1.75rem;font-weight:900;color:var(--primary);margin:4px 0 6px;line-height:1.15;">{{ active_barangay.name|default:"Unassigned" }}</div>
+            <div style="display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;font-size:.8rem;color:#475569;font-weight:700;">
+              <span style="background:#f1f5f9;border:1px solid #cbd5e1;padding:2px 10px;border-radius:999px;color:#0f172a;">{{ active_barangay.tenant_code }}</span>
+              {% if active_barangay %}
+                <span style="background:#dbeafe;color:#1e40af;padding:2px 10px;border-radius:999px;">{{ active_barangay.get_barangay_classification_display }}</span>
+                <span>&bull; {{ active_barangay.city_municipality.name }}, {{ active_barangay.city_municipality.province.name }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="cmd-grid">
+            <a href="?tier=BARANGAY&module=CITIZENS" class="mod-card">
+              <div><div class="mod-head"><h3>02. 201 Citizens</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ citizens|length }}</div></div>
+              <small>{{ citizen_reports|length }} Community Reports</small>
+            </a>
+            <a href="?tier=BARANGAY&module=CERTIFICATES" class="mod-card">
+              <div><div class="mod-head"><h3>03. Certificates</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ certificates|length }}</div></div>
+              <small>Clearances &amp; Indigency</small>
+            </a>
+            <a href="?tier=BARANGAY&module=BLOTTER" class="mod-card">
+              <div><div class="mod-head"><h3>04. Derogatory Record Flag</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ blotter_cases|length }}</div></div>
+              <small>Case &amp; Clearance Hold Registry</small>
+            </a>
+            <a href="?tier=BARANGAY&module=TREASURY" class="mod-card">
+              <div><div class="mod-head"><h3>05. Treasury</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">&#8369;{{ total_collections|floatformat:2 }}</div></div>
+              <small>{{ receipts|length }} Official Receipts | {{ abuloy_sheets|length }} Welfare Sheets</small>
+            </a>
+            <a href="?tier=BARANGAY&module=HEALTH" class="mod-card">
+              <div><div class="mod-head"><h3>06. Health Station</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ health_records|length }}</div></div>
+              <small>{{ medicines|length }} Med Items</small>
+            </a>
+            <a href="?tier=BARANGAY&module=SOCIAL" class="mod-card">
+              <div><div class="mod-head"><h3>07. Associations &amp; Aid</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ associations|length }}</div></div>
+              <small>Groups | {{ social_aids|length }} Aid Releases</small>
+            </a>
+            <a href="?tier=BARANGAY&module=ASSETS" class="mod-card">
+              <div><div class="mod-head"><h3>08. Fleet &amp; Assets</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ vehicles|length }}</div></div>
+              <small>{{ trip_tickets|length }} Trips</small>
+            </a>
+            <a href="?tier=BARANGAY&module=DRRM" class="mod-card">
+              <div><div class="mod-head"><h3>09. BDRRMC Alerts</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ hazards|length }}</div></div>
+              <small>{{ evac_centers|length }} Evac Centers</small>
+            </a>
+            <a href="?tier=BARANGAY&module=SK_YOUTH" class="mod-card">
+              <div><div class="mod-head"><h3>10. SK Youth (KK)</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ kk_youth|length }}</div></div>
+              <small>{{ sk_projects|length }} Projects</small>
+            </a>
+            <a href="?tier=BARANGAY&module=LEGISLATION" class="mod-card">
+              <div><div class="mod-head"><h3>11. Legislation</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ measures|length }}</div></div>
+              <small>{{ bdp_projects|length }} BDP</small>
+            </a>
+            <a href="?tier=BARANGAY&module=AUDIT" class="mod-card">
+              <div><div class="mod-head"><h3>12. COA &amp; DILG Audit</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ coa_audits|length }}</div></div>
+              <small>COA | {{ dilg_reports|length }} DILG</small>
+            </a>
+            <a href="?tier=BARANGAY&module=TURNOVER" class="mod-card">
+              <div><div class="mod-head"><h3>13. Governance Turnover</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">{{ total_pending_turnover }}</div></div>
+              <small>Pending BGTT Handover Items</small>
+            </a>
+            <a href="?tier=BARANGAY&module=GLOSSARY" class="mod-card">
+              <div><div class="mod-head"><h3>14. Policy &amp; Glossary</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">6 Laws</div></div>
+              <small>RA 7160, 11261, 9262 &amp; SOPs</small>
+            </a>
+            <a href="?tier=BARANGAY&module=TEMPLATES" class="mod-card">
+              <div><div class="mod-head"><h3>15. Official Forms &amp; Templates</h3><span class="mod-arrow">?</span></div><div class="stat">{{ form_templates|length }}</div></div>
+              <small>Completion, Acceptance, Inspection, Asset &amp; WO</small>
+            </a>
+          </div>
+          {% endif %}
+      {% elif tier == "CITY" %}
+        <div class="grid"><div class="card"><h3>City</h3><div class="stat">{{ city.name|default:"Not Set" }}</div></div><div class="card"><h3>Barangays</h3><div class="stat">{{ city_barangays|length }}</div></div></div>
+        <table><thead><tr><th>Code</th><th>Barangay</th><th>Status</th><th>Action</th></tr></thead><tbody>
+          {% for b in city_barangays %}<tr><td><strong>{{ b.tenant_code }}</strong></td><td>{{ b.name }}</td><td><span class="badge">{{ b.get_status_display }}</span></td><td><a href="?tier=BARANGAY&tenant={{ b.tenant_code }}">Open →</a></td></tr>{% endfor %}
+        </tbody></table>
+      {% elif tier == "PROVINCE" %}
+        <div class="grid"><div class="card"><h3>Province</h3><div class="stat">{{ province.name|default:"Not Set" }}</div></div><div class="card"><h3>Cities</h3><div class="stat">{{ province_cities|length }}</div></div></div>
+        <table><thead><tr><th>Code</th><th>City</th><th>Barangays</th><th>Action</th></tr></thead><tbody>
+          {% for c in province_cities %}<tr><td><strong>{{ c.code }}</strong></td><td>{{ c.name }}</td><td>{{ c.barangay_count }}</td><td><a href="?tier=CITY">Inspect →</a></td></tr>{% endfor %}
+        </tbody></table>
+      {% endif %}
+    </main>
+  </div>
+  <script>
+    const suggestions = {{ suggestions_json|safe }};
+    const searchIndex = {{ search_index_json|safe }};
+    const searchForm = document.getElementById("globalSearchForm");
+    const realInput = document.getElementById("realInput");
+    const ghostInput = document.getElementById("ghostInput");
+    const liveDrop = document.getElementById("liveSearchDrop");
+    let dropIdx = -1;
+
+    function findShadowMatch(val) {
+      if (!val) return "";
+      const low = val.toLowerCase();
+      const titleHit = suggestions.find(s => s.toLowerCase().startsWith(low));
+      if (titleHit) return val + titleHit.slice(val.length);
+      for (const item of searchIndex) {
+        const words = (item.title + " " + item.detail).split(/[\s|,;:\-\[\]()\/]+/);
+        const w = words.find(tok => tok.length > val.length && tok.toLowerCase().startsWith(low));
+        if (w) return val + w.slice(val.length);
+      }
+      return "";
+    }
+
+    function renderLiveDrop(val) {
+      dropIdx = -1;
+      const trimmed = val.trim();
+      if (!trimmed) { liveDrop.style.display = "none"; liveDrop.innerHTML = ""; return; }
+      const terms = trimmed.toLowerCase().split(/\s+/).filter(Boolean);
+      const hits = searchIndex.filter(it => {
+        const hay = (it.module_label + " " + it.title + " " + it.detail).toLowerCase();
+        return terms.every(t => hay.includes(t));
+      }).slice(0, 8);
+      if (!hits.length) {
+        liveDrop.innerHTML = '<div style="padding:10px 12px;font-size:.8rem;color:#64748b;">Press <strong>Enter</strong> to run full system search for "' + trimmed.replace(/</g, "&lt;") + '"</div>';
+        liveDrop.style.display = "block";
+        return;
+      }
+      liveDrop.innerHTML = hits.map((h, idx) =>
+        '<a class="sdrop-item" data-idx="' + idx + '" href="' + h.url + '" ' + (h.url.startsWith("/citizen-inspect/") ? 'target="_blank" ' : '') + 'onmousedown="event.preventDefault();if(this.href.includes(\'/citizen-inspect/\')){window.open(this.href,\'_blank\');}else{window.location.href=this.href;}" style="display:block;padding:9px 12px;border-bottom:1px solid #f1f5f9;text-decoration:none;color:#0f172a;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;"><strong style="font-size:.82rem;">' + h.title + '</strong><span style="background:#e0e7ff;color:#1e3a8a;font-size:.68rem;font-weight:800;padding:2px 6px;border-radius:999px;white-space:nowrap;">' + h.module_label + '</span></div>' +
+        '<div style="font-size:.74rem;color:#475569;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + h.detail + '</div></a>'
+      ).join("") + '<div style="padding:7px 12px;background:#f8fafc;font-size:.74rem;color:#1e3a8a;font-weight:700;text-align:center;">Press Enter to view all matches across all 14 modules &rarr;</div>';
+      liveDrop.style.display = "block";
+    }
+
+    function highlightDrop() {
+      const items = liveDrop.querySelectorAll(".sdrop-item");
+      items.forEach((el, i) => { el.style.background = i === dropIdx ? "#eff6ff" : "#fff"; });
+    }
+
+    function updateGhost() {
+      const val = realInput.value;
+      ghostInput.value = findShadowMatch(val);
+      renderLiveDrop(val);
+    }
+
+    realInput.addEventListener("input", updateGhost);
+    realInput.addEventListener("focus", () => { if (realInput.value.trim()) renderLiveDrop(realInput.value); });
+    realInput.addEventListener("keydown", (e) => {
+      const items = liveDrop.querySelectorAll(".sdrop-item");
+      if ((e.key === "Tab" || (e.key === "ArrowRight" && realInput.selectionStart === realInput.value.length)) && ghostInput.value && ghostInput.value !== realInput.value) {
+        e.preventDefault(); realInput.value = ghostInput.value; updateGhost();
+      } else if (e.key === "ArrowDown" && items.length) {
+        e.preventDefault(); dropIdx = (dropIdx + 1) % items.length; highlightDrop();
+      } else if (e.key === "ArrowUp" && items.length) {
+        e.preventDefault(); dropIdx = (dropIdx - 1 + items.length) % items.length; highlightDrop();
+      } else if (e.key === "Enter") {
+        if (dropIdx >= 0 && items[dropIdx]) { e.preventDefault(); window.location.href = items[dropIdx].href; }
+        else { e.preventDefault(); searchForm.submit(); }
+      } else if (e.key === "Escape") {
+        realInput.value = ""; ghostInput.value = ""; liveDrop.style.display = "none";
+      }
+    });
+    document.addEventListener("click", (e) => { if (!searchForm.contains(e.target)) liveDrop.style.display = "none"; });
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey && e.key.toLowerCase() === "k") || (e.key === "/" && document.activeElement !== realInput && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName))) {
+        e.preventDefault(); realInput.focus();
+      }
+    });
+    if (realInput.value) ghostInput.value = findShadowMatch(realInput.value);
+  </script>
+
+<script>
+let wkUCheckTimer = null;
+function checkWkUserAvail(val) {
+  const b = document.getElementById('wkUAvailBadge');
+  if (!b) return;
+  const u = val.trim();
+  if (u.length < 4) { b.textContent = u ? 'Min 4 chars' : ''; b.style.color = '#64748b'; return; }
+  clearTimeout(wkUCheckTimer);
+  wkUCheckTimer = setTimeout(() => {
+    fetch('/portal/?check_username=' + encodeURIComponent(u))
+      .then(r => r.json())
+      .then(d => {
+        b.style.color = d.available ? '#16a34a' : '#dc2626';
+        b.textContent = d.available ? '? Available' : '? ' + (d.message || 'Taken');
+      }).catch(() => {});
+  }, 250);
+}
+</script>
+</body>
+</html><script>(function(){let lastY=window.scrollY||0;const hd=document.getElementById("walkinHeaderDock");function showHd(){if(!hd)return;hd.style.transform="translateY(0)";hd.style.opacity="1";hd.style.pointerEvents="auto";}function hideHd(){if(!hd)return;hd.style.transform="translateY(-115%)";hd.style.opacity="0";hd.style.pointerEvents="none";}window.addEventListener("scroll",function(){const y=window.scrollY||document.documentElement.scrollTop||0;if(y<lastY){showHd();}else if(y>lastY&&y>60){hideHd();}lastY=y<=0?0:y;},{passive:true});window.addEventListener("wheel",function(e){if(e.deltaY<0)showHd();},{passive:true});const origToggle=window.toggleIntakeDrawer;window.toggleIntakeDrawer=function(id){if(origToggle)origToggle(id);const wk=document.getElementById("walkin201Box"),mf=document.getElementById("massApproveForm"),tb=document.getElementById("pendQueueTable");if(!wk||!mf)return;const open=wk.style.display!=="none";if(open){mf.style.position="fixed";mf.style.bottom="0";mf.style.left="240px";mf.style.right="0";mf.style.zIndex="92";mf.style.margin="0";mf.style.background="#fff";mf.style.boxShadow="0 -6px 20px rgba(15,23,42,.16)";mf.style.borderTop="3px solid #1e3a8a";mf.style.padding="6px 18px";if(tb)tb.style.display="none";}else{mf.style.cssText="margin-bottom:18px;";if(tb)tb.style.display="table";showHd();}};})();</script>E html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ theme.title }} - BIOAS</title>
+  <style>
+    :root { --primary: {{ theme.primary_color }}; --secondary: {{ theme.secondary_color }}; }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    html, body { height: 100vh; overflow: hidden; margin: 0; background: #f3f4f6; color: #111827; }
+    body { display: flex; flex-direction: column; }
+    .topbar { flex-shrink: 0; background: var(--primary); color: #fff; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 4px solid var(--secondary); z-index: 40; }
+    .brand h1 { margin: 0; font-size: 1.15rem; }
+    .search-box { position: relative; background: #fff; border-radius: 8px; width: 340px; max-width: 100%; display: flex; align-items: center; }
+    .ghost-input, .real-input { width: 100%; padding: 8px 56px 8px 12px; font-size: 0.92rem; border: none; outline: none; background: transparent; }
+    .ghost-input { position: absolute; left: 0; color: #9ca3af; pointer-events: none; }
+    .real-input { position: relative; color: #111827; z-index: 2; }
+    .tab-badge { position: absolute; right: 8px; background: #e5e7eb; color: #374151; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+    .tier-tabs { flex-shrink: 0; background: #1f2937; padding: 9px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; z-index: 35; }
+    .tier-links a { color: #d1d5db; text-decoration: none; padding: 5px 11px; border-radius: 6px; font-size: 0.84rem; font-weight: 600; margin-right: 4px; display: inline-block; transition: transform .18s cubic-bezier(.22,1,.36,1), box-shadow .18s ease, background .18s ease, color .18s ease; }
+    .tier-links a.active { background: var(--secondary); color: #111827; }
+    .btn-group a { background: #374151; color: #fff; text-decoration: none; padding: 5px 11px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; margin-left: 6px; display: inline-block; transition: transform .18s cubic-bezier(.22,1,.36,1), box-shadow .18s ease, background .18s ease; }
+    .tier-links a:hover, .btn-group a:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(15,23,42,.24); }
+    .layout { flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden; }
+    .sidebar { width: 250px; min-width: 250px; max-width: 250px; flex-shrink: 0; height: 100%; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; background: #0f172a; color: #f8fafc; border-right: 1px solid #1e293b; padding: 14px 12px; box-shadow: 2px 0 12px rgba(15,23,42,.16); }
+    .sidebar::-webkit-scrollbar { display: none; }
+    .side-group { font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; margin: 16px 8px 6px; }
+    .sidebar a { display: flex; justify-content: space-between; align-items: center; padding: 8px 11px; border-radius: 7px; border-left: 3px solid transparent; text-decoration: none; color: #e2e8f0; font-size: 0.82rem; margin-bottom: 3px; transition: transform .18s ease, background .18s ease, border-color .18s ease, color .18s ease; }
+    .sidebar a:hover { transform: translateX(3px); background: rgba(255,255,255,.08); border-left-color: #f59e0b; color: #fde68a; }
+    .sidebar a.active { background: rgba(59,130,246,.24); border-left-color: #38bdf8; color: #fff; font-weight: 700; }
+    .pill { background: rgba(255,255,255,.14); color: #f8fafc; font-size: 0.7rem; padding: 1px 7px; border-radius: 999px; font-weight: 700; }
+    .main { flex: 1 1 auto; min-width: 0; width: 100%; max-width: none !important; height: 100%; overflow-y: auto; padding: 22px 28px; display: block; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .card { background: #fff; border-radius: 10px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-top: 4px solid var(--primary); }
+    .card h3 { margin: 0 0 4px; font-size: 0.76rem; color: #6b7280; text-transform: uppercase; }
+    .card .stat { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+    .section-title { font-size: 1rem; font-weight: 800; color: #1e3a8a; margin: 14px 0 10px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .section-title a { font-size: 0.82rem; text-decoration: none; background: #1e3a8a; color: #fff; padding: 5px 11px; border-radius: 5px; transition: transform .18s ease, box-shadow .18s ease; }
+    .section-title a:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(30,58,138,.25); }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 18px; }
+    th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 0.85rem; }
+    th { background: #f9fafb; font-weight: 700; }
+    .badge { padding: 3px 8px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; background: #dbeafe; color: #1e40af; }
+    .badge-warn { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <h1 style="margin:0;">{{ theme.title }}</h1>
+        {% if active_barangay %}
+          {% if active_barangay.barangay_classification == "URBAN" %}
+            <span style="background:#38bdf8;color:#0f172a;padding:2px 9px;border-radius:999px;font-size:.68rem;font-weight:900;letter-spacing:.03em;">&#127961; URBAN BARANGAY</span>
+          {% else %}
+            <span style="background:#4ade80;color:#0f172a;padding:2px 9px;border-radius:999px;font-size:.68rem;font-weight:900;letter-spacing:.03em;">&#127806; RURAL BARANGAY</span>
+          {% endif %}
+        {% endif %}
+      </div>
+      <small>{{ theme.banner_text }}</small>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <form id="globalSearchForm" method="get" action="/" style="position:relative;">
+        <input type="hidden" name="tier" value="{{ tier }}" /><input type="hidden" name="module" value="{{ module }}" />
+        <div class="search-box" style="width:390px;">
+          <input type="text" id="ghostInput" class="ghost-input" readonly tabindex="-1" />
+          <input type="text" id="realInput" name="q" value="{{ query }}" class="real-input" placeholder="Search tiny details across all 14 modules..." autocomplete="off" />
+          <span class="tab-badge" style="right:42px;">TAB</span>
+          <button type="submit" title="Press Enter to Search" style="position:absolute;right:6px;z-index:3;background:#1e3a8a;color:#fff;border:0;border-radius:5px;padding:4px 8px;font-size:.75rem;font-weight:800;cursor:pointer;">&#8629;</button>
+        </div>
+        <div id="liveSearchDrop" style="display:none;position:absolute;top:42px;left:0;right:0;background:#fff;color:#0f172a;border-radius:10px;box-shadow:0 12px 28px rgba(15,23,42,.28);border:1px solid #cbd5e1;max-height:360px;overflow-y:auto;z-index:99;"></div>
+      </form>
+      <a href="/theme-settings/" title="Create Officer Accounts, Configure Modules & Settings" style="color:#111827;text-decoration:none;background:#fbbf24;padding:8px 13px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:800;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.2);" aria-label="Settings">&#9881; Officer Accounts &amp; Settings</a>
+    </div>
+  </header>
+
+  <nav class="tier-tabs">
+    <div class="tier-links">
+    <a href="/?tier=BARANGAY&module={{ module }}" class="{% if tier == 'BARANGAY' %}active{% endif %}">Tier 1: Barangay Window</a>
+    <a href="/?tier=CITY&module={{ module }}" class="{% if tier == 'CITY' %}active{% endif %}">Tier 2: City / Municipal LGU</a>
+    <a href="/?tier=DILG&module={{ module }}" class="{% if tier == 'DILG' %}active{% endif %}">Tier 3: DILG Oversight</a>
+    <a href="/?tier=PROVINCE&module={{ module }}" class="{% if tier == 'PROVINCE' %}active{% endif %}">Tier 4: Provincial Governor</a>
+    </div>
+    <div class="btn-group">
+      <a href="/portal/">New Citizen Sign-Up</a>
+      <a href="/citizen-home/">Citizen Login / Report</a>
+      <a href="/admin/">+ Admin Control Panel</a><a href="/logout/" style="background:#991b1b;">Logout</a>
+  </nav>
+
+  <div class="layout">
+    {% if tier == "BARANGAY" %}
+    <aside class="sidebar">
+      <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 10px;margin:2px 4px 10px;font-size:.75rem;">
+        <div style="color:#fbbf24;font-weight:800;text-transform:uppercase;letter-spacing:.05em;">Active Officer Seat</div>
+        <div style="color:#fff;font-weight:700;margin-top:2px;">{{ staff_profile.full_name|default:request.user.username }}</div>
+        <div style="color:#94a3b8;font-size:.71rem;">{{ staff_profile.get_role_display|default:"System Administrator" }}</div>
+      </div>
+      <div class="side-group">Command</div>
+      <a href="?tier=BARANGAY&module=OVERVIEW" class="{% if module == 'OVERVIEW' %}active{% endif %}"><span>Command Overview</span><span class="pill">{{ visible_modules|length }}</span></a>
+      <div class="side-group">Frontline Services</div>
+      {% if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or "DOCS_REPO" in visible_modules %}
+      <details {% if module == 'CITIZENS' or module == 'CITIZENS_INTAKE' or module == 'LEDGER_201' or module == 'HOUSEHOLDS' or module == 'SHARED_GALLERY' or module == 'DOCS_REPO' or module == 'CITIZEN_REPORTS' %}open{% endif %} style="margin:2px 0;">
+        <summary style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;color:#e2e8f0;font-size:.82rem;font-weight:700;background:{% if module == 'CITIZENS' or module == 'CITIZENS_INTAKE' or module == 'LEDGER_201' or module == 'HOUSEHOLDS' or module == 'SHARED_GALLERY' or module == 'DOCS_REPO' or module == 'CITIZEN_REPORTS' %}rgba(255,255,255,.08){% else %}transparent{% endif %};">
+          <span>02. Citizen &amp; 201 Suite</span>
+          <span style="font-size:.72rem;color:#94a3b8;">&#9662;</span>
+        </summary>
+        <div style="padding-left:10px;border-left:2px solid rgba(255,255,255,.14);margin:4px 0 4px 10px;display:flex;flex-direction:column;gap:2px;">
+          {% if "CITIZENS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZENS" class="{% if module == 'CITIZENS' %}active{% endif %}"><span>02A. Live Population</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
+          {% if "CITIZENS_INTAKE" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZENS_INTAKE" class="{% if module == 'CITIZENS_INTAKE' %}active{% endif %}"><span>02B. Data Intake &amp; Pending</span><span class="pill">{{ turnover_summary.pending_citizens }}</span></a>{% endif %}
+          {% if "LEDGER_201" in visible_modules %}<a href="?tier=BARANGAY&module=LEDGER_201" class="{% if module == 'LEDGER_201' %}active{% endif %}"><span>02C. Master 201 Excel Ledger</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
+          {% if "HOUSEHOLDS" in visible_modules %}<a href="?tier=BARANGAY&module=HOUSEHOLDS" class="{% if module == 'HOUSEHOLDS' %}active{% endif %}"><span>02D. Household &amp; Family Tree</span><span class="pill">{{ household_rows|length }}</span></a>{% endif %}
+          {% if "SHARED_GALLERY" in visible_modules %}<a href="?tier=BARANGAY&module=SHARED_GALLERY" class="{% if module == 'SHARED_GALLERY' %}active{% endif %}"><span>02E. Shared Citizen Profiles</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
+          {% if "DOCS_REPO" in visible_modules %}<a href="?tier=BARANGAY&module=DOCS_REPO" class="{% if module == 'DOCS_REPO' %}active{% endif %}"><span>02F. Supporting Docs Vault</span><span class="pill">{{ all_repo_docs|length }}</span></a>{% endif %}
+          {% if "CITIZEN_REPORTS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZEN_REPORTS" class="{% if module == 'CITIZEN_REPORTS' %}active{% endif %}"><span>02G. Citizen Portal Reports</span><span class="pill">{{ citizen_reports|length }}</span></a>{% endif %}
+        </div>
+      </details>
+      {% endif %}
+      {% if "CERTIFICATES" in visible_modules %}<a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>{% endif %}
+      {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Derogatory Record Flag</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
+      <div class="side-group">Treasury &amp; Revenue</div>
+      {% if "TREASURY" in visible_modules %}<a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury &amp; Collections</span><span class="pill">{{ receipts|length }}</span></a>{% endif %}
+      <div class="side-group">Community &amp; Care</div>
+      {% if "HEALTH" in visible_modules %}<a href="?tier=BARANGAY&module=HEALTH" class="{% if module == 'HEALTH' %}active{% endif %}"><span>06. Health Station</span><span class="pill">{{ health_records|length }}</span></a>{% endif %}
+      {% if "WELFARE" in visible_modules %}<a href="?tier=BARANGAY&module=WELFARE" class="{% if module == 'WELFARE' %}active{% endif %}"><span>07. Welfare &amp; Associations</span><span class="pill">{{ associations|length }}</span></a>{% endif %}
+      {% if "SK" in visible_modules %}<a href="?tier=BARANGAY&module=SK" class="{% if module == 'SK' %}active{% endif %}"><span>10. SK &amp; Youth</span><span class="pill">{{ kk_youth|length }}</span></a>{% endif %}
+      <div class="side-group">Operations &amp; Governance</div>
+      {% if "FLEET" in visible_modules %}<a href="?tier=BARANGAY&module=FLEET" class="{% if module == 'FLEET' %}active{% endif %}"><span>08. Fleet &amp; Equipment</span><span class="pill">{{ vehicles|length }}</span></a>{% endif %}
+      {% if "DRRM" in visible_modules %}<a href="?tier=BARANGAY&module=DRRM" class="{% if module == 'DRRM' %}active{% endif %}"><span>09. BDRRMC &amp; Evac</span><span class="pill">{{ hazards|length }}</span></a>{% endif %}
+      {% if "LEGISLATION" in visible_modules %}<a href="?tier=BARANGAY&module=LEGISLATION" class="{% if module == 'LEGISLATION' %}active{% endif %}"><span>11. Ordinances &amp; BDP</span><span class="pill">{{ measures|length }}</span></a>{% endif %}
+      {% if "AUDIT" in visible_modules %}<a href="?tier=BARANGAY&module=AUDIT" class="{% if module == 'AUDIT' %}active{% endif %}"><span>12. COA &amp; DILG Audit</span><span class="pill">{{ coa_audits|length }}</span></a>{% endif %}
+      <div class="side-group">Transition &amp; Reference</div>
+      {% if "TURNOVER" in visible_modules %}<a href="?tier=BARANGAY&module=TURNOVER" class="{% if module == 'TURNOVER' %}active{% endif %}"><span>13. Governance Turnover</span><span class="pill">{{ total_pending_turnover }}</span></a>{% endif %}
+      {% if "POLICY" in visible_modules %}<a href="?tier=BARANGAY&module=POLICY" class="{% if module == 'POLICY' %}active{% endif %}"><span>14. Policy &amp; Glossary</span><span class="pill">SOP</span></a>{% endif %}
+      {% if "TEMPLATES" in visible_modules %}<a href="?tier=BARANGAY&module=TEMPLATES" class="{% if module == 'TEMPLATES' %}active{% endif %}"><span>15. Official Forms &amp; Templates</span><span class="pill">{{ form_templates|length }}</span></a>{% endif %}
+    </aside>
+    {% endif %}
+
+    <main class="main">
+      {% if action_notice %}
+      <div id="dashAckOverlay" style="position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;">
+        <div style="background:#fff;max-width:440px;width:100%;border-radius:14px;padding:24px;box-shadow:0 22px 48px rgba(15,23,42,.28);border-top:5px solid {% if 'blocked' in action_notice|lower %}#dc2626{% else %}#16a34a{% endif %};text-align:center;">
+          <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;background:{% if 'blocked' in action_notice|lower %}#fee2e2;color:#dc2626{% else %}#dcfce7;color:#16a34a{% endif %};">{% if 'blocked' in action_notice|lower %}!{% else %}&#10003;{% endif %}</div>
+          <h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:800;color:#0f172a;">{% if 'blocked' in action_notice|lower %}Action Blocked{% else %}Approved Acknowledgement{% endif %}</h3>
+          <p style="margin:0 0 18px;font-size:.86rem;line-height:1.5;color:#475569;">{{ action_notice }}</p>
+          <button type="button" onclick="document.getElementById('dashAckOverlay').remove()" style="width:100%;background:#1e3a8a;color:#fff;border:0;padding:10px 16px;border-radius:8px;font-weight:800;cursor:pointer;">OK, Acknowledge</button>
+        </div>
+      </div>
+      {% endif %}
+      {% if query %}
+      <div class="card" style="margin-bottom:16px;border-top:4px solid #f59e0b;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <h3 style="margin:0;">System-Wide Deep Search Results for "{{ query }}" ({{ search_results|length }} Matches)</h3>
+          <a href="?tier={{ tier }}&module={{ module }}" style="font-size:.8rem;color:#dc2626;font-weight:700;text-decoration:none;">&#10005; Clear Search</a>
+        </div>
+        {% if search_results %}
+        <table style="margin:0;"><thead><tr><th>Module</th><th>Record Title</th><th>Matched Tiny Details</th><th>Action</th></tr></thead><tbody>
+          {% for item in search_results %}
+          <tr>
+            <td><span class="badge">{{ item.module_label }}</span></td>
+            <td><strong>{{ item.title }}</strong></td>
+            <td style="font-size:.82rem;color:#475569;">{{ item.detail }}</td>
+            <td style="white-space:nowrap;"><a href="{{ item.url }}" {% if "/citizen-inspect/" in item.url %}target="_blank"{% endif %} style="background:#1e3a8a;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">Open &rarr;</a></td>
+          </tr>
+          {% endfor %}
+        </tbody></table>
+        {% else %}
+        <p style="margin:4px 0 0;color:#64748b;font-size:.85rem;">No matching records found across your authorized modules for "<strong>{{ query }}</strong>".</p>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if tier == "BARANGAY" %}
+        {% if module == "CITIZENS" %}
+          <div class="section-title"><span>02A. Live Barangay Population Dashboard (Auto-Calculated)</span><a href="/portal/" target="_blank">+ Open Citizen Sign-Up Portal &rarr;</a></div>
+
+          <div class="grid">
+            <div class="card"><h3>Total Active Residents</h3><div class="stat">{{ pop_stats.total_residents }}</div><small>Verified 201 Registry</small></div>
+            <div class="card"><h3>Male / Female</h3><div class="stat">{{ pop_stats.male_count }} / {{ pop_stats.female_count }}</div><small>Male vs. Female</small></div>
+            <div class="card"><h3>Voters / Non-Voters</h3><div class="stat">{{ pop_stats.registered_voters }} / {{ pop_stats.non_voters }}</div><small>COMELEC Registered vs. Non-Voter</small></div>
+            <div class="card"><h3>Children (Unmarried / Married)</h3><div class="stat">{{ pop_stats.children_total }} ({{ pop_stats.unmarried_children }} / {{ pop_stats.married_children }})</div><small>Auto-Derived from Household Tree</small></div>
+            <div class="card"><h3>Senior Citizens (60+)</h3><div class="stat">{{ pop_stats.senior_count }}</div><small>OSCA Eligible</small></div>
+            <div class="card"><h3>Persons with Disabilities</h3><div class="stat">{{ pop_stats.pwd_count }}</div><small>PWD Registry</small></div>
+            <div class="card"><h3>Solo Parents</h3><div class="stat">{{ pop_stats.solo_parent_count }}</div><small>RA 8972 / 11861</small></div>
+            <div class="card"><h3>Pregnant / Births / Deaths</h3><div class="stat">{{ pop_stats.pregnant_count }} / {{ pop_stats.recent_births_count }} / {{ pop_stats.deaths_count }}</div><small>Maternal, Recent Births &amp; Deceased</small></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:18px;">
+            <div>
+              <div class="section-title"><span>Population Breakdown by Purok / Zone</span></div>
+              <table><thead><tr><th>Purok / Zone</th><th style="text-align:right;">Active Residents</th></tr></thead><tbody>
+                {% for pr in pop_stats.purok_rows %}<tr><td><strong>{{ pr.name }}</strong></td><td style="text-align:right;"><strong>{{ pr.count }}</strong></td></tr>{% endfor %}
+              </tbody></table>
+            </div>
+            <div>
+              <div class="section-title"><span>Sectoral &amp; Vital Statistics Summary</span></div>
+              <table><thead><tr><th>Category</th><th style="text-align:right;">Count</th></tr></thead><tbody>
+                <tr><td>Male Residents</td><td style="text-align:right;"><strong>{{ pop_stats.male_count }}</strong></td></tr>
+                <tr><td>Female Residents</td><td style="text-align:right;"><strong>{{ pop_stats.female_count }}</strong></td></tr>
+                <tr><td>Registered Voters</td><td style="text-align:right;"><strong>{{ pop_stats.registered_voters }}</strong></td></tr>
+                <tr><td>Non-Voters</td><td style="text-align:right;"><strong>{{ pop_stats.non_voters }}</strong></td></tr>
+                <tr><td>Unmarried Children</td><td style="text-align:right;"><strong>{{ pop_stats.unmarried_children }}</strong></td></tr>
+                <tr><td>Married Children</td><td style="text-align:right;"><strong>{{ pop_stats.married_children }}</strong></td></tr>
+                <tr><td>Pregnant Residents</td><td style="text-align:right;"><strong>{{ pop_stats.pregnant_count }}</strong></td></tr>
+                <tr><td>Recent Births (Last 12 Mos.)</td><td style="text-align:right;"><strong>{{ pop_stats.recent_births_count }}</strong></td></tr>
+                <tr><td>Recorded Deaths</td><td style="text-align:right;"><strong>{{ pop_stats.deaths_count }}</strong></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+
+        {% elif module == "CITIZEN_REPORTS" %}
+          <div class="section-title"><span>&#128226; Broadcast Official Blast Notification / Memorandum to Citizen Dashboards ({{ blast_advisories|length }})</span></div>
+          <div class="card" style="padding:16px 18px;border-top:4px solid #0f766e;background:#f0fdfa;margin-bottom:18px;">
+            <form method="post" onsubmit="return confirm('Broadcast this Official Barangay Advisory / Blast Notification to Citizen Dashboards now?')" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+              {% csrf_token %}<input type="hidden" name="action" value="POST_BLAST_ADVISORY">
+              <select name="blast_category" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font-weight:700;">
+                <option value="MEMORANDUM">Official Barangay Memorandum</option>
+                <option value="AYUDA_PAYOUT">Social Assistance & Welfare Programs Schedule</option>
+                <option value="WEATHER_DRRM">BDRRMC Weather &amp; Safety Alert</option>
+                <option value="HEALTH_MISSION">Health Center &amp; Medical Mission</option>
+                <option value="GENERAL_ADVISORY">General Community Advisory</option>
+              </select>
+              <input name="target_purok" value="ALL" placeholder="Target Audience (ALL or Purok I)" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;">
+              <input name="blast_title" placeholder="Headline / Memorandum Title *" required style="grid-column:1/-1;padding:8px 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font-weight:700;">
+              <textarea name="blast_message" rows="3" placeholder="Full Memorandum / Ayuda Schedule / Community Advisory details *" required style="grid-column:1/-1;padding:8px 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;"></textarea>
+              <div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.8rem;font-weight:700;color:#0f172a;">
+                  <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="is_urgent"> Pin as Urgent Alert</label>
+                  <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="send_email_blast" checked> Also Email Active Residents</label>
+                </div>
+                <button type="submit" style="background:#0f766e;color:#fff;border:0;padding:9px 16px;border-radius:7px;font-size:.8rem;font-weight:800;cursor:pointer;">Broadcast Blast Notification &rarr;</button>
+              </div>
+            </form>
+            {% if blast_advisories %}
+            <div style="margin-top:12px;border-top:1px solid #ccfbf1;padding-top:10px;display:grid;gap:6px;max-height:170px;overflow:auto;">
+              {% for adv in blast_advisories %}
+              <div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div><span class="badge" style="background:{% if adv.is_urgent %}#fee2e2;color:#991b1b{% else %}#dbeafe;color:#1e40af{% endif %};">{{ adv.get_category_display }}</span> <strong>{{ adv.title }}</strong> <span style="font-size:.74rem;color:#64748b;">({{ adv.target_purok }} &bull; {{ adv.created_at|date:"M d, Y H:i" }})</span></div>
+                <small style="color:#475569;">By {{ adv.posted_by_name }}</small>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          <div class="section-title" style="margin-top:20px;"><span>02G. Citizen Portal Community Reports &amp; Complaints ({{ citizen_reports|length }})</span><a href="/citizen-home/" target="_blank" style="background:var(--primary);color:#fff;padding:6px 12px;border-radius:7px;text-decoration:none;font-size:.76rem;font-weight:700;">Open Citizen Portal &#8599;</a></div>
+          <div class="card" style="padding:16px 18px;border-top:4px solid var(--primary);margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+              <input id="repSearchInput" oninput="filterCitizenReports()" placeholder="Search tracking code, resident, category, or landmark..." style="flex:1;min-width:220px;padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;">
+              <select id="repStatusFilter" onchange="filterCitizenReports()" style="padding:8px 11px;border:1px solid #cbd5e1;border-radius:7px;font-size:.82rem;font-weight:600;background:#f8fafc;">
+                <option value="">All Statuses ({{ citizen_reports|length }})</option>
+                <option value="SUBMITTED_OPEN">Submitted / Open</option>
+                <option value="DISPATCHED_TANOD_WO">Dispatched to Tanod / WO</option>
+                <option value="RESOLVED_CLOSED">Resolved / Closed</option>
+              </select>
+            </div>
+            <div style="overflow-x:auto;"><table id="citizenReportsTable" style="margin:0;width:100%;border-collapse:collapse;"><thead><tr><th>Tracking Code &amp; Date</th><th>Resident</th><th>Category</th><th>Location &amp; Details</th><th>Status</th><th style="text-align:right;">Action</th></tr></thead><tbody>{% for rep in citizen_reports %}<tr class="rep-row" data-status="{{ rep.status }}" data-search="{{ rep.tracking_code|lower }} {{ rep.citizen.full_name|lower }} {{ rep.get_category_display|lower }} {{ rep.location_landmark|lower }}"><td><strong style="color:var(--primary);">{{ rep.tracking_code }}</strong><div style="font-size:.72rem;color:#64748b;">{{ rep.submitted_at|date:"M d, Y H:i" }}</div></td><td><strong>{{ rep.citizen.full_name }}</strong><div style="font-size:.72rem;color:#64748b;">{{ rep.citizen.purok }}</div></td><td><span class="badge" style="background:#f1f5f9;color:#1e293b;">{{ rep.get_category_display }}</span></td><td><div style="font-weight:700;font-size:.83rem;">{{ rep.location_landmark }}</div>{% if rep.description %}<div style="font-size:.76rem;color:#475569;">{{ rep.description|truncatechars:90 }}</div>{% endif %}</td><td>{% if rep.status == 'RESOLVED_CLOSED' %}<span class="badge" style="background:#dcfce7;color:#166534;">&#10003; {{ rep.get_status_display }}</span>{% elif rep.status == 'DISPATCHED_TANOD_WO' %}<span class="badge" style="background:#dbeafe;color:#1e40af;">&#9881; {{ rep.get_status_display }}</span>{% else %}<span class="badge" style="background:#fef3c7;color:#92400e;">&#9679; {{ rep.get_status_display }}</span>{% endif %}</td><td style="text-align:right;white-space:nowrap;">{% if rep.status == 'SUBMITTED_OPEN' %}<a href="/report-status/{{ rep.id }}/DISPATCHED_TANOD_WO/" style="background:#d97706;color:#fff;padding:5px 10px;border-radius:6px;text-decoration:none;font-size:.74rem;font-weight:700;margin-right:4px;">Dispatch &rarr;</a>{% endif %}{% if rep.status != 'RESOLVED_CLOSED' %}<a href="/report-status/{{ rep.id }}/RESOLVED_CLOSED/" style="background:#16a34a;color:#fff;padding:5px 10px;border-radius:6px;text-decoration:none;font-size:.74rem;font-weight:700;">Resolve &#10003;</a>{% else %}<span style="font-size:.74rem;color:#64748b;font-weight:600;">Completed</span>{% endif %}</td></tr>{% empty %}<tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b;">No community reports submitted yet.</td></tr>{% endfor %}</tbody></table></div>
+          </div>
+          <script>function filterCitizenReports(){const q=(document.getElementById('repSearchInput')?.value||'').trim().toLowerCase();const st=document.getElementById('repStatusFilter')?.value||'';document.querySelectorAll('#citizenReportsTable .rep-row').forEach(tr=>{tr.style.display=(!q||(tr.dataset.search||'').includes(q))&&(!st||tr.dataset.status===st)?'':'none';});}</script>
+        {% elif module == "CITIZENS_INTAKE" %}
+          <div id="walkinHeaderDock" style="position:sticky;top:0;z-index:88;background:#f1f5f9;padding:8px 0 10px;transition:transform .2s ease,opacity .18s ease;"><div class="section-title" style="margin-top:4px;"><span>Walk-In Citizen 201 Desk &amp; Pending Verification Queue</span></div>
+          <style>
+            .intake-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #cbd5e1; }
+            .intake-box { background: #ffffff; border: 1px solid #cbd5e1; border-top: 4px solid var(--primary); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-shadow: 0 2px 6px rgba(15,23,42,.05); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+            .intake-box:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(30,58,138,.13); border-color: var(--primary); }
+            .intake-box .ib-tag { display: inline-block; background: #dbeafe; color: #1e40af; font-size: .68rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; margin-bottom: 5px; }
+            .intake-box h4 { margin: 0; font-size: .88rem; font-weight: 800; color: #0f172a; line-height: 1.3; }
+            .intake-box p { margin: 4px 0 0; font-size: .75rem; color: #64748b; line-height: 1.35; }
+            .intake-btn { width: 100%; background: var(--primary); color: #ffffff; border: 0; padding: 7px 12px; border-radius: 7px; font-size: .77rem; font-weight: 800; cursor: pointer; transition: opacity .15s ease; }
+            .intake-btn:hover { opacity: .92; }
+            #pendQueueTable tbody tr { transition: background .15s ease, box-shadow .15s ease; cursor: pointer; }
+            #pendQueueTable tbody tr:hover { background: #eff6ff !important; box-shadow: inset 4px 0 0 var(--primary); }
+            #pendQueueTable tbody tr.is-checked { background: #ecfdf5 !important; box-shadow: inset 4px 0 0 #16a34a; }
+          </style>
+          <script>
+            function toggleIntakeDrawer(targetId) {
+              ['excelIntakeBox', 'batchQrIntakeBox', 'walkin201Box'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.style.display = (id === targetId && el.style.display === 'none') ? 'block' : 'none';
+              });
+            }
+          </script>
+          <div id="walkinStickyDeck" class="intake-grid">
+            <div class="intake-box" style="border-top-color:#1e3a8a;">
+              <div>
+                <span class="ib-tag">02B-3 &bull; WALK-IN DESK</span>
+                <h4>Complete 201 Master Encoder</h4>
+                <p>Encode a single walk-in resident and link Household Family Tree.</p>
+              </div>
+              <button type="button" id="btnToggle201Form" class="intake-btn" onclick="toggleIntakeDrawer('walkin201Box')">Open Walk-In Encoder &#9662;</button>
+            </div>
+          </div>
+          </div>
+          {% if action_notice %}
+          <div id="resultOkModal" style="position:fixed;inset:0;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;">
+            <div style="background:#fff;max-width:480px;width:100%;border-radius:12px;padding:22px;box-shadow:0 20px 45px rgba(0,0,0,.3);border-top:5px solid #0f766e;">
+              <h3 style="margin:0 0 8px;color:#0f172a;font-size:1.05rem;">&#9989; System Action Status</h3>
+              <p style="margin:0 0 18px;font-size:.88rem;color:#334155;line-height:1.5;">{{ action_notice }}</p>
+              <div style="text-align:right;">
+                <button type="button" onclick="document.getElementById('resultOkModal').style.display='none'" style="background:#1e3a8a;color:#fff;border:0;padding:9px 26px;border-radius:7px;font-weight:800;font-size:.86rem;cursor:pointer;">OK</button>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div id="confirmUploadModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);align-items:center;justify-content:center;z-index:9998;padding:16px;">
+            <div style="background:#fff;max-width:500px;width:100%;border-radius:12px;padding:22px;box-shadow:0 20px 45px rgba(0,0,0,.3);border-top:5px solid #f59e0b;">
+              <h3 style="margin:0 0 8px;color:#92400e;font-size:1.05rem;">&#9888;&#65039; Confirm 201 File Staging Upload</h3>
+              <p style="margin:0 0 10px;font-size:.85rem;color:#334155;line-height:1.5;">You are about to upload <strong id="confirmFileName">selected file</strong>.</p>
+              <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:.8rem;color:#78350f;margin-bottom:16px;">
+                <strong>201 Master File Protection Rule:</strong> Uploaded records will <u>NOT</u> overwrite or merge directly into the official 201 Master Registry. All valid rows will be staged in the <strong>Pending Citizen Approvals Queue</strong> for individual or mass verification first.
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:10px;">
+                <button type="button" onclick="document.getElementById('confirmUploadModal').style.display='none'" style="background:#e2e8f0;color:#0f172a;border:0;padding:8px 16px;border-radius:7px;font-weight:700;cursor:pointer;">Cancel</button>
+                <button type="button" onclick="document.getElementById('bulk201Form').submit()" style="background:#0f766e;color:#fff;border:0;padding:8px 18px;border-radius:7px;font-weight:800;cursor:pointer;">Confirm &amp; Stage Records &rarr;</button>
+              </div>
+            </div>
+          </div>
+          <style>#walkin201Box label{display:block;font-size:.75rem;font-weight:700;color:#334155;margin-bottom:3px}#walkin201Box input:not([type=checkbox]),#walkin201Box select{display:block;width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:.84rem}#walkin201Box form div:first-of-type{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}</style><div id="walkin201Box" class="card" style="display:none;margin-bottom:18px;border-top:4px solid #1e3a8a;">
+            <div style="font-weight:900;color:#1e3a8a;font-size:.98rem;margin-bottom:10px;">02B-3 &bull; Walk-In Citizen 201 Registration &amp; Portal Account Encoder</div>
+            <form method="post" enctype="multipart/form-data" onsubmit="return confirm('Confirm Walk-In 201 Registration & create Resident Portal Credentials?')">{% csrf_token %}<input type="hidden" name="action" value="SAVE_CITIZEN_201">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;">
+                <div><label style="font-size:.75rem;font-weight:700;">Last Name *</label><input name="last_name" required></div>
+                <div><label style="font-size:.75rem;font-weight:700;">First Name *</label><input name="first_name" required></div>
+                <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"><label style="font-size:.75rem;font-weight:700;margin:0;">Middle Name</label><label style="font-size:.67rem;color:#1e3a8a;margin:0;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" style="width:12px;height:12px;" onchange="const m=document.getElementById('wkMid');m.disabled=this.checked;if(this.checked)m.value='';"> No middle name</label></div><input id="wkMid" name="middle_name"></div>
+                <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"><label style="font-size:.75rem;font-weight:700;margin:0;">Suffix</label><label style="font-size:.67rem;color:#1e3a8a;margin:0;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" style="width:12px;height:12px;" onchange="const s=document.getElementById('wkSuf');s.disabled=this.checked;if(this.checked)s.value='';"> N/A</label></div><input id="wkSuf" name="suffix" placeholder="Jr., Sr., III"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Alias / Palayaw</label><input name="alias_nickname" placeholder="Optional nickname"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Legal Sex (PSA / Law) *</label><select name="sex"><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Gender Identity / LGBTQ+</label><select name="gender_identity"><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="LGBTQ_MALE">LGBTQ+ (Male-Aligned)</option><option value="LGBTQ_FEMALE">LGBTQ+ (Female-Aligned)</option><option value="NON_BINARY">Non-Binary / Prefer Not to Say</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Birthdate *</label><input type="date" name="birth_date" required></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Place of Birth</label><input name="birth_place" placeholder="City / Municipality, Province"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Civil Status</label><select name="civil_status"><option value="SINGLE">Single</option><option value="MARRIED">Married</option><option value="WIDOWED">Widowed</option><option value="SEPARATED">Separated</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Religion</label><input name="religion" placeholder="e.g., Roman Catholic, INC"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Height</label><input name="height" placeholder="e.g., 170 cm"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Weight</label><input name="weight" placeholder="e.g., 65 kg"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Complexion</label><input name="complexion" placeholder="e.g., Fair, Kayumanggi"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Blood Type</label><input name="blood_type" placeholder="A+, B+, O+, AB+"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Purok / Zone *</label><select name="purok"><option>Purok I</option><option>Purok II</option><option>Purok III</option><option>Purok IV</option><option>Purok V</option><option>Purok VI</option><option>Purok VII</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Permanent Barangay Address *</label><input id="wkPermAddr" name="address_line" required></div>
+                <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"><label style="font-size:.75rem;font-weight:700;margin:0;">Current Address</label><label style="font-size:.67rem;color:#1e3a8a;margin:0;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="wkSameAddr" style="width:12px;height:12px;" onchange="if(this.checked)document.getElementById('wkCurAddr').value=document.getElementById('wkPermAddr').value;"> Same as permanent</label></div><input id="wkCurAddr" name="current_address"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Residency Status</label><select name="residency_status"><option value="PERMANENT">Permanent / Homeowner</option><option value="RENTER">Renter / Boarder</option><option value="SHARER">Sharer / Living with Relatives</option><option value="TRANSIENT">Transient / Temporary</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Mobile Number</label><input name="mobile_number" placeholder="09XXXXXXXXX"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Email Address (For Credentials)</label><input type="email" name="email_address" placeholder="resident@email.com"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Portal Username (Optional) <span id="wkUAvailBadge" style="margin-left:4px;font-weight:800;"></span></label><input id="wkPortalUserInp" name="portal_username" placeholder="Auto-generated if blank" oninput="checkWkUserAvail(this.value)"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Temporary Portal Password</label><div style="display:flex;gap:4px;"><input id="wkPortalPw" name="portal_password" placeholder="Auto-generated if blank"><button type="button" onclick="document.getElementById('wkPortalPw').value='Brgy@'+Math.floor(1000+Math.random()*9000)" style="background:#0f766e;color:#fff;border:0;border-radius:6px;padding:0 9px;font-size:.72rem;font-weight:800;cursor:pointer;">Gen</button></div></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Occupation / Livelihood</label><input name="occupation"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">PhilSys / National ID</label><input name="philsys_id"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Household Code (e.g., HH-001)</label><input name="household_code"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Household Head Full Name</label><input name="household_head_name"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Relationship to Head</label><select name="relationship_to_head"><option value="HEAD">Head</option><option value="SPOUSE">Spouse</option><option value="CHILD">Child</option><option value="PARENT">Parent</option><option value="RELATIVE">Relative</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">2x2 Photo</label><div style="display:flex;gap:4px;"><input id="wkPhotoInp" type="file" name="photo" accept=".png,.jpg,.jpeg,.webp" onchange="document.getElementById('wkPhotoClr').style.display=this.files.length?'inline-block':'none'"><button type="button" id="wkPhotoClr" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:3px 9px;font-weight:900;cursor:pointer;flex-shrink:0;" onclick="const f=document.getElementById('wkPhotoInp');f.value='';this.style.display='none';" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:0 8px;font-weight:800;cursor:pointer;">&#10005;</button></div></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Data Privacy Consent (RA 10173) *</label><label style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:#1e293b;margin-top:6px;cursor:pointer;"><input type="checkbox" id="wkConsentChk" name="data_privacy_consent" onclick="openWkPrivacyModal();return false;" required style="width:15px;height:15px;"> Signed / Verbal Consent Verified</label></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Supporting Docs (Auto-PDF)</label><div style="display:flex;gap:4px;"><input id="wkDocInp" type="file" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple onchange="document.getElementById('wkDocClr').style.display=this.files.length?'inline-block':'none'"><button type="button" id="wkDocClr" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:3px 9px;font-weight:900;cursor:pointer;flex-shrink:0;" onclick="const f=document.getElementById('wkDocInp');f.value='';this.style.display='none';" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:0 8px;font-weight:800;cursor:pointer;">&#10005;</button></div></div>
+              </div>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.82rem;">
+                <label><input type="checkbox" name="is_registered_voter"> Registered Voter</label>
+                <label><input type="checkbox" name="is_senior_citizen"> Senior Citizen</label>
+                <label><input type="checkbox" name="is_pwd"> PWD</label>
+                <label><input type="checkbox" name="is_solo_parent"> Solo Parent</label>
+                <label><input type="checkbox" name="is_4ps_beneficiary"> 4Ps</label>
+                <label><input type="checkbox" name="is_first_time_jobseeker"> First-Time Jobseeker</label>
+                <label><input type="checkbox" name="is_ofw"> OFW</label>
+                <label><input type="checkbox" name="is_pregnant"> Pregnant</label>
+              </div>
+              <button type="submit" style="margin-top:12px;background:#1e3a8a;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-weight:800;cursor:pointer;">&#10003; Save Walk-In 201 Record &amp; Issue Portal Credentials &rarr;</button>
+            </form>
+          </div>
+
+
+          {% if turnover_summary.pending_citizens > 0 %}
+          <form method="post" id="massApproveForm" data-dockable="1" style="margin-bottom:18px;">
             {% csrf_token %}
             <input type="hidden" id="massActionInp" name="action" value="MASS_APPROVE_201"><input type="hidden" id="massRejectReasonInp" name="reject_reason" value="">
             <div id="pendStickyBar" class="section-title" style="position:sticky;top:-22px;z-index:30;background:#ffffff;padding:12px 14px;margin:0 -4px 10px;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:10px;box-shadow:0 4px 14px rgba(15,23,42,.08);flex-wrap:wrap;gap:8px;">
