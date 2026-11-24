@@ -537,7 +537,7 @@ def citizen_201_inspect(request, citizen_id):
     if not is_official and not is_owner_citizen:
         return redirect("/login/")
 
-    action_banner = ""
+    action_banner = request.session.pop("bioas_inspect_banner", "")
     if request.method == "POST" and is_official:
         from audit_analytics.models import SystemAuditLog, DILGComplianceReport, COAAuditCompliance
         staff_p = getattr(request.user, "staff_profile", None)
@@ -650,6 +650,10 @@ def citizen_201_inspect(request, citizen_id):
             )
         except Exception:
             pass
+
+        if action_banner:
+            request.session["bioas_inspect_banner"] = action_banner
+        return redirect(request.get_full_path())
 
     p_col = c.barangay.default_primary_color if c.barangay else "#1E3A8A"
     s_col = c.barangay.default_secondary_color if c.barangay else "#F59E0B"

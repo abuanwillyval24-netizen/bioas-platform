@@ -200,7 +200,7 @@ def command_dashboard(request):
     actor_name = staff_profile.full_name if staff_profile else (request.user.get_full_name() or request.user.username)
     actor_role = staff_profile.get_role_display() if staff_profile else "System Administrator"
 
-    action_notice = ""
+    action_notice = request.session.pop("bioas_flash_notice", "")
     if request.method == "POST" and active_barangay:
         act = request.POST.get("action")
         if act == "APPROVE_CITIZEN":
@@ -720,6 +720,9 @@ def command_dashboard(request):
                 )
             skip_msg = f" Skipped {len(skipped_files)} unmatched file(s): {', '.join(skipped_files[:5])}." if skipped_files else ""
             action_notice = f"Batch QR Sync Complete: Attached {matched_photos} 2x2 profile photo(s) and {matched_docs} PDF supporting doc(s) by exact Citizen ID.{skip_msg}"
+        if action_notice:
+            request.session["bioas_flash_notice"] = action_notice
+        return redirect(request.get_full_path())
 
 
     theme = active_barangay.get_active_theme() if active_barangay else {
