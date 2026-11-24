@@ -1177,12 +1177,21 @@
             </div>
           </div>
 
-          <div id="uploadingProgressModal" style="display:block;position:fixed;inset:0;background:rgba(15,23,42,.68);align-items:center;justify-content:center;z-index:9999;padding:16px;">
+          <style>
+            @keyframes bioasHourglassFlip { 0%, 35% { transform: rotate(0deg); } 50%, 85% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
+            @keyframes bioasBarSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+            .bioas-hg-spin { display: inline-block; font-size: 2.35rem; margin-bottom: 10px; animation: bioasHourglassFlip 3.2s ease-in-out infinite; }
+            .bioas-bar-track { height: 7px; width: 100%; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-top: 14px; }
+            .bioas-bar-fill { height: 100%; width: 42%; background: linear-gradient(90deg, #1e3a8a, #0f766e); border-radius: 999px; animation: bioasBarSlide 1.8s ease-in-out infinite; }
+          </style>
+          <div id="uploadingProgressModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.68);backdrop-filter:blur(2px);align-items:center;justify-content:center;z-index:9999;padding:16px;">
             <div style="background:#fff;max-width:440px;width:100%;border-radius:12px;padding:24px;text-align:center;box-shadow:0 20px 45px rgba(0,0,0,.35);border-top:5px solid #1e3a8a;">
-              <div style="font-size:2rem;margin-bottom:8px;">&#9203;</div>
+              <div class="bioas-hg-spin">&#9203;</div>
               <h3 style="margin:0 0 8px;color:#1e3a8a;font-size:1.05rem;">Uploading &amp; Matching Citizen Files...</h3>
               <p style="margin:0;font-size:.84rem;color:#475569;line-height:1.5;">Please wait while BIOAS verifies each Citizen ID, converts supporting docs to PDF, and links them to your pending queue. Do not close this tab.</p>
+              <div class="bioas-bar-track"><div class="bioas-bar-fill"></div></div>
             </div>
+          </div>
           </div>
 
         {% elif module == "AUDIT" %}
