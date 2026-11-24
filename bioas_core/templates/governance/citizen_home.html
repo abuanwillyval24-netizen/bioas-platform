@@ -80,7 +80,7 @@
           <div style="text-align:center;">
             {% if citizen.photo_data_uri or citizen.photo %}
               <div style="display:inline-block;cursor:pointer;" onclick="document.getElementById('citPhotoZoomImg').src=this.querySelector('img').src;document.getElementById('citPhotoZoomModal').style.display='flex';">
-                <img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" style="width:86px;height:86px;border-radius:14px;object-fit:cover;border:3px solid #1e3a8a;transition:transform .18s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" style="width:128px;height:128px;border-radius:14px;object-fit:cover;border:3px solid #1e3a8a;transition:transform .18s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                 <div style="font-size:.66rem;font-weight:800;color:#1e3a8a;margin-top:3px;">&#128269; Click to Enlarge</div>
               </div>
               <div id="citPhotoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.72);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;padding:16px;">
@@ -98,7 +98,7 @@
               <div style="font-size:.72rem;color:#64748b;margin-top:3px;">{{ citizen.current_address|default:citizen.address_line }}</div>
             </div>
             {% if citizen_qr_uri %}
-              <div style="margin-top:10px;"><img src="{{ citizen_qr_uri }}" style="width:76px;height:76px;border:1px solid #cbd5e1;border-radius:10px;padding:3px;background:#fff;"></div>
+              <div style="margin-top:12px;display:inline-block;cursor:pointer;" onclick="const m=document.getElementById('citPhotoZoomModal');if(m){document.getElementById('citPhotoZoomImg').src=this.querySelector('img').src;m.style.display='flex';}"><img src="{{ citizen_qr_uri }}" style="width:112px;height:112px;border:2px solid #cbd5e1;border-radius:12px;padding:5px;background:#fff;transition:transform .18s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"><div style="font-size:.66rem;font-weight:800;color:#1e3a8a;margin-top:3px;">&#128269; Click QR to Enlarge</div></div>
             {% endif %}
           </div>
           <nav class="side-nav">
