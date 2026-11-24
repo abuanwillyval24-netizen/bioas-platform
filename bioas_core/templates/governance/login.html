@@ -37,8 +37,8 @@
       </form>
       <script>function syncRoleFields(){const r=document.getElementById('roleSelector').value,l=document.getElementById('refCodeLabel'),i=document.getElementById('refCodeInput');if(r==='CITIZEN'){l.textContent='System-Generated Reference Number *';i.placeholder='e.g., NUE-CAB-LAG-2026-00201';i.required=true;}else{l.textContent='Unique Official Code';i.placeholder='e.g., OFF-CAB-LAG-2026-0001';i.required=false;}}</script>
       {% endif %}
-      <div class="recovery-row"><a href="/citizen-home/">Forgot Citizen Ref ID / Username / Password?</a></div>
-      <div class="links"><a href="/portal/">Citizen Sign-Up</a><a href="/citizen-home/">Resident Self-Service</a></div>
+      <div class="recovery-row"><a href="/citizen-home/?recover=1">Forgot Citizen Ref ID / Username / Password?</a></div>
+      <div class="links" style="justify-content:center;"><a href="/portal/" style="font-size:.84rem;">New Resident? Create Account &rarr;</a></div>
     </div>
   </div>
   <div class="accomplishments">

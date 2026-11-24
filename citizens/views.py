@@ -323,14 +323,17 @@ def citizen_home(request):
                 request.session["citizen_auth_id"] = cand.id
                 citizen, notice = cand, f"Password updated! Signed in as {cand.portal_username or cand.citizen_qr_id}."
     else:
-        if request.method == "GET":
+        if request.GET.get("logout") == "1":
             request.session.pop("citizen_auth_id", None)
+            return redirect("/login/?role=CITIZEN")
         auth_cid = request.session.get("citizen_auth_id")
         if auth_cid:
             citizen = CitizenProfile.objects.select_related("barangay", "household").filter(id=auth_cid).first()
         elif qr_id and request.user.is_authenticated:
             citizen = CitizenProfile.objects.select_related("barangay", "household").filter(citizen_qr_id=qr_id).first()
 
+    if not citizen and not otp_stage and request.method == "GET" and request.GET.get("recover") != "1":
+        return redirect("/login/?role=CITIZEN")
     if qr_id and not citizen:
         error = f"Citizen QR ID '{qr_id}' not found."
     elif citizen and citizen.status == "PENDING_APPROVAL":
