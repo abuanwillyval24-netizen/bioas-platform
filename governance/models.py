@@ -437,6 +437,10 @@ class OfficialFormTemplate(models.Model):
     body_template = models.TextField(blank=True)
     file_data_uri = models.TextField(blank=True)
     file_name = models.CharField(max_length=160, blank=True)
+    has_pending_approval = models.BooleanField(default=False)
+    pending_title = models.CharField(max_length=160, blank=True)
+    pending_body_template = models.TextField(blank=True)
+    pending_submitted_by = models.CharField(max_length=150, blank=True)
     updated_by = models.CharField(max_length=150, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 

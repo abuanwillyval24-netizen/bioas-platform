@@ -814,8 +814,43 @@ def command_dashboard(request):
                     b64 = base64.b64encode(up_f.read()).decode("ascii")
                     obj.file_data_uri = f"data:{up_f.content_type or 'application/octet-stream'};base64,{b64}"
                     obj.file_name = up_f.name[:150]
-                obj.save()
-                action_notice = f"Acknowledgement: Official Form Template '{obj.title}' has been successfully saved and replaced!"
+                if obj.category == "DATA_PRIVACY_POLICY":
+                    if not obj.pk:
+                        obj.save()
+                    obj.has_pending_approval = True
+                    obj.pending_title = request.POST.get("title", "").strip() or obj.title
+                    obj.pending_body_template = request.POST.get("body_template", "").strip()
+                    obj.pending_submitted_by = actor_name
+                    obj.save()
+                    SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=obj.form_code or "BIOAS-PRIV-01", details=f"Submitted proposed revision to Barangay Data Privacy Policy & Terms of Use -> Pending Punong Barangay Approval.")
+                    action_notice = "Subject for Punong Barangay (Captain) Approval: Proposed changes to the Barangay Data Privacy Policy & Terms of Use have been queued for Captain sign-off before going live."
+                else:
+                    obj.save()
+                    action_notice = f"Acknowledgement: Official Form Template '{obj.title}' has been successfully saved and replaced!"
+        elif act == "APPROVE_POLICY_TEMPLATE":
+            from .models import OfficialFormTemplate
+            if request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN"):
+                pol_obj = OfficialFormTemplate.objects.filter(id=request.POST.get("template_id"), barangay=active_barangay, has_pending_approval=True).first()
+                if pol_obj:
+                    pol_obj.title = pol_obj.pending_title or pol_obj.title
+                    pol_obj.body_template = pol_obj.pending_body_template or pol_obj.body_template
+                    pol_obj.has_pending_approval = False
+                    pol_obj.pending_title = ""
+                    pol_obj.pending_body_template = ""
+                    pol_obj.updated_by = actor_name
+                    pol_obj.save()
+                    SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=pol_obj.form_code or "BIOAS-PRIV-01", details=f"Punong Barangay approved & published updated Barangay Data Privacy Policy & Terms of Use.")
+                    action_notice = "Approved & Published: Updated Barangay Data Privacy Policy & Terms of Use (RA 10173) is now live on the Citizen Sign-Up portal!"
+        elif act == "REJECT_POLICY_TEMPLATE":
+            from .models import OfficialFormTemplate
+            if request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN"):
+                pol_obj = OfficialFormTemplate.objects.filter(id=request.POST.get("template_id"), barangay=active_barangay, has_pending_approval=True).first()
+                if pol_obj:
+                    pol_obj.has_pending_approval = False
+                    pol_obj.pending_title = ""
+                    pol_obj.pending_body_template = ""
+                    pol_obj.save()
+                    action_notice = "Rejected proposed revision to Barangay Data Privacy Policy; active policy remains unchanged."
         if action_notice:
             request.session["bioas_flash_notice"] = action_notice
         return redirect(request.get_full_path())
@@ -981,7 +1016,17 @@ def command_dashboard(request):
 
     if active_barangay:
         from .models import OfficialFormTemplate
-        if not OfficialFormTemplate.objects.filter(barangay=active_barangay).exists():
+        if not OfficialFormTemplate.objects.filter(barangay=active_barangay, category="DATA_PRIVACY_POLICY").exists():
+            OfficialFormTemplate.objects.create(
+                barangay=active_barangay,
+                category="DATA_PRIVACY_POLICY",
+                form_code="BIOAS-PRIV-01",
+                title="Barangay Data Privacy Policy & Terms of Use (RA 10173)",
+                description="Displayed in the Citizen Sign-Up consent pop-up window (Requires Captain approval to modify).",
+                body_template="REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nDATA PRIVACY NOTICE & BARANGAY PURPOSE (RA 10173)\n\n1. Purpose of Collection: Your personal information, 2x2 photo, and supporting residency documents are collected exclusively for maintaining the official Registry of Barangay Inhabitants (RBI / 201 Master File), issuing Barangay Clearances/Certificates, health & social welfare delivery, and disaster response.\n2. Data Protection & Access: Records are protected under the Data Privacy Act of 2012 (RA 10173) and accessible only to authorized Barangay Officials.\n3. Resident Declaration: I certify that all information and documents submitted are true, accurate, and genuine.",
+                updated_by="System Default",
+            )
+        if not OfficialFormTemplate.objects.filter(barangay=active_barangay).exclude(category="DATA_PRIVACY_POLICY").exists():
             for cat, code, ttl, desc, body in [
                 ("COMPLETION_REPORT", "BIOAS-FRM-01", "Certificate of Project / Work Completion Report", "Official Barangay engineering & infrastructure project completion sign-off form.", "REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nCERTIFICATE OF COMPLETION REPORT\nProject Title: ___________________________\nLocation / Purok: ________________________\nContractor / Implementing Unit: __________\nDate Completed: __________________________\n\nCertified Correct:\nBarangay Secretary / Project Engineer\n\nApproved By:\nPunong Barangay"),
                 ("ACCEPTANCE_REPORT", "BIOAS-FRM-02", "Inspection & Final Acceptance Report (IAR)", "COA-compliant property, equipment, and project final acceptance form.", "REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nFINAL ACCEPTANCE REPORT\nPO / Work Order No.: ____________________\nSupplier / Contractor: ___________________\nTotal Contract Amount: ___________________\nCondition Upon Acceptance: [ ] Complete & Functional\n\nAccepted By:\nProperty Custodian / Barangay Treasurer\n\nNoted By:\nPunong Barangay"),
@@ -1025,6 +1070,7 @@ def command_dashboard(request):
         "visible_modules": visible_modules, "staff_profile": staff_profile,
         "is_captain_or_admin": bool(request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN")),
         "pending_recoveries": list(__import__("governance.models", fromlist=["WalkInRecoveryRequest"]).WalkInRecoveryRequest.objects.select_related("citizen").filter(barangay=active_barangay, status="PENDING_CAPTAIN")) if active_barangay else [],
+        "pending_policy_updates": list(__import__("governance.models", fromlist=["OfficialFormTemplate"]).OfficialFormTemplate.objects.filter(barangay=active_barangay, has_pending_approval=True)) if active_barangay else [],
         "form_templates": list(__import__("governance.models", fromlist=["OfficialFormTemplate"]).OfficialFormTemplate.objects.filter(barangay=active_barangay)) if active_barangay else [],
     }, request))
 

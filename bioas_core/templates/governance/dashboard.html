@@ -1026,7 +1026,7 @@
               <h3 id="tplEditorHeading" style="margin:0;font-size:.95rem;color:var(--primary);">+ Add or Replace Official Form Template</h3>
               <button type="button" id="tplResetBtn" onclick="resetTplEditor()" style="display:none;background:#e2e8f0;color:#0f172a;border:0;padding:4px 10px;border-radius:6px;font-size:.74rem;font-weight:700;cursor:pointer;">Cancel Replace / New Form</button>
             </div>
-            <form id="tplEditorForm" method="post" enctype="multipart/form-data" onsubmit="return confirm('WARNING: Are you sure you want to save / replace this Official Form Template? Please confirm before proceeding.')" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
+            <form id="tplEditorForm" method="post" enctype="multipart/form-data" onsubmit="const isPol=this.querySelector('[name=category]').value==='DATA_PRIVACY_POLICY';return confirm(isPol?'LEGAL COMPLIANCE WARNING: Modifying the Barangay Data Privacy Policy & Terms of Use (RA 10173) requires Punong Barangay (Captain) approval before taking effect on Citizen Sign-Up. Submit revision for Captain approval?':'WARNING: Are you sure you want to save / replace this Official Form Template? Please confirm before proceeding.')" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
               {% csrf_token %}<input type="hidden" name="action" value="SAVE_FORM_TEMPLATE"><input type="hidden" name="template_id" id="tplEditId" value="">
               <select name="category" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
                 <option value="COMPLETION_REPORT">Completion Report</option>
@@ -1056,7 +1056,7 @@
             <div class="card" style="border-top:4px solid #1e3a8a;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
               <div>
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-                  <span class="badge">{{ ft.get_category_display }}</span>
+                  <span class="badge">{{ ft.get_category_display }}</span>{% if ft.has_pending_approval %}<span class="badge" style="background:#fef3c7;color:#92400e;">&#9203; Pending Captain Approval</span>{% endif %}
                   <strong style="font-size:.74rem;color:#64748b;">{{ ft.form_code }}</strong>
                 </div>
                 <h4 style="margin:8px 0 4px;font-size:.95rem;color:#0f172a;">{{ ft.title }}</h4>
@@ -1315,6 +1315,24 @@
             {% for d in dilg_reports %}<tr><td><strong>{{ d.get_report_category_display }}</strong></td><td>{{ d.reporting_period }}</td><td><span class="badge">{{ d.get_status_display }}</span></td><td>{{ d.transmittal_reference }}</td></tr>{% empty %}<tr><td colspan="4">No DILG reports logged yet.</td></tr>{% endfor %}
           </tbody></table>
         {% else %}
+          {% if is_captain_or_admin and pending_policy_updates %}
+          <div class="card" style="border-top:4px solid #1e3a8a;background:#eff6ff;margin-bottom:16px;">
+            <div style="font-weight:900;color:#1e3a8a;font-size:.95rem;margin-bottom:8px;">&#9878; Punong Barangay Approval Queue: Data Privacy Policy &amp; Terms of Use Revisions ({{ pending_policy_updates|length }})</div>
+            <table style="margin:0;background:#fff;"><thead><tr><th>Policy Title</th><th>Proposed Policy Text</th><th>Submitted By</th><th style="text-align:right;">Captain Decision</th></tr></thead><tbody>
+              {% for pp in pending_policy_updates %}
+              <tr>
+                <td><strong>{{ pp.pending_title|default:pp.title }}</strong><div style="font-size:.74rem;color:#64748b;">{{ pp.form_code }}</div></td>
+                <td style="max-width:420px;"><pre style="margin:0;white-space:pre-wrap;font-size:.73rem;max-height:110px;overflow:auto;background:#f8fafc;padding:6px;border-radius:6px;border:1px solid #e2e8f0;">{{ pp.pending_body_template }}</pre></td>
+                <td>{{ pp.pending_submitted_by }}</td>
+                <td style="text-align:right;white-space:nowrap;">
+                  <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="APPROVE_POLICY_TEMPLATE"><input type="hidden" name="template_id" value="{{ pp.id }}"><button type="submit" style="background:#16a34a;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Approve &amp; Publish &#10003;</button></form>
+                  <form method="post" style="display:inline;margin-left:4px;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_POLICY_TEMPLATE"><input type="hidden" name="template_id" value="{{ pp.id }}"><button type="submit" style="background:#dc2626;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Reject &#10005;</button></form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody></table>
+          </div>
+          {% endif %}
           {% if is_captain_or_admin and pending_recoveries %}
           <div class="card" style="border-top:4px solid #d97706;background:#fffbeb;margin-bottom:16px;">
             <div style="font-weight:900;color:#92400e;font-size:.95rem;margin-bottom:8px;">&#128273; Punong Barangay Approval Queue: Walk-In Account Recovery Requests ({{ pending_recoveries|length }})</div>
