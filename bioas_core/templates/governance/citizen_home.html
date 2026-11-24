@@ -5,32 +5,39 @@
   <title>Resident Self-Service Dashboard &mdash; {{ citizen.barangay.name|default:"BIOAS Portal" }}</title>
   <style>
     *{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+    html{height:100%}
     body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#f1f5f9;color:#0f172a}
-    .topbar{background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#0f766e 100%);color:#fff;padding:18px 22px}
-    .wrap{flex:1 0 auto;width:100%;max-width:1040px;margin:0 auto;padding:18px 14px 48px}
-    .id-banner{background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 10px 28px rgba(15,23,42,.08);border-top:5px solid #1e3a8a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:18px}
-    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px}
-    .stat-card{background:#fff;border-radius:12px;padding:14px 16px;border:1px solid #e2e8f0;border-left:4px solid #1e3a8a}
-    .stat-card h4{margin:0;font-size:.74rem;text-transform:uppercase;color:#64748b;letter-spacing:.04em}
-    .stat-card .num{font-size:1.45rem;font-weight:900;color:#0f172a;margin-top:4px}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-    .tab-btn{background:#fff;color:#334155;border:1px solid #cbd5e1;padding:10px 16px;border-radius:10px;font-size:.84rem;font-weight:800;cursor:pointer}
-    .tab-btn.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a}
+    .topbar{position:sticky;top:0;z-index:900;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#0f766e 100%);color:#fff;padding:12px 20px;box-shadow:0 4px 16px rgba(15,23,42,.22)}
+    .topbar a,.topbar button{transition:all .18s ease}
+    .topbar a:hover,.topbar button:hover{transform:translateY(-1px);filter:brightness(1.12)}
+    .wrap{flex:1 0 auto;width:100%;max-width:1180px;margin:0 auto;padding:18px 16px 36px}
+    .dash-shell{display:flex;gap:18px;align-items:flex-start}
+    .cit-sidebar{position:sticky;top:68px;width:280px;flex-shrink:0;background:#fff;border-radius:16px;padding:18px;border:1px solid #e2e8f0;border-top:5px solid #1e3a8a;box-shadow:0 10px 26px rgba(15,23,42,.06)}
+    .cit-main{flex:1;min-width:0}
+    .side-nav{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0}
+    .tab-btn{width:100%;text-align:left;background:#f8fafc;color:#334155;border:1px solid #e2e8f0;padding:10px 13px;border-radius:10px;font-size:.83rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:all .18s ease}
+    .tab-btn:hover{background:#eff6ff;color:#1e3a8a;border-color:#93c5fd;transform:translateX(4px);box-shadow:0 3px 10px rgba(30,58,138,.08)}
+    .tab-btn.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a;box-shadow:0 4px 12px rgba(30,58,138,.22)}
+    .tab-btn.active:hover{background:#1d4ed8;color:#fff;transform:translateX(2px)}
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:16px}
+    .stat-card{background:#fff;border-radius:12px;padding:13px 15px;border:1px solid #e2e8f0;border-left:4px solid #1e3a8a;transition:transform .18s ease,box-shadow .18s ease}
+    .stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,23,42,.07)}
+    .stat-card h4{margin:0;font-size:.71rem;text-transform:uppercase;color:#64748b;letter-spacing:.04em}
+    .stat-card .num{font-size:1.38rem;font-weight:900;color:#0f172a;margin-top:4px}
     .panel{display:none}.panel.active{display:block}
     .card{background:#fff;border-radius:14px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 6px 18px rgba(15,23,42,.04);margin-bottom:16px}
-    .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
-    .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+    .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
     label{display:block;font-size:.76rem;font-weight:700;color:#334155;margin-bottom:4px}
     input,select,textarea{width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:.86rem;background:#f8fafc}
-    .btn{background:#1e3a8a;color:#fff;border:0;padding:10px 16px;border-radius:9px;font-size:.86rem;font-weight:800;cursor:pointer}
+    .btn{background:#1e3a8a;color:#fff;border:0;padding:10px 16px;border-radius:9px;font-size:.86rem;font-weight:800;cursor:pointer;transition:all .18s ease}
+    .btn:hover{background:#1d4ed8;transform:translateY(-1px)}
     .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.71rem;font-weight:800;background:#dbeafe;color:#1e40af}
     table{width:100%;border-collapse:collapse;font-size:.82rem}
     th,td{padding:9px 10px;border-bottom:1px solid #e2e8f0;text-align:left}
     th{background:#f8fafc;font-size:.74rem;text-transform:uppercase;color:#475569}
-    html{height:100%}
-    body{min-height:100vh !important;display:flex !important;flex-direction:column !important}
-    .wrap{flex:1 0 auto !important;width:100% !important}
-    footer{margin-top:auto !important;width:100% !important}
+    footer{margin-top:auto;width:100%}
+    @media(max-width:860px){.dash-shell{flex-direction:column}.cit-sidebar{position:static;width:100%}}
   </style>
 </head>
 <body>
@@ -68,40 +75,46 @@
         </form>
       </div>
     {% elif citizen %}
-      <div class="id-banner">
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-          {% if citizen.photo_data_uri or citizen.photo %}
-            <div style="text-align:center;cursor:pointer;" onclick="document.getElementById('citPhotoZoomImg').src=this.querySelector('img').src;document.getElementById('citPhotoZoomModal').style.display='flex';" title="Click to enlarge 2x2 photo">
-              <img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" style="width:74px;height:74px;border-radius:12px;object-fit:cover;border:2px solid #1e3a8a;">
-              <div style="font-size:.65rem;font-weight:800;color:#1e3a8a;margin-top:2px;">Click to Enlarge</div>
-            </div>
-            <div id="citPhotoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-              <div style="background:#fff;border-radius:16px;padding:18px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 48px rgba(0,0,0,.35);">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="color:#1e3a8a;">{{ citizen.full_name }} ({{ citizen.citizen_qr_id }})</strong><button type="button" onclick="document.getElementById('citPhotoZoomModal').style.display='none'" style="background:#fee2e2;color:#dc2626;border:0;width:28px;height:28px;border-radius:7px;font-weight:900;cursor:pointer;">&#10005;</button></div>
-                <img id="citPhotoZoomImg" src="" style="width:100%;max-height:360px;object-fit:contain;border-radius:10px;border:1px solid #cbd5e1;">
+      <div class="dash-shell">
+        <aside class="cit-sidebar">
+          <div style="text-align:center;">
+            {% if citizen.photo_data_uri or citizen.photo %}
+              <div style="display:inline-block;cursor:pointer;" onclick="document.getElementById('citPhotoZoomImg').src=this.querySelector('img').src;document.getElementById('citPhotoZoomModal').style.display='flex';">
+                <img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" style="width:86px;height:86px;border-radius:14px;object-fit:cover;border:3px solid #1e3a8a;transition:transform .18s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <div style="font-size:.66rem;font-weight:800;color:#1e3a8a;margin-top:3px;">&#128269; Click to Enlarge</div>
               </div>
+              <div id="citPhotoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.72);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+                <div style="background:#fff;border-radius:16px;padding:18px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 48px rgba(0,0,0,.35);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="color:#1e3a8a;font-size:.9rem;">{{ citizen.full_name }}</strong><button type="button" onclick="document.getElementById('citPhotoZoomModal').style.display='none'" style="background:#e2e8f0;border:0;border-radius:6px;padding:4px 10px;font-weight:800;cursor:pointer;">Close &#10005;</button></div>
+                  <img id="citPhotoZoomImg" src="" style="width:100%;max-height:360px;object-fit:contain;border-radius:10px;">
+                </div>
+              </div>
+            {% endif %}
+            <h2 style="margin:8px 0 4px;font-size:1.06rem;color:#0f172a;">{{ citizen.full_name }}</h2>
+            <span class="badge" style="background:#dcfce7;color:#166534;">&#10003; Active Verified Resident</span>
+            <div style="font-size:.76rem;color:#475569;margin-top:8px;line-height:1.45;">
+              <div>Ref ID: <strong>{{ citizen.citizen_qr_id }}</strong></div>
+              <div>Username: <strong>{{ citizen.portal_username }}</strong> &bull; <strong>{{ citizen.purok }}</strong></div>
+              <div style="font-size:.72rem;color:#64748b;margin-top:3px;">{{ citizen.current_address|default:citizen.address_line }}</div>
             </div>
-          {% endif %}
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><h2 style="margin:0;font-size:1.18rem;color:#0f172a;">{{ citizen.full_name }}</h2><span class="badge" style="background:#dcfce7;color:#166534;">&#10003; Active Verified Resident</span></div>
-            <div style="font-size:.82rem;color:#475569;margin-top:3px;">Ref ID: <strong>{{ citizen.citizen_qr_id }}</strong> &bull; Username: <strong>{{ citizen.portal_username }}</strong> &bull; <strong>{{ citizen.purok }}</strong></div>
-            <div style="font-size:.77rem;color:#64748b;margin-top:2px;">Current Address: {{ citizen.current_address|default:citizen.address_line }}</div>
+            {% if citizen_qr_uri %}
+              <div style="margin-top:10px;"><img src="{{ citizen_qr_uri }}" style="width:76px;height:76px;border:1px solid #cbd5e1;border-radius:10px;padding:3px;background:#fff;"></div>
+            {% endif %}
           </div>
-        </div>
-        {% if citizen_qr_uri %}<img src="{{ citizen_qr_uri }}" style="width:74px;height:74px;border:1px solid #cbd5e1;border-radius:10px;padding:3px;background:#fff;">{% endif %}
-      </div>
-      <div class="stats-row">
-        <div class="stat-card" style="border-left-color:#d97706;"><h4>Official Advisories &amp; Memos</h4><div class="num">{{ blast_advisories|length }}</div></div>
-        <div class="stat-card" style="border-left-color:#1e3a8a;"><h4>Certificate Requests</h4><div class="num">{{ recent_certs|length }}</div></div>
-        <div class="stat-card" style="border-left-color:#0f766e;"><h4>Submitted Reports</h4><div class="num">{{ recent_reports|length }}</div></div>
-        <div class="stat-card" style="border-left-color:#16a34a;"><h4>201 Profile Status</h4><div class="num" style="font-size:1.05rem;padding-top:6px;">Verified &amp; Active</div></div>
-      </div>
-      <div class="tabs">
-        <button type="button" class="tab-btn active" onclick="openCitTab('tabAdvisories',this)">&#128226; Advisories &amp; Blast Feed ({{ blast_advisories|length }})</button>
-        <button type="button" class="tab-btn" onclick="openCitTab('tabCerts',this)">&#128220; Request Certificates</button>
-        <button type="button" class="tab-btn" onclick="openCitTab('tabReports',this)">&#128680; Report Concern / Incident</button>
-        <button type="button" class="tab-btn" onclick="openCitTab('tabProfile',this)">&#129706; My 201 Profile &amp; Supporting Docs</button>
-      </div>
+          <nav class="side-nav">
+            <button type="button" class="tab-btn active" onclick="openCitTab('tabAdvisories',this)"><span>&#128226; Advisories &amp; Blast Feed</span><span class="badge">{{ blast_advisories|length }}</span></button>
+            <button type="button" class="tab-btn" onclick="openCitTab('tabCerts',this)"><span>&#128220; Request Certificates</span><span class="badge">{{ recent_certs|length }}</span></button>
+            <button type="button" class="tab-btn" onclick="openCitTab('tabReports',this)"><span>&#128680; Report Concern</span><span class="badge">{{ recent_reports|length }}</span></button>
+            <button type="button" class="tab-btn" onclick="openCitTab('tabProfile',this)"><span>&#129706; My 201 Profile &amp; Docs</span><span>&rarr;</span></button>
+          </nav>
+        </aside>
+        <main class="cit-main">
+          <div class="stats-row">
+            <div class="stat-card" style="border-left-color:#d97706;"><h4>Official Advisories &amp; Memos</h4><div class="num">{{ blast_advisories|length }}</div></div>
+            <div class="stat-card" style="border-left-color:#1e3a8a;"><h4>Certificate Requests</h4><div class="num">{{ recent_certs|length }}</div></div>
+            <div class="stat-card" style="border-left-color:#0f766e;"><h4>Submitted Reports</h4><div class="num">{{ recent_reports|length }}</div></div>
+            <div class="stat-card" style="border-left-color:#16a34a;"><h4>201 Profile Status</h4><div class="num" style="font-size:1rem;padding-top:6px;">Verified &amp; Active</div></div>
+          </div>
       <div id="tabAdvisories" class="panel active">
         <div class="card" style="border-top:4px solid #d97706;">
           <h3 style="margin-top:0;color:#0f172a;font-size:1rem;">&#128226; Official Barangay Advisories, Memorandums &amp; Ayuda Schedules</h3>
@@ -200,6 +213,8 @@
           </form>
         </div>
         <div class="card"><h4 style="margin-top:0;">My Supporting Documents Vault ({{ citizen.repository_docs.all|length }})</h4><table><thead><tr><th>Document Title</th><th>Uploaded</th><th>Action</th></tr></thead><tbody>{% for d in citizen.repository_docs.all %}<tr><td><strong>{{ d.title }}</strong></td><td>{{ d.uploaded_at|date:"M d, Y" }}</td><td><a href="/citizen-docs/{{ citizen.citizen_qr_id }}/" target="_blank" class="badge" style="text-decoration:none;">Open PDF &nearr;</a></td></tr>{% empty %}<tr><td colspan="3">No supporting documents uploaded yet.</td></tr>{% endfor %}</tbody></table></div>
+      </div>
+        </main>
       </div>
     {% endif %}
   </div>
