@@ -117,8 +117,8 @@ def citizen_portal(request):
 
     if request.GET.get("check_username") is not None:
         u_q = request.GET.get("check_username", "").strip().lower()
-        if len(u_q) < 4 or not re.match(r"^[a-z0-9._-]+$", u_q):
-            return JsonResponse({"available": False, "message": "Use 4+ lowercase letters, numbers, dots, or underscores."})
+        if len(u_q) < 4 or not re.match(r"^[a-z][a-z0-9._]{3,29}$", u_q):
+            return JsonResponse({"available": False, "message": "Must start with a letter (4-30 chars: letters, numbers, . or _ only)."})
         taken = CitizenProfile.objects.filter(portal_username__iexact=u_q).exists()
         return JsonResponse({"available": not taken, "message": "Username is already taken." if taken else "Username is available!"})
 

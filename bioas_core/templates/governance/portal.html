@@ -83,10 +83,22 @@
       <div class="grid-3">
         <div><label>Last Name *</label><input name="last_name" value="{{ draft.last_name }}" required></div>
         <div><label>First Name *</label><input name="first_name" value="{{ draft.first_name }}" required></div>
-        <div><label>Middle Name</label><input name="middle_name" value="{{ draft.middle_name }}"></div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+            <label style="margin:0;">Middle Name</label>
+            <label style="margin:0;font-size:.69rem;font-weight:700;color:#475569;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="noMidChk" onchange="toggleIdleField('noMidChk','midNameInp')" style="width:13px;height:13px;"> I don&rsquo;t have a middle name</label>
+          </div>
+          <input id="midNameInp" name="middle_name" value="{{ draft.middle_name }}" style="margin-top:4px;">
+        </div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
-        <div><label>Suffix (Optional)</label><input name="suffix" value="{{ draft.suffix }}" placeholder="Jr., Sr., III"></div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+            <label style="margin:0;">Suffix</label>
+            <label style="margin:0;font-size:.69rem;font-weight:700;color:#475569;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="naSufChk" onchange="toggleIdleField('naSufChk','sufNameInp')" style="width:13px;height:13px;"> Not applicable</label>
+          </div>
+          <input id="sufNameInp" name="suffix" value="{{ draft.suffix }}" placeholder="Jr., Sr., III" style="margin-top:4px;">
+        </div>
         <div><label>Alias / Palayaw</label><input name="alias_nickname" value="{{ draft.alias_nickname }}"></div>
         <div><label>Sex / Gender *</label><select name="sex" required><option value="MALE" {% if draft.sex == "MALE" %}selected{% endif %}>Male</option><option value="FEMALE" {% if draft.sex == "FEMALE" %}selected{% endif %}>Female</option></select></div>
       </div>
@@ -154,11 +166,12 @@
   </div>
 </div>
 <script>
+  function toggleIdleField(chkId,inpId){const c=document.getElementById(chkId).checked,i=document.getElementById(inpId);if(c){i.value='';i.disabled=true;i.style.background='#e2e8f0';}else{i.disabled=false;i.style.background='#f8fafc';}}
   let uTimer=null, uAvailable=true;
-  function checkUserAvail(val){const b=document.getElementById('uAvailBadge'),u=val.trim();if(u.length<4){b.textContent='';uAvailable=false;return;}clearTimeout(uTimer);uTimer=setTimeout(()=>{fetch('/portal/?check_username='+encodeURIComponent(u)).then(r=>r.json()).then(d=>{uAvailable=d.available;b.style.color=d.available?'#16a34a':'#dc2626';b.textContent=d.available?'? Username Available':'? Already Taken';});},250);}
+  function checkUserAvail(val){const b=document.getElementById('uAvailBadge'),u=val.trim();if(u.length<4){b.textContent='';uAvailable=false;return;}clearTimeout(uTimer);uTimer=setTimeout(()=>{fetch('/portal/?check_username='+encodeURIComponent(u)).then(r=>r.json()).then(d=>{uAvailable=d.available;b.style.color=d.available?'#16a34a':'#dc2626';b.textContent=d.available?'? Username Available':'? '+(d.message||'Unavailable');b.dataset.msg=d.message||'Username is unavailable.';});},250);}
   function checkPwRules(){const p=document.getElementById('pwInp')?.value||'',c=document.getElementById('pwConfInp')?.value||'';const setR=(id,ok)=>{const el=document.getElementById(id);if(el){el.className='chk-item'+(ok?' ok':'');el.innerHTML=(ok?'&#10003; ':'&#9675; ')+el.innerHTML.slice(2);}};setR('rLen',p.length>=8);setR('rUp',/[A-Z]/.test(p));setR('rNum',/[0-9]/.test(p));setR('rSpec',/[^A-Za-z0-9]/.test(p));const mt=document.getElementById('pwMatchTag');if(mt){mt.style.color=(c&&p===c)?'#16a34a':'#dc2626';mt.textContent=c?(p===c?'? Match':'? Mismatch'):'';}}
   function askConfirm(title,msg,onYes){const box=document.getElementById('confirmBox');document.getElementById('cBoxTitle').textContent=title;document.getElementById('cBoxMsg').textContent=msg;box.style.display='flex';document.getElementById('cBoxNo').onclick=()=>{box.style.display='none';};document.getElementById('cBoxYes').onclick=()=>{box.style.display='none';onYes();};}
-  function confirmStep1(){const f=document.getElementById('step1Form');if(!f.reportValidity())return;if(!uAvailable){alert('That username is already taken.');return;}const p=document.getElementById('pwInp').value,c=document.getElementById('pwConfInp').value;if(p.length<8||!/[A-Z]/.test(p)||!/[a-z]/.test(p)||!/[0-9]/.test(p)||!/[^A-Za-z0-9]/.test(p)){alert('Please satisfy all password security requirements.');return;}if(p!==c){alert('Passwords do not match.');return;}askConfirm('Send Verification Code','Send a 6-digit verification OTP to your email address now?',()=>f.submit());}
+  function confirmStep1(){const f=document.getElementById('step1Form');if(!f.reportValidity())return;if(!uAvailable){alert(document.getElementById('uAvailBadge').dataset.msg||'Please enter a valid available username.');return;}const p=document.getElementById('pwInp').value,c=document.getElementById('pwConfInp').value;if(p.length<8||!/[A-Z]/.test(p)||!/[a-z]/.test(p)||!/[0-9]/.test(p)||!/[^A-Za-z0-9]/.test(p)){alert('Please satisfy all password security requirements.');return;}if(p!==c){alert('Passwords do not match.');return;}askConfirm('Send Verification Code','Send a 6-digit verification OTP to your email address now?',()=>f.submit());}
   function toggleX(inpId,xId){document.getElementById(xId).style.display=document.getElementById(inpId).files.length?'inline-flex':'none';}
   function clearFile(inpId,xId){document.getElementById(inpId).value='';document.getElementById(xId).style.display='none';}
   function submitStep2B(){const f=document.getElementById('step2BForm');if(!f.reportValidity())return;askConfirm('Submit Application','Confirm your 2x2 photo and supporting documents are clear and submit your registration?',()=>f.submit());}
