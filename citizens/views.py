@@ -452,6 +452,19 @@ def citizen_home(request):
                     ids.append(cid_s)
                 adv.liked_citizen_ids = ",".join(ids)
                 adv.save(update_fields=["liked_citizen_ids"])
+        elif act == "CHANGE_CITIZEN_PASSWORD":
+            from django.contrib.auth.hashers import check_password, make_password
+            cur_pw = request.POST.get("current_password", "")
+            new_pw = request.POST.get("new_password", "")
+            conf_pw = request.POST.get("confirm_password", "")
+            if not check_password(cur_pw, citizen.portal_password_hash or ""):
+                error = "Current password is incorrect."
+            elif len(new_pw) < 8 or new_pw != conf_pw:
+                error = "New password must be at least 8 characters and match confirmation."
+            else:
+                citizen.portal_password_hash = make_password(new_pw)
+                citizen.save(update_fields=["portal_password_hash"])
+                notice = "Your Citizen Portal password has been updated successfully!"
         elif act == "POST_ADV_COMMENT":
             from governance.models import BarangayBlastAdvisory, BarangayAdvisoryComment
             adv = BarangayBlastAdvisory.objects.filter(id=request.POST.get("advisory_id"), barangay=citizen.barangay).first()
