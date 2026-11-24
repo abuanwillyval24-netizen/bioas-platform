@@ -314,7 +314,7 @@
               </div>
             </div>
           </div>
-          <div id="walkin201Box" class="card" style="display:none;margin-bottom:18px;border-top:4px solid #1e3a8a;">
+          <style>#walkin201Box label{display:block;font-size:.75rem;font-weight:700;color:#334155;margin-bottom:3px}#walkin201Box input:not([type=checkbox]),#walkin201Box select{display:block;width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:.84rem}#walkin201Box form div:first-of-type{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}</style><div id="walkin201Box" class="card" style="display:none;margin-bottom:18px;border-top:4px solid #1e3a8a;">
             <div style="font-weight:900;color:#1e3a8a;font-size:.98rem;margin-bottom:10px;">02B-3 &bull; Walk-In Citizen 201 Registration &amp; Portal Account Encoder</div>
             <form method="post" enctype="multipart/form-data" onsubmit="return confirm('Confirm Walk-In 201 Registration & create Resident Portal Credentials?')">{% csrf_token %}<input type="hidden" name="action" value="SAVE_CITIZEN_201">
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;">
