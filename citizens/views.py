@@ -109,100 +109,148 @@ def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source
             )
 
 def citizen_portal(request):
+    import random, re
+    from django.http import JsonResponse
+    from django.contrib.auth.hashers import make_password
+    from django.core.mail import send_mail
+    from django.conf import settings as dj_settings
+
+    if request.GET.get("check_username") is not None:
+        u_q = request.GET.get("check_username", "").strip().lower()
+        if len(u_q) < 4 or not re.match(r"^[a-z0-9._-]+$", u_q):
+            return JsonResponse({"available": False, "message": "Use 4+ lowercase letters, numbers, dots, or underscores."})
+        taken = CitizenProfile.objects.filter(portal_username__iexact=u_q).exists()
+        return JsonResponse({"available": not taken, "message": "Username is already taken." if taken else "Username is available!"})
+
     barangays = BarangayTenant.objects.select_related("city_municipality__province").all()
     active_barangay = barangays.first()
     submitted_citizen = None
     submitted_email = ""
+    wizard_step = "STEP1"
+    error, ack_notice = "", ""
+    draft = request.session.get("bioas_signup_draft") or {}
 
     if request.method == "POST" and active_barangay:
-        target_brgy = barangays.filter(id=request.POST.get("barangay_id")).first() or active_barangay
-        raw_sex = (request.POST.get("sex") or request.POST.get("gender_choice") or request.POST.get("gender") or "MALE").strip().upper()
-        norm_sex = "FEMALE" if ("FEMALE" in raw_sex or raw_sex.startswith("F")) else "MALE"
-        g_id = raw_sex if raw_sex in ("LGBTQ_MALE", "LGBTQ_FEMALE") else norm_sex
-        submitted_email = (request.POST.get("email_address") or request.POST.get("email") or "").strip()
-        h_lot = request.POST.get("house_lot_no", "").strip()
-        st_nm = request.POST.get("street_name", "").strip()
-        purok_val = request.POST.get("purok", "Purok I").strip() or "Purok I"
-        full_addr = request.POST.get("address_line", "").strip() or ", ".join(p for p in [h_lot, st_nm, purok_val] if p)
-        try:
-            yrs_res = max(0, int(request.POST.get("years_in_barangay") or 1))
-        except ValueError:
-            yrs_res = 1
-
-        submitted_citizen = CitizenProfile.objects.create(
-            barangay=target_brgy,
-            citizen_qr_id=generate_national_citizen_id(target_brgy),
-            philsys_id=request.POST.get("philsys_id", "").strip(),
-            last_name=request.POST["last_name"].strip(),
-            first_name=request.POST["first_name"].strip(),
-            middle_name=request.POST.get("middle_name", "").strip(),
-            suffix=request.POST.get("suffix", "").strip(),
-            alias_nickname=(request.POST.get("alias_nickname") or request.POST.get("alias") or "").strip(),
-            sex=norm_sex,
-            gender_identity=g_id,
-            birth_date=date.fromisoformat(request.POST["birth_date"].strip()),
-            birth_place=request.POST.get("birth_place", "").strip(),
-            civil_status=request.POST.get("civil_status", "SINGLE"),
-            citizenship=request.POST.get("citizenship", "Filipino").strip() or "Filipino",
-            religion=request.POST.get("religion", "").strip(),
-            blood_type=request.POST.get("blood_type", "").strip(),
-            house_lot_no=h_lot,
-            street_name=st_nm,
-            address_line=full_addr,
-            purok=purok_val,
-            residency_status=request.POST.get("residency_status", "PERMANENT"),
-            years_in_barangay=yrs_res,
-            mobile_number=request.POST.get("mobile_number", "").strip(),
-            email_address=submitted_email,
-            emergency_contact_name=request.POST.get("emergency_contact_name", "").strip(),
-            emergency_contact_phone=request.POST.get("emergency_contact_phone", "").strip(),
-            emergency_contact_relationship=request.POST.get("emergency_contact_relationship", "").strip(),
-            is_registered_voter=bool(request.POST.get("is_registered_voter")),
-            precinct_number=request.POST.get("precinct_number", "").strip(),
-            philhealth_number=request.POST.get("philhealth_number", "").strip(),
-            sss_gsis_number=request.POST.get("sss_gsis_number", "").strip(),
-            tin_number=request.POST.get("tin_number", "").strip(),
-            pagibig_number=request.POST.get("pagibig_number", "").strip(),
-            education_level=request.POST.get("education_level", "").strip(),
-            currently_attending_school=bool(request.POST.get("currently_attending_school")),
-            school_or_course=request.POST.get("school_or_course", "").strip(),
-            grade_year_level=request.POST.get("grade_year_level", "").strip(),
-            employment_status=request.POST.get("employment_status", "").strip(),
-            occupation=request.POST.get("occupation", "").strip(),
-            employer_or_business=request.POST.get("employer_or_business", "").strip(),
-            employer_address=request.POST.get("employer_address", "").strip(),
-            monthly_income=request.POST.get("monthly_income", "").strip(),
-            is_senior_citizen=bool(request.POST.get("is_senior_citizen")),
-            osca_id_number=request.POST.get("osca_id_number", "").strip(),
-            is_pwd=bool(request.POST.get("is_pwd")),
-            pwd_disability_type=request.POST.get("pwd_disability_type", "").strip(),
-            pwd_id_number=request.POST.get("pwd_id_number", "").strip(),
-            is_solo_parent=bool(request.POST.get("is_solo_parent")),
-            solo_parent_id_number=request.POST.get("solo_parent_id_number", "").strip(),
-            is_ofw=bool(request.POST.get("is_ofw")),
-            ofw_country=request.POST.get("ofw_country", "").strip(),
-            is_osy_osc=bool(request.POST.get("is_osy_osc")),
-            is_indigenous_people=bool(request.POST.get("is_indigenous_people")),
-            ip_group_tribe=request.POST.get("ip_group_tribe", "").strip(),
-            is_4ps_beneficiary=bool(request.POST.get("is_4ps_beneficiary")),
-            four_ps_household_id=request.POST.get("four_ps_household_id", "").strip(),
-            is_pregnant=bool(request.POST.get("is_pregnant")),
-            is_first_time_jobseeker=bool(request.POST.get("is_first_time_jobseeker")),
-            data_privacy_consent=bool(request.POST.get("agree_terms_privacy")),
-            electronic_signature=request.POST.get("applicant_electronic_signature", "").strip(),
-            portal_username=request.POST.get("portal_username", "").strip().lower(),
-            portal_password_hash=__import__("django.contrib.auth.hashers", fromlist=["make_password"]).make_password(request.POST.get("portal_password", "").strip()) if request.POST.get("portal_password", "").strip() else "",
-            encoded_by="Citizen Self-Registration Portal",
-            status="PENDING_APPROVAL",
-        )
-        save_standardized_citizen_files(
-            submitted_citizen,
-            photo_file=request.FILES.get("photo"),
-            doc_files=request.FILES.getlist("supporting_document"),
-            source_channel="PORTAL_SIGNUP",
-            uploaded_by=submitted_citizen.full_name,
-        )
-        
+        w_act = request.POST.get("wizard_action", "STEP1_SEND_OTP")
+        if w_act == "STEP1_BACK":
+            wizard_step = "STEP1"
+        elif w_act == "STEP1_SEND_OTP":
+            b_id = request.POST.get("barangay_id") or str(active_barangay.id)
+            target_brgy = barangays.filter(id=b_id).first() or active_barangay
+            uname = request.POST.get("portal_username", "").strip().lower()
+            pw1 = request.POST.get("portal_password", "")
+            pw2 = request.POST.get("confirm_password", "")
+            em = request.POST.get("email_address", "").strip()
+            draft = {
+                "barangay_id": target_brgy.id,
+                "last_name": request.POST.get("last_name", "").strip(),
+                "first_name": request.POST.get("first_name", "").strip(),
+                "middle_name": request.POST.get("middle_name", "").strip(),
+                "suffix": request.POST.get("suffix", "").strip(),
+                "alias_nickname": request.POST.get("alias_nickname", "").strip(),
+                "sex": request.POST.get("sex", "").strip(),
+                "civil_status": request.POST.get("civil_status", "SINGLE").strip(),
+                "birth_date": request.POST.get("birth_date", "").strip(),
+                "purok": request.POST.get("purok", "").strip(),
+                "address_line": request.POST.get("address_line", "").strip(),
+                "email_address": em,
+                "mobile_number": request.POST.get("mobile_number", "").strip(),
+                "portal_username": uname,
+                "agree_terms": bool(request.POST.get("agree_terms_privacy")),
+            }
+            if not (draft["last_name"] and draft["first_name"] and draft["birth_date"] and draft["purok"] and draft["address_line"] and em and draft["mobile_number"]):
+                error = "Please complete all required personal and contact fields."
+            elif len(uname) < 4 or CitizenProfile.objects.filter(portal_username__iexact=uname).exists():
+                error = "Please choose a valid, available Portal Username (at least 4 characters)."
+            elif not re.match(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$", pw1):
+                error = "Password must be at least 8 characters with 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character."
+            elif pw1 != pw2:
+                error = "Password and Confirm Password do not match."
+            elif not draft["agree_terms"]:
+                error = "You must agree to the Data Privacy Policy and Terms of Use before proceeding."
+            else:
+                otp_code = f"{random.randint(100000, 999999)}"
+                draft["password_hash"] = make_password(pw1)
+                draft["otp_code"] = otp_code
+                draft["otp_verified"] = False
+                request.session["bioas_signup_draft"] = draft
+                try:
+                    send_mail(
+                        subject=f"[{target_brgy.name}] Citizen Registration 6-Digit Verification OTP",
+                        message=f"Good day {draft['first_name']} {draft['last_name']},\n\nYour 6-digit One-Time Password (OTP) to verify your email for BIOAS Citizen Registration is:\n\n{otp_code}\n\nEnter this code on the verification screen to continue.",
+                        from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                        recipient_list=[em],
+                        fail_silently=False,
+                    )
+                except Exception as mail_err:
+                    print("BIOAS_SIGNUP_OTP_EMAIL_ERROR:", repr(mail_err))
+                wizard_step = "STEP2A"
+                ack_notice = f"A 6-digit verification OTP has been sent to {em}. Please enter it below to verify your email."
+        elif w_act == "STEP2A_RESEND_OTP" and draft:
+            otp_code = f"{random.randint(100000, 999999)}"
+            draft["otp_code"] = otp_code
+            request.session["bioas_signup_draft"] = draft
+            target_brgy = barangays.filter(id=draft.get("barangay_id")).first() or active_barangay
+            try:
+                send_mail(
+                    subject=f"[{target_brgy.name}] New 6-Digit Verification OTP",
+                    message=f"Good day {draft.get('first_name', '')},\n\nYour new 6-digit verification OTP is: {otp_code}",
+                    from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                    recipient_list=[draft.get("email_address", "")],
+                    fail_silently=False,
+                )
+            except Exception as mail_err:
+                print("BIOAS_SIGNUP_RESEND_OTP_ERROR:", repr(mail_err))
+            wizard_step = "STEP2A"
+            ack_notice = f"A fresh 6-digit verification OTP has been resent to {draft.get('email_address', '')}."
+        elif w_act == "STEP2A_VERIFY_OTP" and draft:
+            entered = request.POST.get("otp_code", "").strip()
+            if not entered or entered != draft.get("otp_code"):
+                error = "Invalid 6-digit OTP code. Please check your email or click Resend Code."
+                wizard_step = "STEP2A"
+            else:
+                draft["otp_verified"] = True
+                request.session["bioas_signup_draft"] = draft
+                wizard_step = "STEP2B"
+                ack_notice = "Email verified successfully! Please upload your 2x2 Official Photo and Supporting Document to finish."
+        elif w_act == "STEP2B_COMPLETE_SIGNUP" and draft and draft.get("otp_verified"):
+            target_brgy = barangays.filter(id=draft.get("barangay_id")).first() or active_barangay
+            raw_sex = draft.get("sex", "MALE").upper()
+            norm_sex = "FEMALE" if ("FEMALE" in raw_sex or raw_sex.startswith("F")) else "MALE"
+            g_id = raw_sex if raw_sex in ("LGBTQ_MALE", "LGBTQ_FEMALE") else norm_sex
+            submitted_email = draft.get("email_address", "")
+            submitted_citizen = CitizenProfile.objects.create(
+                barangay=target_brgy,
+                citizen_qr_id=generate_national_citizen_id(target_brgy),
+                last_name=draft["last_name"],
+                first_name=draft["first_name"],
+                middle_name=draft.get("middle_name", ""),
+                suffix=draft.get("suffix", ""),
+                alias_nickname=draft.get("alias_nickname", ""),
+                sex=norm_sex,
+                gender_identity=g_id,
+                birth_date=date.fromisoformat(draft["birth_date"]),
+                civil_status=draft.get("civil_status", "SINGLE"),
+                address_line=draft["address_line"],
+                purok=draft["purok"],
+                mobile_number=draft["mobile_number"],
+                email_address=submitted_email,
+                data_privacy_consent=True,
+                portal_username=draft["portal_username"],
+                portal_password_hash=draft["password_hash"],
+                encoded_by="Citizen Self-Registration Portal",
+                status="PENDING_APPROVAL",
+            )
+            save_standardized_citizen_files(
+                submitted_citizen,
+                photo_file=request.FILES.get("photo"),
+                doc_files=request.FILES.getlist("supporting_document"),
+                source_channel="PORTAL_SIGNUP",
+                uploaded_by=submitted_citizen.full_name,
+            )
+            request.session.pop("bioas_signup_draft", None)
+            wizard_step = "STEP2C"
+            ack_notice = f"Registration submitted! Your Reference Citizen ID ({submitted_citizen.citizen_qr_id}) is now staged for Barangay 201 Verification."
 
     html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "portal.html"
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
@@ -211,6 +259,10 @@ def citizen_portal(request):
         "active_barangay": active_barangay,
         "submitted_citizen": submitted_citizen,
         "submitted_email": submitted_email,
+        "wizard_step": wizard_step,
+        "draft": draft,
+        "error": error,
+        "ack_notice": ack_notice,
     }, request))
 
 

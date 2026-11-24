@@ -1,343 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Citizen Self-Service Portal — BIOAS</title>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Citizen Registration &mdash; {{ active_barangay.name|default:"BIOAS Portal" }}</title>
   <style>
-    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
-    body { margin: 0; background: #f3f4f6; color: #111827; }
-    .topbar { background: #1e3a8a; color: #fff; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #f59e0b; }
-    .topbar a { color: #fff; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
-    .card { max-width: 720px; margin: 28px auto; background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid #1e3a8a; }
-    h2 { margin-top: 0; color: #1e3a8a; }
-    label { display: block; font-size: 0.85rem; font-weight: 700; margin: 12px 0 4px; }
-    input, select, textarea { width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; background: #fff; color: #111827; }
-    input[readonly] { background: #f9fafb; font-weight: 700; color: #1e3a8a; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .row-3 { display: grid; grid-template-columns: 1fr 1fr 0.7fr; gap: 12px; }
-    .dob-grid { display: grid; grid-template-columns: 1.3fr 0.8fr 1fr; gap: 8px; }
-    .hint { font-size: 0.75rem; color: #b91c1c; display: none; margin-top: 3px; }
-    .progress-wrap { background: #e5e7eb; border-radius: 999px; height: 10px; margin: 16px 0 6px; overflow: hidden; }
-    .progress-bar { height: 100%; width: 0%; background: #1e3a8a; transition: width 0.2s; }
-    .progress-text { font-size: 0.82rem; font-weight: 700; color: #374151; }
-    button, .btn-home { margin-top: 16px; width: 100%; background: #1e3a8a; color: #fff; border: none; padding: 11px; border-radius: 6px; font-size: 1rem; font-weight: 700; cursor: pointer; display: block; text-align: center; text-decoration: none; }
-    button:disabled { background: #9ca3af; cursor: not-allowed; }
-    .ack-box { text-align: center; padding: 20px 12px; }
-    .ack-icon { font-size: 3rem; color: #16a34a; margin-bottom: 8px; }
-    .view-switch { display: inline-flex; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); border-radius: 999px; padding: 3px; gap: 4px; }
-    .view-switch button { margin: 0; width: auto; padding: 5px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; background: transparent; color: #e2e8f0; border: 0; cursor: pointer; }
-    .view-switch button.active { background: #f59e0b; color: #0f172a; }
-    body.mobile-preview .card { max-width: 412px; margin: 18px auto; padding: 18px 16px; border-radius: 18px; box-shadow: 0 12px 32px rgba(15,23,42,0.18); border: 2px solid #cbd5e1; border-top: 5px solid #1e3a8a; }
-    body.mobile-preview .row, body.mobile-preview .row-3 { grid-template-columns: 1fr; gap: 8px; }
-    @media (max-width: 640px) {
-      .topbar { flex-wrap: wrap; gap: 8px; padding: 12px 14px; }
-      .card { margin: 14px 10px; padding: 16px; }
-      .row, .row-3 { grid-template-columns: 1fr; gap: 8px; }
-    }
+    *{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+    body{margin:0;min-height:100vh;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 55%,#0f766e 100%);color:#0f172a;padding:24px 14px}
+    .shell{max-width:680px;margin:0 auto}
+    .brand-bar{display:flex;justify-content:space-between;align-items:center;color:#fff;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+    .brand-bar h1{margin:0;font-size:1.25rem;font-weight:800}
+    .brand-bar a{color:#fbbf24;text-decoration:none;font-size:.82rem;font-weight:700}
+    .card{background:#fff;border-radius:16px;padding:26px 28px;box-shadow:0 24px 54px rgba(15,23,42,.35);border-top:5px solid #1e3a8a}
+    .stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:22px}
+    .step-pill{background:#f1f5f9;border-radius:10px;padding:8px 10px;text-align:center;font-size:.72rem;font-weight:800;color:#64748b;border:1px solid #e2e8f0}
+    .step-pill.active{background:#dbeafe;color:#1e3a8a;border-color:#1e3a8a}
+    .step-pill.done{background:#dcfce7;color:#166534;border-color:#16a34a}
+    .sec-hdr{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:#1e3a8a;font-weight:800;margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid #e2e8f0}
+    .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+    .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+    label{display:block;font-size:.77rem;font-weight:700;color:#334155;margin-bottom:4px}
+    input,select{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:9px;font-size:.88rem;background:#f8fafc;color:#0f172a}
+    input:focus,select:focus{outline:none;border-color:#1e3a8a;background:#fff;box-shadow:0 0 0 3px rgba(30,58,138,.12)}
+    .btn{width:100%;margin-top:16px;padding:12px;background:#1e3a8a;color:#fff;border:0;border-radius:10px;font-size:.92rem;font-weight:800;cursor:pointer}
+    .btn:hover{background:#1d4ed8}
+    .btn-sec{background:#e2e8f0;color:#0f172a}
+    .chk-list{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:7px;font-size:.74rem;font-weight:700}
+    .chk-item{color:#64748b}.chk-item.ok{color:#16a34a}
+    .file-box{display:flex;align-items:center;gap:8px;border:1px solid #cbd5e1;border-radius:9px;padding:6px 10px;background:#f8fafc}
+    .x-btn{display:none;background:#fee2e2;color:#dc2626;border:0;width:24px;height:24px;border-radius:6px;font-weight:900;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0}
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <strong>BIOAS Online Citizen Portal (Auto-Syncs to 201 Master)</strong>
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <div class="view-switch" role="group" aria-label="Viewport Switcher">
-        <button type="button" id="btnDesktopView" class="active" onclick="setPortalView('desktop')">&#128421; Desktop View</button>
-        <button type="button" id="btnMobileView" onclick="setPortalView('mobile')">&#128241; Mobile View</button>
-      </div>
-      <a href="/">&larr; Back to Command Dashboard</a>
-    </div>
-  </header>
-  <script>
-    function setPortalView(mode) {
-      const isMob = mode === 'mobile';
-      document.body.classList.toggle('mobile-preview', isMob);
-      document.getElementById('btnDesktopView').classList.toggle('active', !isMob);
-      document.getElementById('btnMobileView').classList.toggle('active', isMob);
-    }
-  </script>
-  <div class="card">
-    {% if submitted_citizen or success_msg %}
-      <div class="ack-box" style="text-align:center;padding:32px 24px;background:#ffffff;border:1px solid #e2e8f0;border-top:5px solid #1e3a8a;border-radius:12px;max-width:520px;margin:12px auto;">
-        <div class="ack-icon" style="width:54px;height:54px;margin:0 auto 14px;border-radius:50%;background:#dbeafe;color:#1e3a8a;font-size:1.6rem;font-weight:800;display:flex;align-items:center;justify-content:center;">✔</div>
-        <h2 style="color:#0f172a;margin:0 0 10px;font-size:1.45rem;">Account Request Submitted</h2>
-        <p style="color:#475569;font-size:.95rem;margin:0 auto 20px;line-height:1.6;">
-          Your registration is pending administrator approval. We’ll send an activation email to <strong>{{ submitted_email|default:"your email address" }}</strong> within <strong>24 hours</strong> once your access is ready.
-        </p>
-        {% if submitted_citizen %}
-          <div style="background:#f8fafc;border:1px dashed #cbd5e1;padding:8px 14px;border-radius:8px;margin-bottom:20px;font-size:.85rem;color:#334155;">
-            Reference Citizen ID: <strong style="color:#1e3a8a;">{{ submitted_citizen.citizen_qr_id }}</strong>
-          </div>
-        {% endif %}
-        <a href="/citizen-home/" class="btn-home" style="display:inline-block;background:#1e3a8a;color:#fff;padding:11px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.92rem;">Back to Login</a>
-      </div>
-    {% else %}
-    <h2>Citizen Online Registration / Profile Sync</h2>
-    <form method="post" enctype="multipart/form-data" id="portalForm">
-      {% csrf_token %}
-      <label>Barangay</label>
-      <select name="barangay_id" class="track-field" required>
-        {% for b in barangays %}<option value="{{ b.id }}">{{ b.name }} ({{ b.city_municipality.name }})</option>{% endfor %}
-      </select>
-
-      <div class="row-3">
-        <div>
-          <label>Last Name</label>
-          <input type="text" name="last_name" class="track-field name-field" minlength="2" required />
-          <span class="hint">Min 2 chars; letters & period (.) only.</span>
-        </div>
-        <div>
-          <label>First Name</label>
-          <input type="text" name="first_name" class="track-field name-field" minlength="2" required />
-          <span class="hint">Min 2 chars; letters & period (.) only.</span>
-        </div>
-        <div>
-          <label>Suffix (Optional)</label>
-          <input type="text" name="suffix" id="suffixInput" maxlength="10" placeholder="Jr., Sr., II, 3rd" />
-          <span class="hint">Letters, numbers & period (.) only.</span>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Middle Name (Optional)</label>
-          <input type="text" name="middle_name" class="track-field name-field-opt" />
-          <span class="hint">Min 2 chars; letters & period (.) only.</span>
-        </div>
-        <div>
-          <label>Alias / Palayaw (Optional)</label>
-          <input type="text" name="alias" class="track-field name-field-opt" />
-          <span class="hint">Min 2 chars; letters & period (.) only.</span>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Gender (Legal Docs use Male / Female)</label>
-          <select name="gender_choice" class="track-field" required>
-            <option value="">-- Select Gender --</option>
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
-            <option value="LGBTQ_MALE">Other / LGBTQ+ (Legal Doc: Male)</option>
-            <option value="LGBTQ_FEMALE">Other / LGBTQ+ (Legal Doc: Female)</option>
-          </select>
-        </div>
-        <div>
-          <label>Civil Status</label>
-          <select name="civil_status" class="track-field" required>
-            <option value="">-- Select Status --</option>
-            <option value="SINGLE">Single</option>
-            <option value="MARRIED">Married</option>
-            <option value="WIDOWED">Widowed</option>
-            <option value="SEPARATED">Separated</option>
-          </select>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Exact Birth Date</label>
-          <input type="hidden" name="birth_date" id="birthDateHidden" class="track-field" required />
-          <div class="dob-grid">
-            <select id="dobMonth" onchange="computeExactAge()" required>
-              <option value="">Month</option>
-              <option value="01">January</option><option value="02">February</option><option value="03">March</option>
-              <option value="04">April</option><option value="05">May</option><option value="06">June</option>
-              <option value="07">July</option><option value="08">August</option><option value="09">September</option>
-              <option value="10">October</option><option value="11">November</option><option value="12">December</option>
-            </select>
-            <select id="dobDay" onchange="computeExactAge()" required>
-              <option value="">Day</option>
-              <option value="01">1</option><option value="02">2</option><option value="03">3</option><option value="04">4</option><option value="05">5</option>
-              <option value="06">6</option><option value="07">7</option><option value="08">8</option><option value="09">9</option><option value="10">10</option>
-              <option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option>
-              <option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
-              <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option>
-              <option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option>
-              <option value="31">31</option>
-            </select>
-            <select id="dobYear" onchange="computeExactAge()" required>
-              <option value="">Year</option>
-              <optgroup label="2020s"><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option></optgroup>
-              <optgroup label="2010s"><option value="2019">2019</option><option value="2018">2018</option><option value="2017">2017</option><option value="2016">2016</option><option value="2015">2015</option><option value="2014">2014</option><option value="2013">2013</option><option value="2012">2012</option><option value="2011">2011</option><option value="2010">2010</option></optgroup>
-              <optgroup label="2000s"><option value="2009">2009</option><option value="2008">2008</option><option value="2007">2007</option><option value="2006">2006</option><option value="2005">2005</option><option value="2004">2004</option><option value="2003">2003</option><option value="2002">2002</option><option value="2001">2001</option><option value="2000">2000</option></optgroup>
-              <optgroup label="1990s"><option value="1999">1999</option><option value="1998">1998</option><option value="1997">1997</option><option value="1996">1996</option><option value="1995">1995</option><option value="1994">1994</option><option value="1993">1993</option><option value="1992">1992</option><option value="1991">1991</option><option value="1990">1990</option></optgroup>
-              <optgroup label="1980s"><option value="1989">1989</option><option value="1988">1988</option><option value="1987">1987</option><option value="1986">1986</option><option value="1985">1985</option><option value="1984">1984</option><option value="1983">1983</option><option value="1982">1982</option><option value="1981">1981</option><option value="1980">1980</option></optgroup>
-              <optgroup label="1970s"><option value="1979">1979</option><option value="1978">1978</option><option value="1977">1977</option><option value="1976">1976</option><option value="1975">1975</option><option value="1974">1974</option><option value="1973">1973</option><option value="1972">1972</option><option value="1971">1971</option><option value="1970">1970</option></optgroup>
-              <optgroup label="1960s"><option value="1969">1969</option><option value="1968">1968</option><option value="1967">1967</option><option value="1966">1966</option><option value="1965">1965</option><option value="1964">1964</option><option value="1963">1963</option><option value="1962">1962</option><option value="1961">1961</option><option value="1960">1960</option></optgroup>
-              <optgroup label="1950s"><option value="1959">1959</option><option value="1958">1958</option><option value="1957">1957</option><option value="1956">1956</option><option value="1955">1955</option><option value="1954">1954</option><option value="1953">1953</option><option value="1952">1952</option><option value="1951">1951</option><option value="1950">1950</option></optgroup>
-              <optgroup label="1940s & Earlier"><option value="1949">1949</option><option value="1948">1948</option><option value="1947">1947</option><option value="1946">1946</option><option value="1945">1945</option><option value="1944">1944</option><option value="1943">1943</option><option value="1942">1942</option><option value="1941">1941</option><option value="1940">1940</option><option value="1939">1939</option><option value="1938">1938</option><option value="1937">1937</option><option value="1936">1936</option><option value="1935">1935</option><option value="1934">1934</option><option value="1933">1933</option><option value="1932">1932</option><option value="1931">1931</option><option value="1930">1930</option></optgroup>
-            </select>
-          </div>
-          <span class="hint" id="dobHint">Please pick a valid past birth date.</span>
-        </div>
-        <div>
-          <label>Computed Age (Auto-Calculated)</label>
-          <input type="text" name="age_display" id="ageInput" class="track-field" placeholder="Select Month, Day & Year" readonly required />
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Purok / Zone / Sitio *</label>
-          <input type="text" name="purok" class="track-field" placeholder="e.g., Purok I" required />
-        </div>
-        <div>
-          <label>House / Street Address *</label>
-          <input type="text" name="address_line" class="track-field" placeholder="e.g., Blk 2 Lot 5 Rizal St." required />
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Email Address (For Approval &amp; 201 Profile Link) *</label>
-          <input type="email" name="email_address" class="track-field" placeholder="name@example.com" required />
-        </div>
-        <div>
-          <label>Mobile Number *</label>
-          <input type="text" name="mobile_number" class="track-field" placeholder="09XX-XXX-XXXX" required />
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Create Portal Username (For Citizen Login) *</label>
-          <input type="text" name="portal_username" class="track-field" minlength="4" maxlength="40" placeholder="e.g., willy.abuan" required />
-        </div>
-        <div>
-          <label>Create Portal Password *</label>
-          <input type="password" name="portal_password" class="track-field" minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Minimum 8 characters with uppercase, lowercase, number, and special character." placeholder="Enter strong password" required />
-          <span style="display:block;font-size:.74rem;color:#475569;margin-top:4px;">Minimum 8 characters required, mixed with Uppercase (A-Z), Lowercase (a-z), Number (0-9), and Special Character (!@#$%).</span>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>2x2 Official Profile Photo (JPG / PNG) *</label>
-          <input type="file" name="photo" class="track-field" accept=".png,.jpg,.jpeg,.webp" required />
-        </div>
-        <div>
-          <label>Supporting Document / Valid ID / Proof of Residency *</label>
-          <input type="file" name="supporting_document" id="docInput" class="track-field" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple required />
-          <span class="hint" style="display:block;color:#475569;">Required for 02B verification (syncs to 02E &amp; 201 upon approval).</span>
-        </div>
-      </div>
-
-      <div style="background:#f8fafc;border:1px solid #cbd5e1;border-left:4px solid #1e3a8a;border-radius:8px;padding:12px;margin:14px 0;">
-  <strong style="color:#1e3a8a;font-size:.88rem;display:block;margin-bottom:6px;">Citizen Declaration, Terms of Use & Data Privacy Consent (RA 10173)</strong>
-  <label style="display:flex;align-items:flex-start;gap:8px;font-size:.82rem;font-weight:600;color:#334155;margin:6px 0;cursor:pointer;">
-    <input type="checkbox" name="agree_terms_privacy" required style="width:auto;margin-top:3px;">
-    <span>I certify that all information and uploaded documents are true and accurate, and I hereby agree to the <strong>Barangay Digital Portal Terms of Use</strong> and consent to the collection and processing of my personal data in accordance with the <strong>Data Privacy Act of 2012 (Republic Act No. 10173)</strong> for official Barangay 201 Registry and LGU services.</span>
-  </label>
-  <label style="font-size:.8rem;font-weight:700;color:#1e3a8a;margin-top:8px;display:block;">Electronic Signature (Type Your Full Legal Name to Acknowledge) *</label>
-  <input type="text" name="applicant_electronic_signature" placeholder="Type your full name (e.g., Juan Dela Cruz)" required style="width:100%;padding:8px;border:1px solid #94a3b8;border-radius:6px;font-style:italic;background:#fff;">
-</div>
-
-      <button type="submit" id="submitBtn" disabled>Submit to Barangay Secretary for 201 Verification</button>
-    </form>
-    {% endif %}
+<div class="shell">
+  <div class="brand-bar">
+    <div><h1>{{ active_barangay.name|default:"Barangay Lagare" }} &bull; Citizen Sign-Up</h1><small style="color:#cbd5e1;">Official Resident Digital Onboarding</small></div>
+    <div><a href="/login/?role=CITIZEN">&larr; Back to Unified Sign-In</a></div>
   </div>
 
-  <script>
-    const fields = Array.from(document.querySelectorAll(".track-field"));
-    const progressBar = document.getElementById("progressBar");
-    const progressText = document.getElementById("progressText");
-    const submitBtn = document.getElementById("submitBtn");
-    const ageInput = document.getElementById("ageInput");
-    const docInput = document.getElementById("docInput");
-    const suffixInput = document.getElementById("suffixInput");
-    const privacyCheck = document.querySelector('input[name="agree_terms_privacy"]');
-    const sigInput = document.querySelector('input[name="applicant_electronic_signature"]');
+  {% if ack_msg %}
+  <div id="ackPopup" style="position:fixed;inset:0;background:rgba(15,23,42,.58);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;max-width:430px;width:100%;border-radius:16px;padding:24px;box-shadow:0 24px 48px rgba(15,23,42,.3);border-top:5px solid #16a34a;text-align:center;">
+      <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;">&#10003;</div>
+      <h3 style="margin:0 0 8px;font-size:1.06rem;font-weight:800;">Step Acknowledged</h3>
+      <p style="margin:0 0 18px;font-size:.86rem;line-height:1.5;color:#475569;">{{ ack_msg }}</p>
+      <button type="button" onclick="document.getElementById('ackPopup').remove()" class="btn" style="margin:0;">Continue &rarr;</button>
+    </div>
+  </div>
+  {% endif %}
 
-    function checkCompletion() {
-      let filled = 0;
-      fields.forEach(f => {
-        if (f.type === "file") {
-          if (f.files && f.files.length > 0) filled++;
-        } else if (f.value && f.value.trim() !== "") {
-          filled++;
-        }
-      });
-      const total = fields.length || 1;
-      const pct = Math.round((filled / total) * 100);
-      if (progressBar) progressBar.style.width = pct + "%";
-      const agreed = privacyCheck ? privacyCheck.checked : true;
-      const signed = sigInput ? sigInput.value.trim().length >= 2 : true;
-      if (progressText) {
-        progressText.textContent = `Form Completion: ${pct}% (Minimum 80% + Data Privacy Consent & E-Signature required)`;
-      }
-      if (submitBtn) {
-        submitBtn.disabled = !(pct >= 80 && agreed && signed);
-      }
-    }
+  {% if error %}
+  <div id="errPopup" style="position:fixed;inset:0;background:rgba(15,23,42,.58);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;max-width:430px;width:100%;border-radius:16px;padding:24px;box-shadow:0 24px 48px rgba(15,23,42,.3);border-top:5px solid #dc2626;text-align:center;">
+      <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 12px;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;">!</div>
+      <h3 style="margin:0 0 8px;font-size:1.06rem;font-weight:800;">Action Required</h3>
+      <p style="margin:0 0 18px;font-size:.86rem;line-height:1.5;color:#475569;">{{ error }}</p>
+      <button type="button" onclick="document.getElementById('errPopup').remove()" class="btn" style="margin:0;">Fix &amp; Retry</button>
+    </div>
+  </div>
+  {% endif %}
 
-    function computeExactAge() {
-      const m = document.getElementById("dobMonth")?.value;
-      const d = document.getElementById("dobDay")?.value;
-      const y = document.getElementById("dobYear")?.value;
-      const birthDateHidden = document.getElementById("birthDateHidden");
-      const dobHint = document.getElementById("dobHint");
-      if (!m || !d || !y) {
-        if (birthDateHidden) birthDateHidden.value = "";
-        if (ageInput) ageInput.value = "";
-        if (dobHint) dobHint.style.display = "none";
-        checkCompletion();
-        return;
-      }
-      const yearNum = parseInt(y, 10), monthNum = parseInt(m, 10), dayNum = parseInt(d, 10);
-      const dob = new Date(yearNum, monthNum - 1, dayNum);
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (dob.getMonth() !== monthNum - 1 || dob > today) {
-        if (birthDateHidden) birthDateHidden.value = "";
-        if (ageInput) ageInput.value = "";
-        if (dobHint) dobHint.style.display = "block";
-        checkCompletion();
-        return;
-      }
-      if (dobHint) dobHint.style.display = "none";
-      if (birthDateHidden) birthDateHidden.value = `${y}-${String(monthNum).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-      let years = today.getFullYear() - yearNum;
-      let months = today.getMonth() - (monthNum - 1);
-      if (today.getDate() < dayNum) months--;
-      if (months < 0) { years--; months += 12; }
-      if (ageInput) ageInput.value = `${years} Years / ${months} Months`;
-      checkCompletion();
-    }
+  <div id="confirmBox" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.58);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;max-width:430px;width:100%;border-radius:16px;padding:24px;box-shadow:0 24px 48px rgba(15,23,42,.3);border-top:5px solid #d97706;text-align:center;">
+      <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 12px;background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;">?</div>
+      <h3 id="cBoxTitle" style="margin:0 0 8px;font-size:1.06rem;font-weight:800;">Confirm Action</h3>
+      <p id="cBoxMsg" style="margin:0 0 18px;font-size:.86rem;line-height:1.5;color:#475569;"></p>
+      <div style="display:flex;gap:10px;"><button type="button" id="cBoxNo" class="btn btn-sec" style="margin:0;">Cancel</button><button type="button" id="cBoxYes" class="btn" style="margin:0;">Yes, Proceed</button></div>
+    </div>
+  </div>
 
-    function blockInvalidKey(e, regex) {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key && e.key.length === 1 && !regex.test(e.key)) e.preventDefault();
-    }
+  <div class="card">
+    <div class="stepper">
+      <div class="step-pill {% if wizard_step == '1' %}active{% else %}done{% endif %}">1. Account &amp; Info</div>
+      <div class="step-pill {% if wizard_step == '2A' %}active{% elif wizard_step == '2B' or wizard_step == '2C' %}done{% endif %}">2A. Email OTP</div>
+      <div class="step-pill {% if wizard_step == '2B' %}active{% elif wizard_step == '2C' %}done{% endif %}">2B. Photo &amp; Docs</div>
+      <div class="step-pill {% if wizard_step == '2C' %}active{% endif %}">2C. Reference ID</div>
+    </div>
 
-    document.querySelectorAll(".name-field, .name-field-opt").forEach(inp => {
-      inp.addEventListener("beforeinput", (e) => { if (e.data && /[^A-Za-z. ]/.test(e.data)) e.preventDefault(); });
-      inp.addEventListener("keydown", (e) => blockInvalidKey(e, /^[A-Za-z. ]$/));
-      inp.addEventListener("input", () => {
-        inp.value = inp.value.replace(/[^A-Za-z. ]/g, "");
-        checkCompletion();
-      });
-    });
+    {% if wizard_step == "1" %}
+    <form id="step1Form" method="post">
+      {% csrf_token %}<input type="hidden" name="wizard_action" value="STEP1_SEND_OTP">
+      <div class="sec-hdr" style="margin-top:0;">Personal Information</div>
+      <div class="grid-3">
+        <div><label>Last Name *</label><input name="last_name" value="{{ draft.last_name }}" required></div>
+        <div><label>First Name *</label><input name="first_name" value="{{ draft.first_name }}" required></div>
+        <div><label>Middle Name</label><input name="middle_name" value="{{ draft.middle_name }}"></div>
+      </div>
+      <div class="grid-3" style="margin-top:10px;">
+        <div><label>Suffix (Optional)</label><input name="suffix" value="{{ draft.suffix }}" placeholder="Jr., Sr., III"></div>
+        <div><label>Alias / Palayaw</label><input name="alias_nickname" value="{{ draft.alias_nickname }}"></div>
+        <div><label>Sex / Gender *</label><select name="sex" required><option value="MALE" {% if draft.sex == "MALE" %}selected{% endif %}>Male</option><option value="FEMALE" {% if draft.sex == "FEMALE" %}selected{% endif %}>Female</option></select></div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div><label>Civil Status *</label><select name="civil_status"><option value="SINGLE" {% if draft.civil_status == "SINGLE" %}selected{% endif %}>Single</option><option value="MARRIED" {% if draft.civil_status == "MARRIED" %}selected{% endif %}>Married</option><option value="WIDOWED" {% if draft.civil_status == "WIDOWED" %}selected{% endif %}>Widowed</option><option value="SEPARATED" {% if draft.civil_status == "SEPARATED" %}selected{% endif %}>Separated</option></select></div>
+        <div><label>Birthdate *</label><input type="date" name="birth_date" value="{{ draft.birth_date }}" required></div>
+      </div>
+      <div class="sec-hdr">Contact &amp; Residency Details</div>
+      <div class="grid-2">
+        <div><label>Barangay *</label><select name="barangay_id">{% for b in barangays %}<option value="{{ b.id }}" {% if draft.barangay_id == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}</select></div>
+        <div><label>Purok / Zone *</label><input name="purok" value="{{ draft.purok }}" placeholder="e.g., Purok I" required></div>
+      </div>
+      <div style="margin-top:10px;"><label>Complete House / Street Address *</label><input name="address_line" value="{{ draft.address_line }}" placeholder="e.g., Blk 2 Lot 5 Rizal St." required></div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div><label>Email Address (For OTP &amp; Activation) *</label><input type="email" name="email_address" value="{{ draft.email_address }}" placeholder="name@example.com" required></div>
+        <div><label>Mobile Number *</label><input name="mobile_number" value="{{ draft.mobile_number }}" placeholder="09XX-XXX-XXXX" required></div>
+      </div>
+      <div class="sec-hdr">Account Credentials</div>
+      <div><label>Portal Username * <span id="uAvailBadge" style="margin-left:6px;font-weight:800;"></span></label><input id="portalUserInp" name="portal_username" value="{{ draft.portal_username }}" placeholder="Choose a unique username" oninput="checkUserAvail(this.value)" required></div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div><label>Password *</label><input type="password" id="pwInp" name="portal_password" placeholder="Create strong password" oninput="checkPwRules()" required></div>
+        <div><label>Confirm Password * <span id="pwMatchTag" style="margin-left:4px;"></span></label><input type="password" id="pwConfInp" name="confirm_password" placeholder="Re-enter password" oninput="checkPwRules()" required></div>
+      </div>
+      <div class="chk-list"><div id="rLen" class="chk-item">&#9675; Min. 8 characters</div><div id="rUp" class="chk-item">&#9675; 1 uppercase letter (A-Z)</div><div id="rNum" class="chk-item">&#9675; 1 number (0-9)</div><div id="rSpec" class="chk-item">&#9675; 1 special character (!@#$%)</div></div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:.82rem;color:#1e293b;cursor:pointer;"><input type="checkbox" id="consentChk" name="agree_terms_privacy" style="width:18px;height:18px;" required><span>I agree to the <strong>Data Privacy Policy</strong> and <strong>Terms of Use</strong>.</span></label>
+      <button type="button" onclick="confirmStep1()" class="btn">Next: Send Verification OTP &rarr;</button>
+    </form>
+    {% elif wizard_step == "2A" %}
+    <h2 style="margin:0 0 6px;font-size:1.15rem;color:#1e3a8a;">Step 2A: Email OTP Verification</h2>
+    <p style="margin:0 0 14px;font-size:.85rem;color:#475569;">Enter the 6-digit verification code sent to <strong>{{ draft.email_address }}</strong>.</p>
+    <form id="step2AForm" method="post">{% csrf_token %}<input type="hidden" name="wizard_action" value="STEP2A_VERIFY_OTP">
+      <label>6-Digit One-Time Password (OTP) *</label><input name="otp_code" maxlength="6" placeholder="000000" style="font-size:1.25rem;letter-spacing:.28em;text-align:center;font-weight:800;" required autofocus>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.8rem;color:#475569;"><span>Resend available in: <strong id="otpTimer" style="color:#1e3a8a;">01:59</strong></span><button type="button" id="resendOtpBtn" disabled onclick="submitResendOtp()" style="background:none;border:0;color:#94a3b8;font-weight:800;cursor:not-allowed;padding:0;">Resend Code</button></div>
+      <button type="button" onclick="askConfirm('Verify OTP Code','Confirm your 6-digit verification code and proceed to Photo & Document upload?',()=>document.getElementById('step2AForm').submit())" class="btn">Verify OTP &amp; Continue &rarr;</button>
+    </form>
+    <form id="resendOtpForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="wizard_action" value="RESEND_OTP"></form>
+    <form method="post" style="margin-top:8px;">{% csrf_token %}<input type="hidden" name="wizard_action" value="BACK_TO_STEP1"><button type="submit" class="btn btn-sec" style="margin-top:0;">&larr; Edit Personal / Email Details</button></form>
 
-    if (suffixInput) {
-      suffixInput.addEventListener("input", () => {
-        suffixInput.value = suffixInput.value.replace(/[^A-Za-z0-9. ]/g, "");
-        checkCompletion();
-      });
-    }
-
-    ["dobMonth", "dobDay", "dobYear"].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener("change", computeExactAge);
-    });
-
-    fields.forEach(f => {
-      f.addEventListener("input", checkCompletion);
-      f.addEventListener("change", checkCompletion);
-    });
-
-    if (privacyCheck) privacyCheck.addEventListener("change", checkCompletion);
-    if (sigInput) sigInput.addEventListener("input", checkCompletion);
-
-    computeExactAge();
-  </script>
+    {% elif wizard_step == "2B" %}
+    <h2 style="margin:0 0 6px;font-size:1.15rem;color:#1e3a8a;">Step 2B: Residency 2x2 Photo &amp; Supporting Documents</h2>
+    <p style="margin:0 0 14px;font-size:.84rem;color:#475569;">Upload a clear 2x2 ID photo and valid proof of residency (Government ID, Barangay Billing, or Lease).</p>
+    <form id="step2BForm" method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="wizard_action" value="STEP2B_COMPLETE">
+      <label>Official 2x2 Profile Photo (.jpg, .png) *</label>
+      <div class="file-box"><input type="file" id="p2x2Inp" name="photo" accept=".png,.jpg,.jpeg,.webp" onchange="toggleX('p2x2Inp','p2x2X')" required style="border:0;background:transparent;padding:2px;"><button type="button" id="p2x2X" class="x-btn" title="Remove photo" onclick="clearFile('p2x2Inp','p2x2X')">&#10005;</button></div>
+      <label style="margin-top:14px;">Supporting Document / Valid ID / Proof of Residency *</label>
+      <div class="file-box"><input type="file" id="sDocInp" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple onchange="toggleX('sDocInp','sDocX')" required style="border:0;background:transparent;padding:2px;"><button type="button" id="sDocX" class="x-btn" title="Remove document" onclick="clearFile('sDocInp','sDocX')">&#10005;</button></div>
+      <button type="button" onclick="submitStep2B()" class="btn" style="background:#16a34a;">Submit Registration &amp; Generate Reference ID &rarr;</button>
+    </form>
+    {% elif wizard_step == "2C" and submitted_citizen %}
+    <div style="text-align:center;padding:8px 0;">
+      <div style="width:56px;height:56px;border-radius:50%;margin:0 auto 12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:900;">&#10003;</div>
+      <h2 style="margin:0 0 4px;font-size:1.25rem;color:#0f172a;">Registration Submitted &amp; Staged!</h2>
+      <p style="margin:0 0 16px;font-size:.85rem;color:#475569;">Save your <strong>System-Generated Reference Number</strong> below. You will also receive an official email once verified by the Barangay Secretary.</p>
+      <div style="background:#f8fafc;border:2px dashed #1e3a8a;border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:.72rem;text-transform:uppercase;color:#64748b;font-weight:800;">System-Generated Reference Number</div>
+        <div style="font-size:1.45rem;font-weight:900;color:#1e3a8a;letter-spacing:.04em;margin:4px 0;">{{ submitted_citizen.citizen_qr_id }}</div>
+        <div style="font-size:.82rem;color:#334155;">Portal Username: <strong>{{ submitted_citizen.portal_username }}</strong> &bull; Status: <strong>Pending Official Verification</strong></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/login/?role=CITIZEN" class="btn" style="text-decoration:none;flex:1;margin:0;">Go to Unified Sign-In &rarr;</a>
+        <a href="/portal/?reset=1" class="btn btn-sec" style="text-decoration:none;flex:1;margin:0;">Register Another Resident</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<script>
+  let uTimer=null, uAvailable=true;
+  function checkUserAvail(val){const b=document.getElementById('uAvailBadge'),u=val.trim();if(u.length<3){b.textContent='';uAvailable=false;return;}clearTimeout(uTimer);uTimer=setTimeout(()=>{fetch('/portal/?check_username='+encodeURIComponent(u)).then(r=>r.json()).then(d=>{uAvailable=d.available;b.style.color=d.available?'#16a34a':'#dc2626';b.textContent=d.available?'? Username Available':'? Already Taken';});},250);}
+  function checkPwRules(){const p=document.getElementById('pwInp')?.value||'',c=document.getElementById('pwConfInp')?.value||'';const setR=(id,ok)=>{const el=document.getElementById(id);if(el){el.className='chk-item'+(ok?' ok':'');el.innerHTML=(ok?'&#10003; ':'&#9675; ')+el.innerHTML.slice(2);}};setR('rLen',p.length>=8);setR('rUp',/[A-Z]/.test(p));setR('rNum',/[0-9]/.test(p));setR('rSpec',/[^A-Za-z0-9]/.test(p));const mt=document.getElementById('pwMatchTag');if(mt){mt.style.color=(c&&p===c)?'#16a34a':'#dc2626';mt.textContent=c?(p===c?'? Match':'? Mismatch'):'';}}
+  function askConfirm(title,msg,onYes){const box=document.getElementById('confirmBox');document.getElementById('cBoxTitle').textContent=title;document.getElementById('cBoxMsg').textContent=msg;box.style.display='flex';document.getElementById('cBoxNo').onclick=()=>{box.style.display='none';};document.getElementById('cBoxYes').onclick=()=>{box.style.display='none';onYes();};}
+  function confirmStep1(){const f=document.getElementById('step1Form');if(!f.reportValidity())return;if(!uAvailable){alert('That username is already taken.');return;}const p=document.getElementById('pwInp').value,c=document.getElementById('pwConfInp').value;if(p.length<8||!/[A-Z]/.test(p)||!/[a-z]/.test(p)||!/[0-9]/.test(p)||!/[^A-Za-z0-9]/.test(p)){alert('Please satisfy all password security requirements.');return;}if(p!==c){alert('Passwords do not match.');return;}askConfirm('Send Verification Code','Send a 6-digit verification OTP to your email address now?',()=>f.submit());}
+  function toggleX(inpId,xId){document.getElementById(xId).style.display=document.getElementById(inpId).files.length?'inline-flex':'none';}
+  function clearFile(inpId,xId){document.getElementById(inpId).value='';document.getElementById(xId).style.display='none';}
+  function submitStep2B(){const f=document.getElementById('step2BForm');if(!f.reportValidity())return;askConfirm('Submit Application','Confirm your 2x2 photo and supporting documents are clear and submit your registration?',()=>f.submit());}
+  const tEl=document.getElementById('otpTimer');if(tEl){let sec=119;const iv=setInterval(()=>{sec--;if(sec<=0){clearInterval(iv);tEl.textContent='00:00';const rb=document.getElementById('resendOtpBtn');rb.disabled=false;rb.style.color='#1e3a8a';rb.style.cursor='pointer';}else{tEl.textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');}},1000);}
+  function submitResendOtp(){askConfirm('Resend OTP','Send a fresh 6-digit verification code to your email?',()=>document.getElementById('resendOtpForm').submit());}
+</script>
 </body>
 </html>
