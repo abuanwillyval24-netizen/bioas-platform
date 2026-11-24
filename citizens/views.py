@@ -484,7 +484,7 @@ def citizen_home(request):
     resp = HttpResponse(tpl.render({
         "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
         "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
-        "recent_certs": recent_certs, "recent_reports": recent_reports, "social_assistance_records": list(__import__("services.models", fromlist=["SocialAidDistribution"]).SocialAidDistribution.objects.filter(citizen=citizen).order_by("-id")[:15]) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
+        "recent_certs": recent_certs, "recent_reports": recent_reports, "social_assistance_records": list(__import__("welfare.models", fromlist=["SocialAidDistribution"]).SocialAidDistribution.objects.filter(citizen=citizen).order_by("-id")[:15]) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
     }, request))
     resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp["Pragma"] = "no-cache"
