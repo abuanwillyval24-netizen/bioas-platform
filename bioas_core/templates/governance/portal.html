@@ -37,12 +37,12 @@
     <div><a href="/login/?role=CITIZEN">&larr; Back to Unified Sign-In</a></div>
   </div>
 
-  {% if ack_msg %}
+  {% if ack_notice %}
   <div id="ackPopup" style="position:fixed;inset:0;background:rgba(15,23,42,.58);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;">
     <div style="background:#fff;max-width:430px;width:100%;border-radius:16px;padding:24px;box-shadow:0 24px 48px rgba(15,23,42,.3);border-top:5px solid #16a34a;text-align:center;">
       <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;">&#10003;</div>
       <h3 style="margin:0 0 8px;font-size:1.06rem;font-weight:800;">Step Acknowledged</h3>
-      <p style="margin:0 0 18px;font-size:.86rem;line-height:1.5;color:#475569;">{{ ack_msg }}</p>
+      <p style="margin:0 0 18px;font-size:.86rem;line-height:1.5;color:#475569;">{{ ack_notice }}</p>
       <button type="button" onclick="document.getElementById('ackPopup').remove()" class="btn" style="margin:0;">Continue &rarr;</button>
     </div>
   </div>
@@ -70,13 +70,13 @@
 
   <div class="card">
     <div class="stepper">
-      <div class="step-pill {% if wizard_step == '1' %}active{% else %}done{% endif %}">1. Account &amp; Info</div>
-      <div class="step-pill {% if wizard_step == '2A' %}active{% elif wizard_step == '2B' or wizard_step == '2C' %}done{% endif %}">2A. Email OTP</div>
-      <div class="step-pill {% if wizard_step == '2B' %}active{% elif wizard_step == '2C' %}done{% endif %}">2B. Photo &amp; Docs</div>
-      <div class="step-pill {% if wizard_step == '2C' %}active{% endif %}">2C. Reference ID</div>
+      <div class="step-pill {% if wizard_step == 'STEP1' %}active{% else %}done{% endif %}">1. Account &amp; Info</div>
+      <div class="step-pill {% if wizard_step == 'STEP2A' %}active{% elif wizard_step == 'STEP2B' or wizard_step == 'STEP2C' %}done{% endif %}">2A. Email OTP</div>
+      <div class="step-pill {% if wizard_step == 'STEP2B' %}active{% elif wizard_step == 'STEP2C' %}done{% endif %}">2B. Photo &amp; Docs</div>
+      <div class="step-pill {% if wizard_step == 'STEP2C' %}active{% endif %}">2C. Reference ID</div>
     </div>
 
-    {% if wizard_step == "1" %}
+    {% if wizard_step == "STEP1" %}
     <form id="step1Form" method="post">
       {% csrf_token %}<input type="hidden" name="wizard_action" value="STEP1_SEND_OTP">
       <div class="sec-hdr" style="margin-top:0;">Personal Information</div>
@@ -96,7 +96,7 @@
       </div>
       <div class="sec-hdr">Contact &amp; Residency Details</div>
       <div class="grid-2">
-        <div><label>Barangay *</label><select name="barangay_id">{% for b in barangays %}<option value="{{ b.id }}" {% if draft.barangay_id == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}</select></div>
+        <div><label>Barangay *</label><select name="barangay_id">{% for b in barangays %}<option value="{{ b.id }}" {% if draft.barangay_id == b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}</select></div>
         <div><label>Purok / Zone *</label><input name="purok" value="{{ draft.purok }}" placeholder="e.g., Purok I" required></div>
       </div>
       <div style="margin-top:10px;"><label>Complete House / Street Address *</label><input name="address_line" value="{{ draft.address_line }}" placeholder="e.g., Blk 2 Lot 5 Rizal St." required></div>
@@ -114,7 +114,7 @@
       <label style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:.82rem;color:#1e293b;cursor:pointer;"><input type="checkbox" id="consentChk" name="agree_terms_privacy" style="width:18px;height:18px;" required><span>I agree to the <strong>Data Privacy Policy</strong> and <strong>Terms of Use</strong>.</span></label>
       <button type="button" onclick="confirmStep1()" class="btn">Next: Send Verification OTP &rarr;</button>
     </form>
-    {% elif wizard_step == "2A" %}
+    {% elif wizard_step == "STEP2A" %}
     <h2 style="margin:0 0 6px;font-size:1.15rem;color:#1e3a8a;">Step 2A: Email OTP Verification</h2>
     <p style="margin:0 0 14px;font-size:.85rem;color:#475569;">Enter the 6-digit verification code sent to <strong>{{ draft.email_address }}</strong>.</p>
     <form id="step2AForm" method="post">{% csrf_token %}<input type="hidden" name="wizard_action" value="STEP2A_VERIFY_OTP">
@@ -122,20 +122,20 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.8rem;color:#475569;"><span>Resend available in: <strong id="otpTimer" style="color:#1e3a8a;">01:59</strong></span><button type="button" id="resendOtpBtn" disabled onclick="submitResendOtp()" style="background:none;border:0;color:#94a3b8;font-weight:800;cursor:not-allowed;padding:0;">Resend Code</button></div>
       <button type="button" onclick="askConfirm('Verify OTP Code','Confirm your 6-digit verification code and proceed to Photo & Document upload?',()=>document.getElementById('step2AForm').submit())" class="btn">Verify OTP &amp; Continue &rarr;</button>
     </form>
-    <form id="resendOtpForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="wizard_action" value="RESEND_OTP"></form>
-    <form method="post" style="margin-top:8px;">{% csrf_token %}<input type="hidden" name="wizard_action" value="BACK_TO_STEP1"><button type="submit" class="btn btn-sec" style="margin-top:0;">&larr; Edit Personal / Email Details</button></form>
+    <form id="resendOtpForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="wizard_action" value="STEP2A_RESEND_OTP"></form>
+    <form method="post" style="margin-top:8px;">{% csrf_token %}<input type="hidden" name="wizard_action" value="STEP1_BACK"><button type="submit" class="btn btn-sec" style="margin-top:0;">&larr; Edit Personal / Email Details</button></form>
 
-    {% elif wizard_step == "2B" %}
+    {% elif wizard_step == "STEP2B" %}
     <h2 style="margin:0 0 6px;font-size:1.15rem;color:#1e3a8a;">Step 2B: Residency 2x2 Photo &amp; Supporting Documents</h2>
     <p style="margin:0 0 14px;font-size:.84rem;color:#475569;">Upload a clear 2x2 ID photo and valid proof of residency (Government ID, Barangay Billing, or Lease).</p>
-    <form id="step2BForm" method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="wizard_action" value="STEP2B_COMPLETE">
+    <form id="step2BForm" method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="wizard_action" value="STEP2B_COMPLETE_SIGNUP">
       <label>Official 2x2 Profile Photo (.jpg, .png) *</label>
       <div class="file-box"><input type="file" id="p2x2Inp" name="photo" accept=".png,.jpg,.jpeg,.webp" onchange="toggleX('p2x2Inp','p2x2X')" required style="border:0;background:transparent;padding:2px;"><button type="button" id="p2x2X" class="x-btn" title="Remove photo" onclick="clearFile('p2x2Inp','p2x2X')">&#10005;</button></div>
       <label style="margin-top:14px;">Supporting Document / Valid ID / Proof of Residency *</label>
       <div class="file-box"><input type="file" id="sDocInp" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple onchange="toggleX('sDocInp','sDocX')" required style="border:0;background:transparent;padding:2px;"><button type="button" id="sDocX" class="x-btn" title="Remove document" onclick="clearFile('sDocInp','sDocX')">&#10005;</button></div>
       <button type="button" onclick="submitStep2B()" class="btn" style="background:#16a34a;">Submit Registration &amp; Generate Reference ID &rarr;</button>
     </form>
-    {% elif wizard_step == "2C" and submitted_citizen %}
+    {% elif wizard_step == "STEP2C" and submitted_citizen %}
     <div style="text-align:center;padding:8px 0;">
       <div style="width:56px;height:56px;border-radius:50%;margin:0 auto 12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:900;">&#10003;</div>
       <h2 style="margin:0 0 4px;font-size:1.25rem;color:#0f172a;">Registration Submitted &amp; Staged!</h2>
@@ -155,7 +155,7 @@
 </div>
 <script>
   let uTimer=null, uAvailable=true;
-  function checkUserAvail(val){const b=document.getElementById('uAvailBadge'),u=val.trim();if(u.length<3){b.textContent='';uAvailable=false;return;}clearTimeout(uTimer);uTimer=setTimeout(()=>{fetch('/portal/?check_username='+encodeURIComponent(u)).then(r=>r.json()).then(d=>{uAvailable=d.available;b.style.color=d.available?'#16a34a':'#dc2626';b.textContent=d.available?'? Username Available':'? Already Taken';});},250);}
+  function checkUserAvail(val){const b=document.getElementById('uAvailBadge'),u=val.trim();if(u.length<4){b.textContent='';uAvailable=false;return;}clearTimeout(uTimer);uTimer=setTimeout(()=>{fetch('/portal/?check_username='+encodeURIComponent(u)).then(r=>r.json()).then(d=>{uAvailable=d.available;b.style.color=d.available?'#16a34a':'#dc2626';b.textContent=d.available?'? Username Available':'? Already Taken';});},250);}
   function checkPwRules(){const p=document.getElementById('pwInp')?.value||'',c=document.getElementById('pwConfInp')?.value||'';const setR=(id,ok)=>{const el=document.getElementById(id);if(el){el.className='chk-item'+(ok?' ok':'');el.innerHTML=(ok?'&#10003; ':'&#9675; ')+el.innerHTML.slice(2);}};setR('rLen',p.length>=8);setR('rUp',/[A-Z]/.test(p));setR('rNum',/[0-9]/.test(p));setR('rSpec',/[^A-Za-z0-9]/.test(p));const mt=document.getElementById('pwMatchTag');if(mt){mt.style.color=(c&&p===c)?'#16a34a':'#dc2626';mt.textContent=c?(p===c?'? Match':'? Mismatch'):'';}}
   function askConfirm(title,msg,onYes){const box=document.getElementById('confirmBox');document.getElementById('cBoxTitle').textContent=title;document.getElementById('cBoxMsg').textContent=msg;box.style.display='flex';document.getElementById('cBoxNo').onclick=()=>{box.style.display='none';};document.getElementById('cBoxYes').onclick=()=>{box.style.display='none';onYes();};}
   function confirmStep1(){const f=document.getElementById('step1Form');if(!f.reportValidity())return;if(!uAvailable){alert('That username is already taken.');return;}const p=document.getElementById('pwInp').value,c=document.getElementById('pwConfInp').value;if(p.length<8||!/[A-Z]/.test(p)||!/[a-z]/.test(p)||!/[0-9]/.test(p)||!/[^A-Za-z0-9]/.test(p)){alert('Please satisfy all password security requirements.');return;}if(p!==c){alert('Passwords do not match.');return;}askConfirm('Send Verification Code','Send a 6-digit verification OTP to your email address now?',()=>f.submit());}
