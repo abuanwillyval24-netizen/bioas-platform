@@ -40,7 +40,7 @@ def staff_login(request):
     dev_tok = raw_tok or secrets.token_urlsafe(32)
     ua_str = request.META.get("HTTP_USER_AGENT", "")[:160]
     xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    client_ip = (xff.split(",").strip() if xff else request.META.get("REMOTE_ADDR", "")) or "0.0.0.0"
+    client_ip = (xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR", "")) or "0.0.0.0"
     ip_prefix = ".".join(client_ip.split(".")[:2]) if "." in client_ip else client_ip[:24]
     dev_hash = hashlib.sha256(f"{dev_tok}|{ua_str[:80]}".encode("utf-8")).hexdigest()
 
@@ -59,7 +59,7 @@ def staff_login(request):
 
     def _trigger_2fa(acct_key, r_type, obj_id, email_addr, disp_name):
         code = f"{random.randint(100000, 999999)}"
-        masked = (email_addr[:2] + "***@" + email_addr.split("@")) if "@" in email_addr else "your registered email"
+        masked = (email_addr[:2] + "***@" + email_addr.split("@")[-1]) if "@" in email_addr else "your registered email"
         request.session["bioas_2fa_pending"] = {"code": code, "acct_key": acct_key, "role_type": r_type, "obj_id": obj_id, "masked_email": masked}
         if email_addr:
             try:
