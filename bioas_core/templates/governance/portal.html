@@ -34,7 +34,11 @@
 <div class="shell">
   <div class="brand-bar">
     <div><h1>{{ active_barangay.name|default:"Barangay Lagare" }} &bull; Citizen Sign-Up</h1><small style="color:#cbd5e1;">Official Resident Digital Onboarding</small></div>
-    <div><a href="/login/?role=CITIZEN">&larr; Back to Unified Sign-In</a></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span id="devDetectBadge" style="background:rgba(255,255,255,.14);color:#e2e8f0;padding:4px 9px;border-radius:999px;font-size:.72rem;font-weight:700;"></span>
+      <button type="button" id="viewToggleBtn" onclick="togglePortalView()" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);padding:5px 10px;border-radius:7px;font-size:.74rem;font-weight:800;cursor:pointer;">Mobile View</button>
+      <a href="/login/?role=CITIZEN">&larr; Back to Unified Sign-In</a>
+    </div>
   </div>
 
   {% if ack_notice %}
@@ -166,6 +170,20 @@
   </div>
 </div>
 <script>
+  let isMobileView=false;
+  function applyPortalView(mob){
+    isMobileView=mob;
+    const sh=document.querySelector('.shell'), btn=document.getElementById('viewToggleBtn'), bdg=document.getElementById('devDetectBadge');
+    if(sh) sh.style.maxWidth=mob?'430px':'680px';
+    document.querySelectorAll('.grid-2,.grid-3').forEach(g=>{g.style.gridTemplateColumns=mob?'1fr':'';});
+    if(btn) btn.textContent=mob?'Switch to Desktop View':'Switch to Mobile View';
+    if(bdg) bdg.textContent=mob?'View: Mobile (430px)':'View: Desktop (680px)';
+  }
+  function togglePortalView(){applyPortalView(!isMobileView);}
+  window.addEventListener('DOMContentLoaded',()=>{
+    const autoMob=(window.innerWidth<=640)||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    applyPortalView(autoMob);
+  });
   function toggleIdleField(chkId,inpId){const c=document.getElementById(chkId).checked,i=document.getElementById(inpId);if(c){i.value='';i.disabled=true;i.style.background='#e2e8f0';}else{i.disabled=false;i.style.background='#f8fafc';}}
   let uTimer=null, uAvailable=true;
   function checkUserAvail(val){const b=document.getElementById('uAvailBadge'),u=val.trim();if(u.length<4){b.textContent='';uAvailable=false;return;}clearTimeout(uTimer);uTimer=setTimeout(()=>{fetch('/portal/?check_username='+encodeURIComponent(u)).then(r=>r.json()).then(d=>{uAvailable=d.available;b.style.color=d.available?'#16a34a':'#dc2626';b.textContent=d.available?'? Username Available':'? '+(d.message||'Unavailable');b.dataset.msg=d.message||'Username is unavailable.';});},250);}
