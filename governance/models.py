@@ -481,7 +481,7 @@ class BarangayPortalShowcase(models.Model):
 class BarangayBlastAdvisory(models.Model):
     CATEGORY_CHOICES = [
         ("MEMORANDUM", "Official Barangay Memorandum"),
-        ("AYUDA_PAYOUT", "Ayuda / Social Welfare Payout Schedule"),
+        ("AYUDA_PAYOUT", "Social Assistance & Welfare Programs Schedule"),
         ("WEATHER_DRRM", "BDRRMC Weather & Safety Alert"),
         ("HEALTH_MISSION", "Health Center & Medical Mission"),
         ("GENERAL_ADVISORY", "General Community Advisory"),
@@ -494,7 +494,28 @@ class BarangayBlastAdvisory(models.Model):
     is_urgent = models.BooleanField(default=False)
     posted_by_name = models.CharField(max_length=150, blank=True)
     posted_by_role = models.CharField(max_length=80, blank=True)
+    photo_data_uri = models.TextField(blank=True)
+    liked_citizen_ids = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def like_ids_list(self):
+        return [x for x in (self.liked_citizen_ids or "").split(",") if x.strip()]
+
+    @property
+    def likes_count(self):
+        return len(self.like_ids_list)
 
     class Meta:
         ordering = ["-is_urgent", "-created_at"]
+
+
+class BarangayAdvisoryComment(models.Model):
+    advisory = models.ForeignKey(BarangayBlastAdvisory, on_delete=models.CASCADE, related_name="comments")
+    citizen = models.ForeignKey("citizens.CitizenProfile", on_delete=models.CASCADE)
+    comment_text = models.TextField()
+    official_reply = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]

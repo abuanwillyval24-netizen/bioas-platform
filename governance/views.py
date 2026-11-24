@@ -855,6 +855,11 @@ def command_dashboard(request):
             b_purok = request.POST.get("target_purok", "ALL").strip() or "ALL"
             b_urg = bool(request.POST.get("is_urgent"))
             if active_barangay and b_title and b_msg:
+                import base64
+                b_photo_uri = ""
+                pf = request.FILES.get("blast_photo")
+                if pf:
+                    b_photo_uri = f"data:{pf.content_type or 'image/jpeg'};base64," + base64.b64encode(pf.read()).decode("ascii")
                 adv = BarangayBlastAdvisory.objects.create(
                     barangay=active_barangay,
                     category=b_cat,
@@ -862,6 +867,7 @@ def command_dashboard(request):
                     message=b_msg,
                     target_purok=b_purok,
                     is_urgent=b_urg,
+                    photo_data_uri=b_photo_uri,
                     posted_by_name=actor_name,
                     posted_by_role=actor_role,
                 )

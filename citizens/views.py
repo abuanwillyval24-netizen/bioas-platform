@@ -440,6 +440,25 @@ def citizen_home(request):
             )
             notice = f"Report Submitted! Tracking Code: {rep.tracking_code}."
 
+        elif act == "TOGGLE_ADV_LIKE":
+            from governance.models import BarangayBlastAdvisory
+            adv = BarangayBlastAdvisory.objects.filter(id=request.POST.get("advisory_id"), barangay=citizen.barangay).first()
+            if adv:
+                ids = adv.like_ids_list
+                cid_s = str(citizen.id)
+                if cid_s in ids:
+                    ids.remove(cid_s)
+                else:
+                    ids.append(cid_s)
+                adv.liked_citizen_ids = ",".join(ids)
+                adv.save(update_fields=["liked_citizen_ids"])
+        elif act == "POST_ADV_COMMENT":
+            from governance.models import BarangayBlastAdvisory, BarangayAdvisoryComment
+            adv = BarangayBlastAdvisory.objects.filter(id=request.POST.get("advisory_id"), barangay=citizen.barangay).first()
+            c_txt = request.POST.get("comment_text", "").strip()
+            if adv and c_txt:
+                BarangayAdvisoryComment.objects.create(advisory=adv, citizen=citizen, comment_text=c_txt)
+                notice = "Your question / comment has been posted to the Barangay Office!"
         elif act == "REQUEST_CERT":
             ctype = request.POST["cert_type"]
             exempt = ctype in ("INDIGENCY", "FIRST_TIME_JOBSEEKER")
@@ -465,7 +484,7 @@ def citizen_home(request):
     resp = HttpResponse(tpl.render({
         "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
         "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
-        "recent_certs": recent_certs, "recent_reports": recent_reports, "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
+        "recent_certs": recent_certs, "recent_reports": recent_reports, "social_assistance_records": list(__import__("services.models", fromlist=["SocialAidDistribution"]).SocialAidDistribution.objects.filter(citizen=citizen).order_by("-id")[:15]) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
     }, request))
     resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp["Pragma"] = "no-cache"

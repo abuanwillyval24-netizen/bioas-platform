@@ -2,242 +2,174 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Resident Self-Service Dashboard &mdash; {{ citizen.barangay.name|default:"BIOAS Portal" }}</title>
+  <title>{{ citizen.barangay.name|default:"BIOAS" }} Citizen Portal Dashboard</title>
   <style>
     *{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
     html{height:100%}
-    body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#f1f5f9;color:#0f172a}
-    .topbar{position:sticky;top:0;z-index:900;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#0f766e 100%);color:#fff;padding:12px 20px;box-shadow:0 4px 16px rgba(15,23,42,.22)}
+    body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#eef2f6;color:#0f172a}
+    .topbar{position:sticky;top:0;z-index:900;background:#0f172a;color:#fff;padding:10px 20px;box-shadow:0 3px 12px rgba(15,23,42,.2)}
     .topbar a,.topbar button{transition:all .18s ease}
     .topbar a:hover,.topbar button:hover{transform:translateY(-1px);filter:brightness(1.12)}
-    .wrap{flex:1 0 auto;width:100%;max-width:1180px;margin:0 auto;padding:18px 16px 36px}
+    .wrap{flex:1 0 auto;width:100%;max-width:1200px;margin:0 auto;padding:16px 14px 28px}
     .dash-shell{display:flex;gap:18px;align-items:flex-start}
-    .cit-sidebar{position:sticky;top:68px;width:280px;flex-shrink:0;background:#fff;border-radius:16px;padding:18px;border:1px solid #e2e8f0;border-top:5px solid #1e3a8a;box-shadow:0 10px 26px rgba(15,23,42,.06)}
+    .navy-sidebar{position:sticky;top:60px;width:290px;flex-shrink:0;background:linear-gradient(180deg,#1e3a8a 0%,#172554 100%);border-radius:18px;padding:16px;box-shadow:0 14px 30px rgba(30,58,138,.22)}
+    .id-white-card{background:#fff;border-radius:14px;padding:16px 14px;text-align:center;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+    .dl-id-btn{display:block;width:100%;margin-top:10px;background:#1d4ed8;color:#fff;text-decoration:none;padding:9px 12px;border-radius:9px;font-size:.82rem;font-weight:800;transition:all .18s ease}
+    .dl-id-btn:hover{background:#1e40af;transform:translateY(-1px)}
+    .side-nav{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+    .tab-btn{width:100%;text-align:left;background:#fff;color:#1e293b;border:0;padding:10px 13px;border-radius:10px;font-size:.82rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,.08);transition:all .18s ease}
+    .tab-btn:hover{background:#eff6ff;color:#1d4ed8;transform:translateX(4px)}
+    .tab-btn.active{background:#1d4ed8;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.22)}
+    .tab-pill{background:#dbeafe;color:#1e3a8a;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:900}
+    .tab-btn.active .tab-pill{background:rgba(255,255,255,.22);color:#fff}
     .cit-main{flex:1;min-width:0}
-    .side-nav{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid #e2e8f0}
-    .tab-btn{width:100%;text-align:left;background:#f8fafc;color:#334155;border:1px solid #e2e8f0;padding:10px 13px;border-radius:10px;font-size:.83rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:all .18s ease}
-    .tab-btn:hover{background:#eff6ff;color:#1e3a8a;border-color:#93c5fd;transform:translateX(4px);box-shadow:0 3px 10px rgba(30,58,138,.08)}
-    .tab-btn.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a;box-shadow:0 4px 12px rgba(30,58,138,.22)}
-    .tab-btn.active:hover{background:#1d4ed8;color:#fff;transform:translateX(2px)}
-    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:16px}
-    .stat-card{background:#fff;border-radius:12px;padding:13px 15px;border:1px solid #e2e8f0;border-left:4px solid #1e3a8a;transition:transform .18s ease,box-shadow .18s ease}
-    .stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,23,42,.07)}
-    .stat-card h4{margin:0;font-size:.71rem;text-transform:uppercase;color:#64748b;letter-spacing:.04em}
-    .stat-card .num{font-size:1.38rem;font-weight:900;color:#0f172a;margin-top:4px}
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:14px}
+    .stat-card{background:#fff;border-radius:12px;padding:12px 15px;border:1px solid #e2e8f0;border-left:4px solid #1e3a8a;box-shadow:0 3px 10px rgba(15,23,42,.04);transition:transform .18s ease}
+    .stat-card:hover{transform:translateY(-2px)}
+    .stat-card h4{margin:0;font-size:.69rem;text-transform:uppercase;color:#64748b;letter-spacing:.04em}
+    .stat-card .num{font-size:1.35rem;font-weight:900;color:#0f172a;margin-top:4px}
+    .action-banner{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .filter-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .f-pill{background:#fff;color:#334155;border:1px solid #cbd5e1;padding:6px 14px;border-radius:999px;font-size:.78rem;font-weight:800;cursor:pointer;transition:all .15s ease}
+    .f-pill:hover,.f-pill.active{background:#dbeafe;color:#1e3a8a;border-color:#2563eb}
     .panel{display:none}.panel.active{display:block}
-    .card{background:#fff;border-radius:14px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 6px 18px rgba(15,23,42,.04);margin-bottom:16px}
+    .card{background:#fff;border-radius:14px;padding:18px 20px;border:1px solid #e2e8f0;box-shadow:0 4px 14px rgba(15,23,42,.04);margin-bottom:14px}
     .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
     .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
     label{display:block;font-size:.76rem;font-weight:700;color:#334155;margin-bottom:4px}
-    input,select,textarea{width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:.86rem;background:#f8fafc}
-    .btn{background:#1e3a8a;color:#fff;border:0;padding:10px 16px;border-radius:9px;font-size:.86rem;font-weight:800;cursor:pointer;transition:all .18s ease}
-    .btn:hover{background:#1d4ed8;transform:translateY(-1px)}
+    input,select,textarea{width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;font-size:.85rem;background:#f8fafc}
+    .btn{background:#1d4ed8;color:#fff;border:0;padding:9px 16px;border-radius:9px;font-size:.85rem;font-weight:800;cursor:pointer;transition:all .18s ease}
+    .btn:hover{background:#1e40af;transform:translateY(-1px)}
     .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.71rem;font-weight:800;background:#dbeafe;color:#1e40af}
     table{width:100%;border-collapse:collapse;font-size:.82rem}
     th,td{padding:9px 10px;border-bottom:1px solid #e2e8f0;text-align:left}
     th{background:#f8fafc;font-size:.74rem;text-transform:uppercase;color:#475569}
     footer{margin-top:auto;width:100%}
-    @media(max-width:860px){.dash-shell{flex-direction:column}.cit-sidebar{position:static;width:100%}}
+    @media(max-width:860px){.dash-shell{flex-direction:column}.navy-sidebar{position:static;width:100%}}
   </style>
 </head>
 <body>
   <div class="topbar">
-    <div style="max-width:1040px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-      <div><strong style="font-size:1.15rem;">{{ citizen.barangay.name|default:"BIOAS Resident Portal" }}</strong><div style="font-size:.78rem;color:#cbd5e1;">Resident Self-Service &amp; Official Advisory Super-Dashboard</div></div>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <span id="citDevBadge" style="background:rgba(255,255,255,.14);color:#e2e8f0;padding:4px 9px;border-radius:999px;font-size:.72rem;font-weight:700;"></span>
-        <button type="button" id="citViewBtn" onclick="toggleCitView()" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);padding:6px 10px;border-radius:8px;font-size:.74rem;font-weight:800;cursor:pointer;">Mobile View</button>
-        <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" style="background:rgba(255,255,255,.15);color:#fff;padding:7px 12px;border-radius:8px;text-decoration:none;font-size:.78rem;font-weight:700;">View Digital 201 ID &nearr;</a>
-        <a href="/citizen-home/?logout=1" style="background:#dc2626;color:#fff;padding:7px 13px;border-radius:8px;text-decoration:none;font-size:.78rem;font-weight:800;">Sign Out</a>
+    <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;align-items:center;gap:8px;"><span style="background:#fbbf24;color:#0f172a;font-weight:900;padding:2px 8px;border-radius:999px;font-size:.7rem;">BIOAS</span><strong style="font-size:1rem;">{{ citizen.barangay.name|default:"Resident Portal" }}</strong></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span id="citDevBadge" style="background:rgba(255,255,255,.14);color:#e2e8f0;padding:4px 9px;border-radius:999px;font-size:.71rem;font-weight:700;"></span>
+        <button type="button" id="citViewBtn" onclick="toggleCitView()" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);padding:4px 10px;border-radius:7px;font-size:.73rem;font-weight:800;cursor:pointer;">Mobile View</button>
+        <a href="/citizen-home/?logout=1" style="background:#dc2626;color:#fff;padding:5px 12px;border-radius:7px;text-decoration:none;font-size:.75rem;font-weight:800;">Sign Out</a>
       </div>
     </div>
   </div>
 
-  {% if notice %}
-  <div id="citAckModal" style="position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;">
-    <div style="background:#fff;max-width:430px;width:100%;border-radius:16px;padding:24px;box-shadow:0 24px 48px rgba(15,23,42,.28);border-top:5px solid #16a34a;text-align:center;">
-      <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;">&#10003;</div>
-      <h3 style="margin:0 0 8px;font-size:1.06rem;font-weight:800;">Action Acknowledged</h3>
-      <p style="margin:0 0 18px;font-size:.86rem;line-height:1.5;color:#475569;">{{ notice }}</p>
-      <button type="button" onclick="document.getElementById('citAckModal').remove()" class="btn" style="width:100%;">Continue</button>
-    </div>
-  </div>
-  {% endif %}
-  <div class="wrap">
-    {% if error %}<div class="card" style="border-left:5px solid #dc2626;background:#fef2f2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
-    {% if otp_stage == "VERIFY" %}
-      <div class="card" style="max-width:460px;margin:20px auto;border-top:5px solid #1e3a8a;">
-        <h3 style="margin-top:0;color:#1e3a8a;">Account Recovery &amp; Password Reset</h3>
-        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="RESET_PASSWORD_OTP">
-          <label>6-Digit OTP Sent to Your Email *</label><input name="otp_code" maxlength="6" required>
-          <label style="margin-top:10px;">New Password (Min 8 chars, Uppercase, Number &amp; Special Char) *</label><input type="password" name="new_password" minlength="8" required>
-          <button type="submit" class="btn" style="width:100%;margin-top:14px;">Reset Password &amp; Sign In &rarr;</button>
-        </form>
-      </div>
-    {% elif citizen %}
-      <div class="dash-shell">
-        <aside class="cit-sidebar">
-          <div style="text-align:center;">
-            {% if citizen.photo_data_uri or citizen.photo %}
-              <div style="display:inline-block;cursor:pointer;" onclick="document.getElementById('citPhotoZoomImg').src=this.querySelector('img').src;document.getElementById('citPhotoZoomModal').style.display='flex';">
-                <img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" style="width:128px;height:128px;border-radius:14px;object-fit:cover;border:3px solid #1e3a8a;transition:transform .18s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                <div style="font-size:.66rem;font-weight:800;color:#1e3a8a;margin-top:3px;">&#128269; Click to Enlarge</div>
-              </div>
-              <div id="citPhotoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.72);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-                <div style="background:#fff;border-radius:16px;padding:18px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 48px rgba(0,0,0,.35);">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="color:#1e3a8a;font-size:.9rem;">{{ citizen.full_name }}</strong><button type="button" onclick="document.getElementById('citPhotoZoomModal').style.display='none'" style="background:#e2e8f0;border:0;border-radius:6px;padding:4px 10px;font-weight:800;cursor:pointer;">Close &#10005;</button></div>
-                  <img id="citPhotoZoomImg" src="" style="width:100%;max-height:360px;object-fit:contain;border-radius:10px;">
+          <div id="tabAdvisories" class="panel active">
+            <div class="filter-pills">
+              <button type="button" class="fpill active" onclick="filterFeed('ALL',this)">All</button>
+              <button type="button" class="fpill" onclick="filterFeed('AYUDA_PAYOUT',this)">Social Assistance &amp; Welfare</button>
+              <button type="button" class="fpill" onclick="filterFeed('MEMORANDUM',this)">Projects &amp; Memorandums</button>
+              <button type="button" class="fpill" onclick="filterFeed('HEALTH_MISSION',this)">Events &amp; Health</button>
+              <button type="button" class="fpill" onclick="filterFeed('WEATHER_DRRM',this)">DRRM &amp; Alerts</button>
+            </div>
+            {% for adv in blast_advisories %}
+              <div class="feed-post" data-cat="{{ adv.category }}" style="border-top:4px solid {% if adv.is_urgent %}#dc2626{% else %}#1e3a8a{% endif %};">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="width:30px;height:30px;border-radius:50%;background:#1e3a8a;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:.78rem;">i</span><div><strong style="font-size:.86rem;color:#0f172a;">{{ citizen.barangay.name }} Office</strong> &bull; <small style="color:#64748b;">{{ adv.created_at|timesince }} ago</small><div style="font-size:.71rem;color:#64748b;">{{ adv.get_category_display }} &bull; Audience: {{ adv.target_purok }}</div></div></div>
+                  {% if adv.is_urgent %}<span class="badge" style="background:#fee2e2;color:#991b1b;">URGENT</span>{% endif %}
                 </div>
+                <h3 style="margin:4px 0 8px;font-size:1.06rem;color:#0f172a;">{{ adv.title }}</h3>
+                <p style="margin:0 0 10px;font-size:.86rem;line-height:1.55;color:#334155;white-space:pre-wrap;">{{ adv.message }}</p>
+                {% if adv.photo_data_uri %}<img src="{{ adv.photo_data_uri }}" style="width:100%;max-height:300px;object-fit:cover;border-radius:12px;margin-bottom:10px;border:1px solid #e2e8f0;">{% endif %}
+                <div style="display:flex;gap:14px;align-items:center;padding:8px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;font-size:.82rem;">
+                  <form method="post" style="margin:0;">{% csrf_token %}<input type="hidden" name="action" value="TOGGLE_ADV_LIKE"><input type="hidden" name="advisory_id" value="{{ adv.id }}"><button type="submit" style="background:none;border:0;color:#1e3a8a;font-weight:800;cursor:pointer;padding:2px 6px;">&#128077; Like / Acknowledge ({{ adv.likes_count }})</button></form>
+                  <span style="color:#475569;font-weight:700;">&#128172; Comment / Ask Office ({{ adv.comments.count }})</span>
+                </div>
+                {% for cm in adv.comments.all %}
+                  <div style="background:#f8fafc;border-radius:9px;padding:8px 11px;margin-top:8px;font-size:.8rem;"><strong>{{ cm.citizen.full_name }}</strong> <small style="color:#64748b;">{{ cm.created_at|timesince }} ago</small><div style="color:#334155;margin-top:2px;">{{ cm.comment_text }}</div>{% if cm.official_reply %}<div style="margin-top:5px;padding-left:10px;border-left:3px solid #16a34a;color:#166534;"><strong>Barangay Reply:</strong> {{ cm.official_reply }}</div>{% endif %}</div>
+                {% endfor %}
+                <form method="post" style="display:flex;gap:8px;margin-top:10px;">{% csrf_token %}<input type="hidden" name="action" value="POST_ADV_COMMENT"><input type="hidden" name="advisory_id" value="{{ adv.id }}"><input name="comment_text" placeholder="Write a question for the Barangay Office..." required style="flex:1;border-radius:999px;padding:8px 14px;"><button type="submit" class="btn" style="border-radius:999px;padding:8px 15px;">&#10148;</button></form>
               </div>
-            {% endif %}
-            <h2 style="margin:8px 0 4px;font-size:1.06rem;color:#0f172a;">{{ citizen.full_name }}</h2>
-            <span class="badge" style="background:#dcfce7;color:#166534;">&#10003; Active Verified Resident</span>
-            <div style="font-size:.76rem;color:#475569;margin-top:8px;line-height:1.45;">
-              <div>Ref ID: <strong>{{ citizen.citizen_qr_id }}</strong></div>
-              <div>Username: <strong>{{ citizen.portal_username }}</strong> &bull; <strong>{{ citizen.purok }}</strong></div>
-              <div style="font-size:.72rem;color:#64748b;margin-top:3px;">{{ citizen.current_address|default:citizen.address_line }}</div>
-            </div>
-            {% if citizen_qr_uri %}
-              <div style="margin-top:12px;display:inline-block;cursor:pointer;" onclick="const m=document.getElementById('citPhotoZoomModal');if(m){document.getElementById('citPhotoZoomImg').src=this.querySelector('img').src;m.style.display='flex';}"><img src="{{ citizen_qr_uri }}" style="width:112px;height:112px;border:2px solid #cbd5e1;border-radius:12px;padding:5px;background:#fff;transition:transform .18s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"><div style="font-size:.66rem;font-weight:800;color:#1e3a8a;margin-top:3px;">&#128269; Click QR to Enlarge</div></div>
-            {% endif %}
+            {% empty %}<div class="card"><p style="color:#64748b;margin:0;">No official Barangay advisories or announcements posted yet.</p></div>{% endfor %}
           </div>
-          <nav class="side-nav">
-            <button type="button" class="tab-btn active" onclick="openCitTab('tabAdvisories',this)"><span>&#128226; Advisories &amp; Blast Feed</span><span class="badge">{{ blast_advisories|length }}</span></button>
-            <button type="button" class="tab-btn" onclick="openCitTab('tabCerts',this)"><span>&#128220; Request Certificates</span><span class="badge">{{ recent_certs|length }}</span></button>
-            <button type="button" class="tab-btn" onclick="openCitTab('tabReports',this)"><span>&#128680; Report Concern</span><span class="badge">{{ recent_reports|length }}</span></button>
-            <button type="button" class="tab-btn" onclick="openCitTab('tabProfile',this)"><span>&#129706; My 201 Profile &amp; Docs</span><span>&rarr;</span></button>
-          </nav>
-        </aside>
-        <main class="cit-main">
-          <div class="stats-row">
-            <div class="stat-card" style="border-left-color:#d97706;"><h4>Official Advisories &amp; Memos</h4><div class="num">{{ blast_advisories|length }}</div></div>
-            <div class="stat-card" style="border-left-color:#1e3a8a;"><h4>Certificate Requests</h4><div class="num">{{ recent_certs|length }}</div></div>
-            <div class="stat-card" style="border-left-color:#0f766e;"><h4>Submitted Reports</h4><div class="num">{{ recent_reports|length }}</div></div>
-            <div class="stat-card" style="border-left-color:#16a34a;"><h4>201 Profile Status</h4><div class="num" style="font-size:1rem;padding-top:6px;">Verified &amp; Active</div></div>
-          </div>
-      <div id="tabAdvisories" class="panel active">
-        <div class="card" style="border-top:4px solid #d97706;">
-          <h3 style="margin-top:0;color:#0f172a;font-size:1rem;">&#128226; Official Barangay Advisories, Memorandums &amp; Ayuda Schedules</h3>
-          {% for adv in blast_advisories %}
-            <div style="padding:14px;border:1px solid {% if adv.is_urgent %}#fca5a5{% else %}#e2e8f0{% endif %};border-left:5px solid {% if adv.is_urgent %}#dc2626{% else %}#1e3a8a{% endif %};border-radius:10px;background:{% if adv.is_urgent %}#fef2f2{% else %}#f8fafc{% endif %};margin-bottom:10px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><div><span class="badge" style="{% if adv.is_urgent %}background:#fee2e2;color:#991b1b;{% endif %}">{{ adv.get_category_display }}</span> <strong style="font-size:.92rem;color:#0f172a;margin-left:4px;">{{ adv.title }}</strong></div><small style="color:#64748b;">{{ adv.created_at|date:"M d, Y h:i A" }}</small></div>
-              <p style="margin:8px 0 6px;font-size:.84rem;line-height:1.55;color:#334155;white-space:pre-wrap;">{{ adv.message }}</p>
-              <small style="color:#64748b;">Issued by: <strong>{{ adv.posted_by_name }}</strong> ({{ adv.posted_by_role }}) &bull; Audience: {{ adv.target_purok }}</small>
-            </div>
-          {% empty %}<p style="color:#64748b;font-size:.86rem;">No active Barangay advisories or memorandums posted yet.</p>{% endfor %}
-        </div>
-      </div>
-      <div id="tabCerts" class="panel">
-        <div class="card" style="border-top:4px solid #1e3a8a;">
-          <h3 style="margin-top:0;color:#1e3a8a;font-size:1rem;">&#128220; Self-Service Barangay Certificate / Clearance Request</h3>
-          <form method="post" onsubmit="return confirm('Submit this official certificate request to the Barangay Secretary & Treasury?')">{% csrf_token %}<input type="hidden" name="action" value="REQUEST_CERT">
-            <div class="grid-2">
-              <div><label>Document Type *</label><select name="cert_type"><option value="CLEARANCE">Barangay Clearance</option><option value="RESIDENCY">Certificate of Residency</option><option value="INDIGENCY">Certificate of Indigency (Fee-Exempt)</option><option value="GOOD_MORAL">Certificate of Good Moral Character</option><option value="FIRST_TIME_JOBSEEKER">First-Time Jobseeker Certificate (RA 11261 Free)</option></select></div>
-              <div><label>Purpose *</label><input name="purpose" placeholder="e.g., Employment, Scholarship, Bank Requirement" required></div>
-            </div>
-            <button type="submit" class="btn" style="margin-top:12px;">Submit Certificate Request &rarr;</button>
-          </form>
-        </div>
-        <div class="card"><h4 style="margin-top:0;">My Recent Certificate Requests</h4><table><thead><tr><th>Control No.</th><th>Document</th><th>Purpose</th><th>Fee</th><th>Status</th></tr></thead><tbody>{% for r in recent_certs %}<tr><td><strong>{{ r.control_number }}</strong></td><td>{{ r.get_cert_type_display }}</td><td>{{ r.purpose }}</td><td>&#8369;{{ r.fee_amount }}</td><td><span class="badge">{{ r.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No certificate requests yet.</td></tr>{% endfor %}</tbody></table></div>
-      </div>
 
-      <div id="tabReports" class="panel">
-        <div class="card" style="border-top:4px solid #0f766e;">
-          <h3 style="margin-top:0;color:#0f766e;font-size:1rem;">&#128680; Submit Community Concern / Incident Report</h3>
-          <form method="post" onsubmit="return confirm('Submit this report to the Barangay Operations & Tanod Desk?')">{% csrf_token %}<input type="hidden" name="action" value="SUBMIT_REPORT">
-            <div class="grid-2">
-              <div><label>Category *</label><select name="category"><option value="PEACE_ORDER">Peace &amp; Order / Noise / Disturbance</option><option value="INFRASTRUCTURE">Streetlight / Road / Drainage Repair</option><option value="SANITATION">Garbage / Sanitation / Dengue Risk</option><option value="DRRM_HAZARD">Flooding / Fallen Tree / Hazard</option><option value="OTHER">Other Community Concern</option></select></div>
-              <div><label>Exact Location / Landmark *</label><input name="location_landmark" placeholder="e.g., Near Purok II Chapel" required></div>
+          <div id="tabCerts" class="panel">
+            <div class="card" style="border-top:4px solid #1e3a8a;"><h3 style="margin-top:0;color:#1e3a8a;font-size:1rem;">&#128220; Request Barangay Certificate / Clearance / Permit</h3>
+              <form method="post" onsubmit="return confirm('Submit this official request to the Barangay Secretary & Treasury?')">{% csrf_token %}<input type="hidden" name="action" value="REQUEST_CERT">
+                <div class="grid-2"><div><label>Document Type *</label><select name="cert_type"><option value="CLEARANCE">Barangay Clearance</option><option value="RESIDENCY">Certificate of Residency</option><option value="INDIGENCY">Certificate of Indigency (Fee-Exempt)</option><option value="GOOD_MORAL">Certificate of Good Moral Character</option><option value="FIRST_TIME_JOBSEEKER">First-Time Jobseeker Certificate (RA 11261 Free)</option><option value="BUSINESS_PERMIT">Barangay Business Permit / Clearance</option></select></div><div><label>Purpose *</label><input name="purpose" placeholder="e.g., Employment, Scholarship, Business Renewal" required></div></div>
+                <button type="submit" class="btn" style="margin-top:12px;">Submit Request &rarr;</button>
+              </form>
             </div>
-            <div style="margin-top:10px;"><label>Detailed Description *</label><textarea name="description" rows="3" placeholder="Describe the issue clearly..." required></textarea></div>
-            <button type="submit" class="btn" style="margin-top:12px;background:#0f766e;">Submit Report &amp; Get Tracking Code &rarr;</button>
-          </form>
-        </div>
-        <div class="card"><h4 style="margin-top:0;">My Submitted Reports</h4><table><thead><tr><th>Tracking Code</th><th>Category</th><th>Landmark</th><th>Status</th><th>Barangay Action Notes</th></tr></thead><tbody>{% for rep in recent_reports %}<tr><td><strong>{{ rep.tracking_code }}</strong></td><td>{{ rep.get_category_display }}</td><td>{{ rep.location_landmark }}</td><td><span class="badge">{{ rep.get_status_display }}</span></td><td>{{ rep.official_action_notes|default:"Under review" }}</td></tr>{% empty %}<tr><td colspan="5">No reports submitted yet.</td></tr>{% endfor %}</tbody></table></div>
-      </div>
-
-      <div id="tabProfile" class="panel">
-        <div class="card" style="border-top:4px solid #1e3a8a;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-            <div><h3 style="margin:0;color:#1e3a8a;font-size:1.02rem;">&#129706; My 201 Master Profile &amp; Synchronized Shared Record</h3><div style="font-size:.77rem;color:#475569;">Directly synchronized with <strong>02E. Shared Citizen Profiles Gallery</strong>. Verified identity fields marked &#128274; are permanently locked.</div></div>
-            <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" class="badge" style="text-decoration:none;padding:6px 11px;">Open Shared 02E View &nearr;</a>
+            <div class="card"><h4 style="margin-top:0;">My Certificate &amp; Permit Requests</h4><table><thead><tr><th>Control No.</th><th>Document</th><th>Purpose</th><th>Fee</th><th>Status</th></tr></thead><tbody>{% for r in recent_certs %}<tr><td><strong>{{ r.control_number }}</strong></td><td>{{ r.get_cert_type_display }}</td><td>{{ r.purpose }}</td><td>&#8369;{{ r.fee_amount }}</td><td><span class="badge">{{ r.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No requests yet.</td></tr>{% endfor %}</tbody></table></div>
           </div>
-          <form method="post" enctype="multipart/form-data" onsubmit="return confirm('Save and synchronize all updates to your Official 201 Master Profile & Shared Gallery?')">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_201_PROFILE">
-            <div style="font-size:.75rem;font-weight:800;color:#64748b;text-transform:uppercase;margin:10px 0 6px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">&#128274; Locked Verified Identity (Read-Only)</div>
-            <div class="grid-3">
-              <div><label>&#128274; Full Legal Name</label><input value="{{ citizen.full_name }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
-              <div><label>&#128274; Birthdate &amp; Age</label><input value="{{ citizen.birth_date|date:'M d, Y' }} ({{ citizen.age }} yrs old)" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
-              <div><label>&#128274; Legal Sex (PSA / Law)</label><input value="{{ citizen.get_sex_display }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+
+          <div id="tabReports" class="panel">
+            <div class="card" style="border-top:4px solid #0f766e;"><h3 style="margin-top:0;color:#0f766e;font-size:1rem;">&#9888; Report Community Concern / Infrastructure Need</h3>
+              <form method="post" onsubmit="return confirm('Submit this report to the Barangay Operations Desk?')">{% csrf_token %}<input type="hidden" name="action" value="SUBMIT_REPORT">
+                <div class="grid-2"><div><label>Category *</label><select name="category"><option value="PEACE_ORDER">Peace &amp; Order / Noise / Disturbance</option><option value="INFRASTRUCTURE">Streetlight / Road / Drainage Need</option><option value="SANITATION">Garbage / Sanitation / Dengue Risk</option><option value="DRRM_HAZARD">Flooding / Fallen Tree / Hazard</option><option value="OTHER">Other Community Concern</option></select></div><div><label>Exact Location / Landmark *</label><input name="location_landmark" placeholder="e.g., Purok IV Main Road" required></div></div>
+                <div style="margin-top:10px;"><label>Detailed Description *</label><textarea name="description" rows="3" placeholder="Describe the issue clearly..." required></textarea></div>
+                <button type="submit" class="btn" style="margin-top:12px;background:#0f766e;">Submit Report &amp; Get Tracking Code &rarr;</button>
+              </form>
             </div>
-            <div class="grid-2" style="margin-top:8px;">
-              <div><label>&#128274; Citizen Unique Reference ID</label><input value="{{ citizen.citizen_qr_id }}" readonly style="background:#e2e8f0;color:#1e3a8a;font-weight:800;"></div>
-              <div><label>&#128274; Portal Username</label><input value="{{ citizen.portal_username }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+            <div class="card"><h4 style="margin-top:0;">My Submitted Reports</h4><table><thead><tr><th>Tracking Code</th><th>Category</th><th>Landmark</th><th>Status</th><th>Barangay Action Notes</th></tr></thead><tbody>{% for rep in recent_reports %}<tr><td><strong>{{ rep.tracking_code }}</strong></td><td>{{ rep.get_category_display }}</td><td>{{ rep.location_landmark }}</td><td><span class="badge">{{ rep.get_status_display }}</span></td><td>{{ rep.official_action_notes|default:"Under review" }}</td></tr>{% empty %}<tr><td colspan="5">No reports submitted yet.</td></tr>{% endfor %}</tbody></table></div>
+          </div>
+
+          <div id="tabSocial" class="panel">
+            <div class="card" style="border-top:4px solid #d97706;"><h3 style="margin-top:0;color:#92400e;font-size:1rem;">&#129309; My Social Assistance &amp; Welfare Programs</h3>
+              <table><thead><tr><th>Program Name</th><th>Benefit / Amount</th><th>Date Distributed</th><th>Status</th></tr></thead><tbody>{% for sa in social_assistance_records %}<tr><td><strong>{{ sa.program_name|default:"Barangay Social Welfare Program" }}</strong></td><td>&#8369;{{ sa.amount|default:"0.00" }}</td><td>{{ sa.distributed_at|date:"M d, Y"|default:"Scheduled" }}</td><td><span class="badge" style="background:#dcfce7;color:#166534;">Verified Beneficiary</span></td></tr>{% empty %}<tr><td colspan="4" style="color:#64748b;">No individual payout records posted yet. Check the <strong>Social Assistance &amp; Welfare</strong> feed tab for upcoming Barangay schedules.</td></tr>{% endfor %}</tbody></table>
             </div>
-            <div style="font-size:.75rem;font-weight:800;color:#1e3a8a;text-transform:uppercase;margin:16px 0 6px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Personal, Physical &amp; Gender Identity Details</div>
-            <div class="grid-3">
-              <div><label>Gender Identity / LGBTQ+ Tag</label><select name="gender_identity"><option value="MALE" {% if citizen.gender_identity == "MALE" %}selected{% endif %}>Male</option><option value="FEMALE" {% if citizen.gender_identity == "FEMALE" %}selected{% endif %}>Female</option><option value="LGBTQ_MALE" {% if citizen.gender_identity == "LGBTQ_MALE" %}selected{% endif %}>LGBTQ+ (Gay / Trans Man / Male-Aligned)</option><option value="LGBTQ_FEMALE" {% if citizen.gender_identity == "LGBTQ_FEMALE" %}selected{% endif %}>LGBTQ+ (Lesbian / Trans Woman / Female-Aligned)</option><option value="NON_BINARY" {% if citizen.gender_identity == "NON_BINARY" %}selected{% endif %}>Non-Binary / Prefer Not to Say</option></select></div>
-              <div><label>Civil Status</label><select name="civil_status"><option value="SINGLE" {% if citizen.civil_status == "SINGLE" %}selected{% endif %}>Single</option><option value="MARRIED" {% if citizen.civil_status == "MARRIED" %}selected{% endif %}>Married</option><option value="WIDOWED" {% if citizen.civil_status == "WIDOWED" %}selected{% endif %}>Widowed</option><option value="SEPARATED" {% if citizen.civil_status == "SEPARATED" %}selected{% endif %}>Separated</option></select></div>
-              <div><label>Place of Birth</label><input name="birth_place" value="{{ citizen.birth_place }}"></div>
+          </div>
+
+          <div id="tabProfile" class="panel">
+            <div class="card" style="border-top:4px solid #1e3a8a;">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                <div><h3 style="margin:0;color:#1e3a8a;font-size:1.02rem;">&#129706; My 201 Master Profile &amp; Synchronized Shared Record</h3><div style="font-size:.77rem;color:#475569;">Directly synchronized with <strong>02E. Shared Citizen Profiles Gallery</strong>. Verified identity fields marked &#128274; are permanently locked.</div></div>
+                <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" class="badge" style="text-decoration:none;padding:6px 11px;">Open Shared 02E View &nearr;</a>
+              </div>
+              <form method="post" enctype="multipart/form-data" onsubmit="return confirm('Save and synchronize all updates to your Official 201 Master Profile?')">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_201_PROFILE">
+                <div class="grid-3">
+                  <div><label>&#128274; Full Legal Name</label><input value="{{ citizen.full_name }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+                  <div><label>&#128274; Birthdate &amp; Age</label><input value="{{ citizen.birth_date|date:'M d, Y' }} ({{ citizen.age }} yrs)" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+                  <div><label>&#128274; Legal Sex (PSA / Law)</label><input value="{{ citizen.get_sex_display }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Gender Identity / LGBTQ+ Tag</label><select name="gender_identity"><option value="MALE" {% if citizen.gender_identity == "MALE" %}selected{% endif %}>Male</option><option value="FEMALE" {% if citizen.gender_identity == "FEMALE" %}selected{% endif %}>Female</option><option value="LGBTQ_MALE" {% if citizen.gender_identity == "LGBTQ_MALE" %}selected{% endif %}>LGBTQ+ (Male-Aligned)</option><option value="LGBTQ_FEMALE" {% if citizen.gender_identity == "LGBTQ_FEMALE" %}selected{% endif %}>LGBTQ+ (Female-Aligned)</option><option value="NON_BINARY" {% if citizen.gender_identity == "NON_BINARY" %}selected{% endif %}>Non-Binary / Prefer Not to Say</option></select></div>
+                  <div><label>Civil Status</label><select name="civil_status"><option value="SINGLE" {% if citizen.civil_status == "SINGLE" %}selected{% endif %}>Single</option><option value="MARRIED" {% if citizen.civil_status == "MARRIED" %}selected{% endif %}>Married</option><option value="WIDOWED" {% if citizen.civil_status == "WIDOWED" %}selected{% endif %}>Widowed</option><option value="SEPARATED" {% if citizen.civil_status == "SEPARATED" %}selected{% endif %}>Separated</option></select></div>
+                  <div><label>Place of Birth</label><input name="birth_place" value="{{ citizen.birth_place }}"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Height</label><input name="height" value="{{ citizen.height }}" placeholder="e.g., 170 cm"></div>
+                  <div><label>Weight</label><input name="weight" value="{{ citizen.weight }}" placeholder="e.g., 65 kg"></div>
+                  <div><label>Complexion</label><input name="complexion" value="{{ citizen.complexion }}" placeholder="e.g., Fair, Kayumanggi"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Religion</label><input name="religion" value="{{ citizen.religion }}"></div>
+                  <div><label>Blood Type</label><input name="blood_type" value="{{ citizen.blood_type }}"></div>
+                  <div><label>PhilSys Card Number (PCN)</label><input name="philsys_id" value="{{ citizen.philsys_id }}"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Purok / Zone</label><input name="purok" value="{{ citizen.purok }}"></div>
+                  <div><label>Permanent Barangay Address</label><input id="p201Perm" name="address_line" value="{{ citizen.address_line }}"></div>
+                  <div><label>Current Address</label><input id="p201Cur" name="current_address" value="{{ citizen.current_address }}"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Email Address (Synced)</label><input type="email" name="email_address" value="{{ citizen.email_address }}"></div>
+                  <div><label>Mobile Number (Synced)</label><input name="mobile_number" value="{{ citizen.mobile_number }}"></div>
+                  <div><label>Occupation</label><input name="occupation" value="{{ citizen.occupation }}"></div>
+                </div>
+                <div class="grid-2" style="margin-top:10px;">
+                  <div><label>Upgrade / Replace 2x2 ID Photo</label><input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp"></div>
+                  <div><label>Upload Supporting Docs (Auto-Converted to PDF)</label><input type="file" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple></div>
+                </div>
+                <button type="submit" class="btn" style="margin-top:14px;background:#16a34a;">&#10003; Save &amp; Sync All 201 Profile Updates &rarr;</button>
+              </form>
             </div>
-            <div class="grid-3" style="margin-top:8px;">
-              <div><label>Height (e.g., 170 cm / 5&rsquo;7&rdquo;)</label><input name="height" value="{{ citizen.height }}"></div>
-              <div><label>Weight (e.g., 65 kg)</label><input name="weight" value="{{ citizen.weight }}"></div>
-              <div><label>Complexion</label><input name="complexion" value="{{ citizen.complexion }}"></div>
-            </div>
-            <div class="grid-3" style="margin-top:8px;">
-              <div><label>Religion</label><input name="religion" value="{{ citizen.religion }}"></div>
-              <div><label>Blood Type</label><input name="blood_type" value="{{ citizen.blood_type }}"></div>
-              <div><label>PhilSys Card Number (PCN)</label><input name="philsys_id" value="{{ citizen.philsys_id }}"></div>
-            </div>
-            <div style="font-size:.75rem;font-weight:800;color:#1e3a8a;text-transform:uppercase;margin:16px 0 6px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Address, Contact &amp; Family Details</div>
-            <div class="grid-3">
-              <div><label>Purok / Zone</label><input name="purok" value="{{ citizen.purok }}"></div>
-              <div><label>Permanent Barangay Address</label><input id="p201Perm" name="address_line" value="{{ citizen.address_line }}"></div>
-              <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><label style="margin:0;">Current Address</label><label style="margin:0;font-size:.68rem;color:#1e3a8a;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" style="width:12px;height:12px;" onchange="if(this.checked)document.getElementById('p201Cur').value=document.getElementById('p201Perm').value;"> Same</label></div><input id="p201Cur" name="current_address" value="{{ citizen.current_address }}"></div>
-            </div>
-            <div class="grid-3" style="margin-top:8px;">
-              <div><label>Email Address (Synced)</label><input type="email" name="email_address" value="{{ citizen.email_address }}"></div>
-              <div><label>Mobile Number (Synced)</label><input name="mobile_number" value="{{ citizen.mobile_number }}"></div>
-              <div><label>Occupation</label><input name="occupation" value="{{ citizen.occupation }}"></div>
-            </div>
-            <div class="grid-3" style="margin-top:8px;">
-              <div><label>Father&rsquo;s Full Name</label><input name="father_name" value="{{ citizen.father_name }}"></div>
-              <div><label>Mother&rsquo;s Maiden Name</label><input name="mother_maiden_name" value="{{ citizen.mother_maiden_name }}"></div>
-              <div><label>Spouse Name</label><input name="spouse_name" value="{{ citizen.spouse_name }}"></div>
-            </div>
-            <div class="grid-2" style="margin-top:12px;">
-              <div><label>Upgrade / Replace 2x2 ID Photo</label><input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp"></div>
-              <div><label>Upload Additional Supporting Docs (Auto-Converted to PDF)</label><input type="file" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple></div>
-            </div>
-            <button type="submit" class="btn" style="margin-top:16px;background:#16a34a;">&#10003; Save &amp; Sync All 201 Profile Updates &rarr;</button>
-          </form>
-        </div>
-        <div class="card"><h4 style="margin-top:0;">My Supporting Documents Vault ({{ citizen.repository_docs.all|length }})</h4><table><thead><tr><th>Document Title</th><th>Uploaded</th><th>Action</th></tr></thead><tbody>{% for d in citizen.repository_docs.all %}<tr><td><strong>{{ d.title }}</strong></td><td>{{ d.uploaded_at|date:"M d, Y" }}</td><td><a href="/citizen-docs/{{ citizen.citizen_qr_id }}/" target="_blank" class="badge" style="text-decoration:none;">Open PDF &nearr;</a></td></tr>{% empty %}<tr><td colspan="3">No supporting documents uploaded yet.</td></tr>{% endfor %}</tbody></table></div>
-      </div>
+            <div class="card"><h4 style="margin-top:0;">My Supporting Documents Vault ({{ citizen.repository_docs.all|length }})</h4><table><thead><tr><th>Document Title</th><th>Uploaded</th><th>Action</th></tr></thead><tbody>{% for d in citizen.repository_docs.all %}<tr><td><strong>{{ d.title }}</strong></td><td>{{ d.uploaded_at|date:"M d, Y" }}</td><td><a href="/citizen-docs/{{ citizen.citizen_qr_id }}/" target="_blank" class="badge" style="text-decoration:none;">Open PDF &nearr;</a></td></tr>{% empty %}<tr><td colspan="3">No supporting documents uploaded yet.</td></tr>{% endfor %}</tbody></table></div>
+          </div>
         </main>
       </div>
     {% endif %}
   </div>
-  <footer style="background:#0f172a;color:#cbd5e1;margin-top:auto;width:100%;border-top:3px solid #1e3a8a;font-size:.74rem;">
-    <div style="max-width:1040px;margin:0 auto;padding:8px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 18px;">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span style="background:#fbbf24;color:#0f172a;font-weight:900;padding:2px 7px;border-radius:999px;font-size:.66rem;">LGU</span>
-        <strong style="color:#fff;">{{ citizen.barangay.name|default:"Barangay Lagare" }}</strong>
-        <span style="color:#94a3b8;">&bull; {{ citizen.barangay.city_municipality.name|default:"Cabanatuan City" }}, {{ citizen.barangay.city_municipality.province.name|default:"Nueva Ecija" }}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <a href="javascript:void(0)" onclick="openCitTab('tabAdvisories',document.querySelectorAll('.tab-btn'))" style="color:#cbd5e1;text-decoration:none;">Advisories</a>
-        <a href="javascript:void(0)" onclick="openCitTab('tabCerts',document.querySelectorAll('.tab-btn'))" style="color:#cbd5e1;text-decoration:none;">Certificates</a>
-        <a href="javascript:void(0)" onclick="openCitTab('tabReports',document.querySelectorAll('.tab-btn'))" style="color:#cbd5e1;text-decoration:none;">Report Concern</a>
-        <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" style="color:#fbbf24;font-weight:700;text-decoration:none;">Shared 201 ID &nearr;</a>
-        <a href="/portal/" style="color:#cbd5e1;text-decoration:none;">Data Privacy (RA 10173)</a>
-      </div>
-    </div>
-    <div style="background:#020617;border-top:1px solid #1e293b;padding:7px 16px;">
-      <div style="max-width:1040px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:.7rem;color:#94a3b8;">
-        <span><strong style="color:#e2e8f0;">REPUBLIC OF THE PHILIPPINES</strong> &bull; All content is in the public domain unless otherwise stated.</span>
-        <span><a href="https://www.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">GOV.PH</a> &bull; <a href="https://www.officialgazette.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">Official Gazette</a> &bull; <a href="https://dilg.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">DILG</a></span>
-      </div>
+  <footer style="background:#0f172a;color:#cbd5e1;margin-top:auto;width:100%;border-top:3px solid #1e3a8a;font-size:.73rem;">
+    <div style="max-width:1180px;margin:0 auto;padding:8px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <span><strong style="color:#fff;">{{ citizen.barangay.name|default:"Barangay Lagare" }}</strong> &bull; {{ citizen.barangay.city_municipality.name|default:"Cabanatuan City" }}, {{ citizen.barangay.city_municipality.province.name|default:"Nueva Ecija" }}</span>
+      <span><strong style="color:#e2e8f0;">REPUBLIC OF THE PHILIPPINES</strong> &bull; <a href="https://www.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">GOV.PH</a> &bull; <a href="https://dilg.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">DILG</a></span>
     </div>
   </footer>
   <script>
@@ -246,6 +178,13 @@
       document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
       const p=document.getElementById(panelId);if(p)p.classList.add('active');
       if(btn)btn.classList.add('active');
+    }
+    function filterFeed(cat,btn){
+      document.querySelectorAll('.fpill').forEach(b=>b.classList.remove('active'));
+      if(btn)btn.classList.add('active');
+      document.querySelectorAll('.feed-post').forEach(card=>{
+        card.style.display=(cat==='ALL'||card.dataset.cat===cat)?'block':'none';
+      });
     }
   </script>
 </body>
