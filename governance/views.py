@@ -722,13 +722,21 @@ def command_dashboard(request):
                 obj.description = request.POST.get("description", "").strip()
                 obj.body_template = request.POST.get("body_template", "").strip()
                 obj.updated_by = actor_name
+                if request.POST.get("clear_existing_file") == "1":
+                    obj.file_data_uri = ""
+                    obj.file_name = ""
                 up_f = request.FILES.get("template_file")
                 if up_f:
+                    ext = ("." + up_f.name.rsplit(".", 1)[-1].lower()) if "." in up_f.name else ""
+                    if ext not in (".doc", ".docx", ".xls", ".xlsx", ".csv"):
+                        action_notice = "Upload blocked: Only editable MS Word (.doc, .docx) or MS Excel (.xls, .xlsx) files are allowed."
+                        request.session["bioas_flash_notice"] = action_notice
+                        return redirect(request.get_full_path())
                     b64 = base64.b64encode(up_f.read()).decode("ascii")
-                    obj.file_data_uri = f"data:{up_f.content_type or 'application/pdf'};base64,{b64}"
+                    obj.file_data_uri = f"data:{up_f.content_type or 'application/octet-stream'};base64,{b64}"
                     obj.file_name = up_f.name[:150]
                 obj.save()
-                action_notice = f"Saved Official Form Template: {obj.title}."
+                action_notice = f"Acknowledgement: Official Form Template '{obj.title}' has been successfully saved and replaced!"
         if action_notice:
             request.session["bioas_flash_notice"] = action_notice
         return redirect(request.get_full_path())

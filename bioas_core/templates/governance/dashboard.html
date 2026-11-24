@@ -137,7 +137,16 @@
     {% endif %}
 
     <main class="main">
-      {% if action_notice %}<div class="card" style="background:#dcfce7;border-top-color:#16a34a;color:#166534;font-weight:700;margin-bottom:16px;">{{ action_notice }}</div>{% endif %}
+      {% if action_notice %}
+      <div id="dashAckOverlay" style="position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;">
+        <div style="background:#fff;max-width:440px;width:100%;border-radius:14px;padding:24px;box-shadow:0 22px 48px rgba(15,23,42,.28);border-top:5px solid {% if 'blocked' in action_notice|lower %}#dc2626{% else %}#16a34a{% endif %};text-align:center;">
+          <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;background:{% if 'blocked' in action_notice|lower %}#fee2e2;color:#dc2626{% else %}#dcfce7;color:#16a34a{% endif %};">{% if 'blocked' in action_notice|lower %}!{% else %}&#10003;{% endif %}</div>
+          <h3 style="margin:0 0 8px;font-size:1.05rem;font-weight:800;color:#0f172a;">{% if 'blocked' in action_notice|lower %}Action Blocked{% else %}Approved Acknowledgement{% endif %}</h3>
+          <p style="margin:0 0 18px;font-size:.86rem;line-height:1.5;color:#475569;">{{ action_notice }}</p>
+          <button type="button" onclick="document.getElementById('dashAckOverlay').remove()" style="width:100%;background:#1e3a8a;color:#fff;border:0;padding:10px 16px;border-radius:8px;font-weight:800;cursor:pointer;">OK, Acknowledge</button>
+        </div>
+      </div>
+      {% endif %}
       {% if query %}
       <div class="card" style="margin-bottom:16px;border-top:4px solid #f59e0b;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -1078,7 +1087,7 @@
               <h3 id="tplEditorHeading" style="margin:0;font-size:.95rem;color:var(--primary);">+ Add or Replace Official Form Template</h3>
               <button type="button" id="tplResetBtn" onclick="resetTplEditor()" style="display:none;background:#e2e8f0;color:#0f172a;border:0;padding:4px 10px;border-radius:6px;font-size:.74rem;font-weight:700;cursor:pointer;">Cancel Replace / New Form</button>
             </div>
-            <form id="tplEditorForm" method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
+            <form id="tplEditorForm" method="post" enctype="multipart/form-data" onsubmit="return confirm('WARNING: Are you sure you want to save / replace this Official Form Template? Please confirm before proceeding.')" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
               {% csrf_token %}<input type="hidden" name="action" value="SAVE_FORM_TEMPLATE"><input type="hidden" name="template_id" id="tplEditId" value="">
               <select name="category" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
                 <option value="COMPLETION_REPORT">Completion Report</option>
@@ -1091,7 +1100,12 @@
               </select>
               <input name="form_code" placeholder="Form Code (e.g., BIOAS-FRM-07)" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
               <input name="title" placeholder="Official Form Title *" required style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
-              <input type="file" name="template_file" accept=".pdf,.doc,.docx,.xlsx,.png,.jpg" style="padding:6px;border:1px solid #cbd5e1;border-radius:7px;">
+              <div style="display:flex;align-items:center;gap:6px;border:1px solid #cbd5e1;border-radius:7px;padding:4px 8px;background:#fff;">
+                <input type="file" id="tplFileInput" name="template_file" accept=".doc,.docx,.xls,.xlsx,.csv" onchange="document.getElementById('tplFileClearBtn').style.display=this.value?'inline-flex':'none';document.getElementById('tplExistingFileTag').textContent=this.files[0]?this.files[0].name:'';" style="border:0;padding:2px;font-size:.78rem;width:100%;">
+                <input type="hidden" name="clear_existing_file" id="tplClearExisting" value="0">
+                <span id="tplExistingFileTag" style="font-size:.72rem;color:#0f766e;font-weight:700;white-space:nowrap;"></span>
+                <button type="button" id="tplFileClearBtn" title="Remove attached file" onclick="clearTplFile()" style="display:none;background:#fee2e2;color:#dc2626;border:0;width:24px;height:24px;border-radius:6px;font-weight:900;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0;">&#10005;</button>
+              </div>
               <input name="description" placeholder="Short purpose / description" style="grid-column:1/-1;padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
               <textarea name="body_template" rows="4" placeholder="Printable / copyable standard template text..." style="grid-column:1/-1;padding:8px;border:1px solid #cbd5e1;border-radius:7px;font-family:monospace;font-size:.8rem;"></textarea>
               <button type="submit" style="background:var(--primary);color:#fff;border:0;padding:9px 14px;border-radius:7px;font-weight:800;cursor:pointer;">Save Template &rarr;</button>
@@ -1112,7 +1126,7 @@
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 {% if ft.file_data_uri %}<a href="{{ ft.file_data_uri }}" download="{{ ft.file_name|default:'template' }}" style="background:#0f766e;color:#fff;padding:6px 11px;border-radius:6px;text-decoration:none;font-size:.75rem;font-weight:700;">Download File &darr;</a>{% endif %}
                 <button type="button" onclick="const w=window.open('','_blank');w.document.write('<pre style=font-family:serif;font-size:13pt;white-space:pre-wrap;padding:28px>'+(this.closest('.card').querySelector('pre')?.innerText||'')+'</pre>');w.print();" style="background:#1e3a8a;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;">Print Template &#128424;</button>
-                <button type="button" data-id="{{ ft.id }}" data-cat="{{ ft.category }}" data-code="{{ ft.form_code }}" data-title="{{ ft.title }}" data-desc="{{ ft.description }}" onclick="loadTplForReplace(this)" style="background:#d97706;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Replace / Edit &#9998;</button>
+                <button type="button" data-id="{{ ft.id }}" data-cat="{{ ft.category }}" data-code="{{ ft.form_code }}" data-title="{{ ft.title }}" data-desc="{{ ft.description }}" data-fname="{{ ft.file_name }}" onclick="loadTplForReplace(this)" style="background:#d97706;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Replace With Custom Template &#9998;</button>
               </div>
             </div>
             {% endfor %}
@@ -1128,6 +1142,10 @@
               const pre=btn.closest('.card').querySelector('pre');
               f.querySelector('[name=body_template]').value=pre?pre.innerText:'';
               document.getElementById('tplEditorHeading').textContent='Replacing / Editing Template: '+(btn.dataset.title||'');
+              document.getElementById('tplClearExisting').value='0';
+              const fn=btn.dataset.fname||'';
+              document.getElementById('tplExistingFileTag').textContent=fn;
+              document.getElementById('tplFileClearBtn').style.display=fn?'inline-flex':'none';
               document.getElementById('tplResetBtn').style.display='inline-block';
               f.scrollIntoView({behavior:'smooth',block:'center'});
             }
@@ -1137,6 +1155,14 @@
               document.getElementById('tplEditId').value='';
               document.getElementById('tplEditorHeading').textContent='+ Add or Replace Official Form Template';
               document.getElementById('tplResetBtn').style.display='none';
+              clearTplFile();
+            }
+            function clearTplFile(){
+              const inp=document.getElementById('tplFileInput');
+              if(inp) inp.value='';
+              document.getElementById('tplExistingFileTag').textContent='';
+              document.getElementById('tplFileClearBtn').style.display='none';
+              document.getElementById('tplClearExisting').value='1';
             }
           </script>
         {% elif module == "AUDIT" %}
