@@ -34,6 +34,8 @@
     <div style="max-width:1040px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
       <div><strong style="font-size:1.15rem;">{{ citizen.barangay.name|default:"BIOAS Resident Portal" }}</strong><div style="font-size:.78rem;color:#cbd5e1;">Resident Self-Service &amp; Official Advisory Super-Dashboard</div></div>
       <div style="display:flex;gap:10px;align-items:center;">
+        <span id="citDevBadge" style="background:rgba(255,255,255,.14);color:#e2e8f0;padding:4px 9px;border-radius:999px;font-size:.72rem;font-weight:700;"></span>
+        <button type="button" id="citViewBtn" onclick="toggleCitView()" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);padding:6px 10px;border-radius:8px;font-size:.74rem;font-weight:800;cursor:pointer;">Mobile View</button>
         <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" style="background:rgba(255,255,255,.15);color:#fff;padding:7px 12px;border-radius:8px;text-decoration:none;font-size:.78rem;font-weight:700;">View Digital 201 ID &nearr;</a>
         <a href="/citizen-home/?logout=1" style="background:#dc2626;color:#fff;padding:7px 13px;border-radius:8px;text-decoration:none;font-size:.78rem;font-weight:800;">Sign Out</a>
       </div>
@@ -64,7 +66,18 @@
     {% elif citizen %}
       <div class="id-banner">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-          {% if citizen.photo_data_uri %}<img src="{{ citizen.photo_data_uri }}" style="width:68px;height:68px;border-radius:12px;object-fit:cover;border:2px solid #1e3a8a;">{% endif %}
+          {% if citizen.photo_data_uri or citizen.photo %}
+            <div style="text-align:center;cursor:pointer;" onclick="document.getElementById('citPhotoZoomImg').src=this.querySelector('img').src;document.getElementById('citPhotoZoomModal').style.display='flex';" title="Click to enlarge 2x2 photo">
+              <img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" style="width:74px;height:74px;border-radius:12px;object-fit:cover;border:2px solid #1e3a8a;">
+              <div style="font-size:.65rem;font-weight:800;color:#1e3a8a;margin-top:2px;">Click to Enlarge</div>
+            </div>
+            <div id="citPhotoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+              <div style="background:#fff;border-radius:16px;padding:18px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 48px rgba(0,0,0,.35);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong style="color:#1e3a8a;">{{ citizen.full_name }} ({{ citizen.citizen_qr_id }})</strong><button type="button" onclick="document.getElementById('citPhotoZoomModal').style.display='none'" style="background:#fee2e2;color:#dc2626;border:0;width:28px;height:28px;border-radius:7px;font-weight:900;cursor:pointer;">&#10005;</button></div>
+                <img id="citPhotoZoomImg" src="" style="width:100%;max-height:360px;object-fit:contain;border-radius:10px;border:1px solid #cbd5e1;">
+              </div>
+            </div>
+          {% endif %}
           <div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><h2 style="margin:0;font-size:1.18rem;color:#0f172a;">{{ citizen.full_name }}</h2><span class="badge" style="background:#dcfce7;color:#166534;">&#10003; Active Verified Resident</span></div>
             <div style="font-size:.82rem;color:#475569;margin-top:3px;">Ref ID: <strong>{{ citizen.citizen_qr_id }}</strong> &bull; Username: <strong>{{ citizen.portal_username }}</strong> &bull; <strong>{{ citizen.purok }}</strong></div>
@@ -128,36 +141,93 @@
 
       <div id="tabProfile" class="panel">
         <div class="card" style="border-top:4px solid #1e3a8a;">
-          <h3 style="margin-top:0;color:#1e3a8a;font-size:1rem;">&#129706; Self-Update My 201 Master Profile &amp; Supporting Documents</h3>
-          <form method="post" enctype="multipart/form-data" onsubmit="return confirm('Save updates to your 201 Profile & Supporting Documents?')">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_201_PROFILE">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+            <div><h3 style="margin:0;color:#1e3a8a;font-size:1.02rem;">&#129706; My 201 Master Profile &amp; Synchronized Shared Record</h3><div style="font-size:.77rem;color:#475569;">Directly synchronized with <strong>02E. Shared Citizen Profiles Gallery</strong>. Verified identity fields marked &#128274; are permanently locked.</div></div>
+            <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" class="badge" style="text-decoration:none;padding:6px 11px;">Open Shared 02E View &nearr;</a>
+          </div>
+          <form method="post" enctype="multipart/form-data" onsubmit="return confirm('Save and synchronize all updates to your Official 201 Master Profile & Shared Gallery?')">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_201_PROFILE">
+            <div style="font-size:.75rem;font-weight:800;color:#64748b;text-transform:uppercase;margin:10px 0 6px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">&#128274; Locked Verified Identity (Read-Only)</div>
             <div class="grid-3">
+              <div><label>&#128274; Full Legal Name</label><input value="{{ citizen.full_name }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+              <div><label>&#128274; Birthdate &amp; Age</label><input value="{{ citizen.birth_date|date:'M d, Y' }} ({{ citizen.age }} yrs old)" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+              <div><label>&#128274; Legal Sex (PSA / Law)</label><input value="{{ citizen.get_sex_display }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+            </div>
+            <div class="grid-2" style="margin-top:8px;">
+              <div><label>&#128274; Citizen Unique Reference ID</label><input value="{{ citizen.citizen_qr_id }}" readonly style="background:#e2e8f0;color:#1e3a8a;font-weight:800;"></div>
+              <div><label>&#128274; Portal Username</label><input value="{{ citizen.portal_username }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+            </div>
+            <div style="font-size:.75rem;font-weight:800;color:#1e3a8a;text-transform:uppercase;margin:16px 0 6px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Personal, Physical &amp; Gender Identity Details</div>
+            <div class="grid-3">
+              <div><label>Gender Identity / LGBTQ+ Tag</label><select name="gender_identity"><option value="MALE" {% if citizen.gender_identity == "MALE" %}selected{% endif %}>Male</option><option value="FEMALE" {% if citizen.gender_identity == "FEMALE" %}selected{% endif %}>Female</option><option value="LGBTQ_MALE" {% if citizen.gender_identity == "LGBTQ_MALE" %}selected{% endif %}>LGBTQ+ (Gay / Trans Man / Male-Aligned)</option><option value="LGBTQ_FEMALE" {% if citizen.gender_identity == "LGBTQ_FEMALE" %}selected{% endif %}>LGBTQ+ (Lesbian / Trans Woman / Female-Aligned)</option><option value="NON_BINARY" {% if citizen.gender_identity == "NON_BINARY" %}selected{% endif %}>Non-Binary / Prefer Not to Say</option></select></div>
               <div><label>Civil Status</label><select name="civil_status"><option value="SINGLE" {% if citizen.civil_status == "SINGLE" %}selected{% endif %}>Single</option><option value="MARRIED" {% if citizen.civil_status == "MARRIED" %}selected{% endif %}>Married</option><option value="WIDOWED" {% if citizen.civil_status == "WIDOWED" %}selected{% endif %}>Widowed</option><option value="SEPARATED" {% if citizen.civil_status == "SEPARATED" %}selected{% endif %}>Separated</option></select></div>
-              <div><label>Birthplace</label><input name="birth_place" value="{{ citizen.birth_place }}"></div>
+              <div><label>Place of Birth</label><input name="birth_place" value="{{ citizen.birth_place }}"></div>
+            </div>
+            <div class="grid-3" style="margin-top:8px;">
+              <div><label>Height (e.g., 170 cm / 5&rsquo;7&rdquo;)</label><input name="height" value="{{ citizen.height }}"></div>
+              <div><label>Weight (e.g., 65 kg)</label><input name="weight" value="{{ citizen.weight }}"></div>
+              <div><label>Complexion</label><input name="complexion" value="{{ citizen.complexion }}"></div>
+            </div>
+            <div class="grid-3" style="margin-top:8px;">
+              <div><label>Religion</label><input name="religion" value="{{ citizen.religion }}"></div>
               <div><label>Blood Type</label><input name="blood_type" value="{{ citizen.blood_type }}"></div>
+              <div><label>PhilSys Card Number (PCN)</label><input name="philsys_id" value="{{ citizen.philsys_id }}"></div>
             </div>
-            <div class="grid-2" style="margin-top:10px;">
-              <div><label>Permanent Barangay Address</label><input name="address_line" value="{{ citizen.address_line }}"></div>
-              <div><label>Current Address (Outside/Inside Barangay)</label><input name="current_address" value="{{ citizen.current_address }}"></div>
+            <div style="font-size:.75rem;font-weight:800;color:#1e3a8a;text-transform:uppercase;margin:16px 0 6px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Address, Contact &amp; Family Details</div>
+            <div class="grid-3">
+              <div><label>Purok / Zone</label><input name="purok" value="{{ citizen.purok }}"></div>
+              <div><label>Permanent Barangay Address</label><input id="p201Perm" name="address_line" value="{{ citizen.address_line }}"></div>
+              <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><label style="margin:0;">Current Address</label><label style="margin:0;font-size:.68rem;color:#1e3a8a;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" style="width:12px;height:12px;" onchange="if(this.checked)document.getElementById('p201Cur').value=document.getElementById('p201Perm').value;"> Same</label></div><input id="p201Cur" name="current_address" value="{{ citizen.current_address }}"></div>
             </div>
-            <div class="grid-3" style="margin-top:10px;">
-              <div><label>Mobile Number</label><input name="mobile_number" value="{{ citizen.mobile_number }}"></div>
-              <div><label>Email Address</label><input type="email" name="email_address" value="{{ citizen.email_address }}"></div>
+            <div class="grid-3" style="margin-top:8px;">
+              <div><label>Email Address (Synced)</label><input type="email" name="email_address" value="{{ citizen.email_address }}"></div>
+              <div><label>Mobile Number (Synced)</label><input name="mobile_number" value="{{ citizen.mobile_number }}"></div>
               <div><label>Occupation</label><input name="occupation" value="{{ citizen.occupation }}"></div>
             </div>
+            <div class="grid-3" style="margin-top:8px;">
+              <div><label>Father&rsquo;s Full Name</label><input name="father_name" value="{{ citizen.father_name }}"></div>
+              <div><label>Mother&rsquo;s Maiden Name</label><input name="mother_maiden_name" value="{{ citizen.mother_maiden_name }}"></div>
+              <div><label>Spouse Name</label><input name="spouse_name" value="{{ citizen.spouse_name }}"></div>
+            </div>
             <div class="grid-2" style="margin-top:12px;">
-              <div><label>Update 2x2 ID Photo</label><input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp"></div>
+              <div><label>Upgrade / Replace 2x2 ID Photo</label><input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp"></div>
               <div><label>Upload Additional Supporting Docs (Auto-Converted to PDF)</label><input type="file" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple></div>
             </div>
-            <button type="submit" class="btn" style="margin-top:14px;">Save 201 Profile &amp; Docs &rarr;</button>
+            <button type="submit" class="btn" style="margin-top:16px;background:#16a34a;">&#10003; Save &amp; Sync All 201 Profile Updates &rarr;</button>
           </form>
         </div>
-        <div class="card">
-          <h4 style="margin-top:0;">My Supporting Documents Vault ({{ citizen.repository_docs.all|length }})</h4>
-          <table><thead><tr><th>Document Title</th><th>Uploaded</th><th>Action</th></tr></thead><tbody>{% for d in citizen.repository_docs.all %}<tr><td><strong>{{ d.title }}</strong></td><td>{{ d.uploaded_at|date:"M d, Y" }}</td><td><a href="/citizen-docs/{{ citizen.citizen_qr_id }}/" target="_blank" class="badge" style="text-decoration:none;">Open PDF &nearr;</a></td></tr>{% empty %}<tr><td colspan="3">No supporting documents uploaded yet.</td></tr>{% endfor %}</tbody></table>
-        </div>
+        <div class="card"><h4 style="margin-top:0;">My Supporting Documents Vault ({{ citizen.repository_docs.all|length }})</h4><table><thead><tr><th>Document Title</th><th>Uploaded</th><th>Action</th></tr></thead><tbody>{% for d in citizen.repository_docs.all %}<tr><td><strong>{{ d.title }}</strong></td><td>{{ d.uploaded_at|date:"M d, Y" }}</td><td><a href="/citizen-docs/{{ citizen.citizen_qr_id }}/" target="_blank" class="badge" style="text-decoration:none;">Open PDF &nearr;</a></td></tr>{% empty %}<tr><td colspan="3">No supporting documents uploaded yet.</td></tr>{% endfor %}</tbody></table></div>
       </div>
     {% endif %}
   </div>
+  <footer style="background:#0f172a;color:#cbd5e1;margin-top:34px;border-top:4px solid #1e3a8a;font-size:.78rem;">
+    <div style="max-width:1040px;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="background:#fbbf24;color:#0f172a;font-weight:900;padding:4px 8px;border-radius:999px;font-size:.7rem;">LGU</span><strong style="color:#fff;font-size:.92rem;">{{ citizen.barangay.name|default:"Barangay Lagare" }}</strong></div>
+        <div>{{ citizen.barangay.city_municipality.name|default:"Cabanatuan City" }}, {{ citizen.barangay.city_municipality.province.name|default:"Nueva Ecija" }}, Philippines</div>
+        <div style="margin-top:4px;color:#94a3b8;">Official Barangay Integrated Operations &amp; Analytics System</div>
+      </div>
+      <div>
+        <div style="color:#fbbf24;font-weight:800;margin-bottom:6px;">RESIDENT SERVICES</div>
+        <div><a href="javascript:void(0)" onclick="openCitTab('tabAdvisories',document.querySelectorAll('.tab-btn'))" style="color:#cbd5e1;text-decoration:none;">&bull; Official Advisories &amp; Memos</a></div>
+        <div><a href="javascript:void(0)" onclick="openCitTab('tabCerts',document.querySelectorAll('.tab-btn'))" style="color:#cbd5e1;text-decoration:none;">&bull; Request Barangay Certificates</a></div>
+        <div><a href="javascript:void(0)" onclick="openCitTab('tabReports',document.querySelectorAll('.tab-btn'))" style="color:#cbd5e1;text-decoration:none;">&bull; Report Concern / Incident</a></div>
+        <div><a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" style="color:#cbd5e1;text-decoration:none;">&bull; View Shared 201 Digital ID</a></div>
+      </div>
+      <div>
+        <div style="color:#fbbf24;font-weight:800;margin-bottom:6px;">HELP &amp; LEGAL</div>
+        <div><a href="/portal/" style="color:#cbd5e1;text-decoration:none;">&bull; Data Privacy Notice (RA 10173)</a></div>
+        <div><a href="/login/?role=CITIZEN" style="color:#cbd5e1;text-decoration:none;">&bull; Unified Resident Sign-In</a></div>
+        <div><a href="/citizen-home/?recover=1" style="color:#cbd5e1;text-decoration:none;">&bull; Account &amp; Password Recovery</a></div>
+      </div>
+    </div>
+    <div style="background:#020617;border-top:1px solid #1e293b;padding:18px 16px;">
+      <div style="max-width:1040px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;font-size:.73rem;color:#94a3b8;">
+        <div><strong style="color:#e2e8f0;">REPUBLIC OF THE PHILIPPINES</strong><div style="margin-top:3px;">All content is in the public domain unless otherwise stated.</div></div>
+        <div><strong style="color:#e2e8f0;">ABOUT GOV.PH</strong><div style="margin-top:3px;"><a href="https://www.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">GOV.PH</a> &bull; <a href="https://data.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">Open Data Portal</a> &bull; <a href="https://www.officialgazette.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">Official Gazette</a></div></div>
+        <div><strong style="color:#e2e8f0;">GOVERNMENT LINKS</strong><div style="margin-top:3px;"><a href="https://op-proper.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">Office of the President</a> &bull; <a href="https://dilg.gov.ph" target="_blank" style="color:#94a3b8;text-decoration:none;">DILG Philippines</a></div></div>
+      </div>
+    </div>
+  </footer>
   <script>
     function openCitTab(panelId,btn){
       document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));

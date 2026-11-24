@@ -354,6 +354,12 @@ def citizen_home(request):
             citizen.birth_place = request.POST.get("birth_place", citizen.birth_place).strip()
             citizen.religion = request.POST.get("religion", citizen.religion).strip()
             citizen.blood_type = request.POST.get("blood_type", citizen.blood_type).strip()
+            citizen.height_cm = request.POST.get("height_cm", citizen.height_cm).strip()
+            citizen.weight_kg = request.POST.get("weight_kg", citizen.weight_kg).strip()
+            citizen.complexion = request.POST.get("complexion", citizen.complexion).strip()
+            g_self = request.POST.get("gender_identity", citizen.gender_identity).strip()
+            if g_self in ("MALE", "FEMALE", "LGBTQ_MALE", "LGBTQ_FEMALE", "NON_BINARY"):
+                citizen.gender_identity = g_self
             citizen.civil_status = request.POST.get("civil_status", citizen.civil_status)
             citizen.address_line = request.POST.get("address_line", citizen.address_line).strip()
             citizen.current_address = request.POST.get("current_address", citizen.current_address).strip()
@@ -367,6 +373,17 @@ def citizen_home(request):
             citizen.email_address = request.POST.get("email_address", citizen.email_address).strip()
             citizen.emergency_contact_name = request.POST.get("emergency_contact_name", citizen.emergency_contact_name).strip()
             citizen.emergency_contact_phone = request.POST.get("emergency_contact_phone", citizen.emergency_contact_phone).strip()
+            citizen.emergency_contact_relationship = request.POST.get("emergency_contact_relationship", citizen.emergency_contact_relationship).strip()
+            citizen.employer_address = request.POST.get("employer_address", citizen.employer_address).strip()
+            citizen.philhealth_number = request.POST.get("philhealth_number", citizen.philhealth_number).strip()
+            citizen.sss_gsis_number = request.POST.get("sss_gsis_number", citizen.sss_gsis_number).strip()
+            citizen.tin_number = request.POST.get("tin_number", citizen.tin_number).strip()
+            citizen.pagibig_number = request.POST.get("pagibig_number", citizen.pagibig_number).strip()
+            citizen.is_senior_citizen = bool(request.POST.get("is_senior_citizen"))
+            citizen.is_pwd = bool(request.POST.get("is_pwd"))
+            citizen.is_solo_parent = bool(request.POST.get("is_solo_parent"))
+            citizen.is_4ps_beneficiary = bool(request.POST.get("is_4ps_beneficiary"))
+            citizen.is_first_time_jobseeker = bool(request.POST.get("is_first_time_jobseeker"))
             citizen.father_name = request.POST.get("father_name", citizen.father_name).strip()
             citizen.mother_maiden_name = request.POST.get("mother_maiden_name", citizen.mother_maiden_name).strip()
             citizen.spouse_name = request.POST.get("spouse_name", citizen.spouse_name).strip()
@@ -590,7 +607,7 @@ def citizen_201_inspect(request, citizen_id):
     c = get_object_or_404(CitizenProfile, id=citizen_id)
     qr_param = request.GET.get("qr", "").strip().upper()
     is_official = request.user.is_authenticated
-    is_owner_citizen = (not is_official) and bool(qr_param) and (qr_param == c.citizen_qr_id.upper()) and (c.status == "ACTIVE_RESIDENT")
+    is_owner_citizen = (not is_official) and (c.status == "ACTIVE_RESIDENT") and ((request.session.get("citizen_auth_id") == c.id) or (bool(qr_param) and qr_param == c.citizen_qr_id.upper()))
     if not is_official and not is_owner_citizen:
         return redirect("/login/")
 

@@ -241,6 +241,10 @@
 
                 <div class="item"><div class="lbl">Religion</div><div class="val">{{ c.religion|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Blood Type</div><div class="val">{{ c.blood_type|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Gender Identity / LGBTQ+</div><div class="val">{{ c.get_gender_identity_display|default:c.get_sex_display }}</div></div>
+        <div class="item"><div class="lbl">Height</div><div class="val">{{ c.height|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Weight</div><div class="val">{{ c.weight|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Complexion</div><div class="val">{{ c.complexion|default:"-" }}</div></div>
       </div>
     </div>
 
@@ -253,6 +257,8 @@
         <div class="item"><div class="lbl">House / Building / Lot No.</div><div class="val">{{ c.house_lot_no|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Street Name</div><div class="val">{{ c.street_name|default:c.address_line|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Purok / Zone / Sitio / Subdivision</div><div class="val">{{ c.purok }}</div></div>
+        <div class="item"><div class="lbl">Permanent Barangay Address</div><div class="val">{{ c.address_line|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Current Address (Outside/Inside Brgy)</div><div class="val">{{ c.current_address|default:c.address_line|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Length of Residency</div><div class="val">{{ c.years_in_barangay }} year(s)</div></div>
         <div class="item"><div class="lbl">Mobile Number</div><div class="val">{{ c.mobile_number|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Email Address</div><div class="val">{{ c.email_address|default:"-" }}</div></div>

@@ -87,6 +87,9 @@ class CitizenProfile(models.Model):
     citizenship = models.CharField(max_length=50, default="Filipino")
     religion = models.CharField(max_length=80, blank=True)
     blood_type = models.CharField(max_length=10, blank=True)
+    height_cm = models.CharField(max_length=20, blank=True)
+    weight_kg = models.CharField(max_length=20, blank=True)
+    complexion = models.CharField(max_length=50, blank=True)
     civil_status = models.CharField(max_length=20, choices=CIVIL_STATUS_CHOICES, default="SINGLE")
 
     house_lot_no = models.CharField(max_length=80, blank=True)
