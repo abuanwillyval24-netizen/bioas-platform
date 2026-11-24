@@ -150,6 +150,43 @@
       </form>
     </div>
     {% endif %}
+
+    <div class="card" style="border-top:4px solid {% if citizen.status == 'REJECTED_RETURNED' %}#dc2626{% else %}#1e3a8a{% endif %};">
+      <h3 style="margin-top:0;font-size:.98rem;color:{% if citizen.status == 'REJECTED_RETURNED' %}#b91c1c{% else %}#1e3a8a{% endif %};">
+        {% if citizen.status == "REJECTED_RETURNED" %}Fix &amp; Resubmit My 201 Application{% else %}3. Complete / Update My 201 Master Profile{% endif %}
+      </h3>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="qr_id" value="{{ citizen.citizen_qr_id }}">
+        <input type="hidden" name="action" value="UPDATE_201_PROFILE">
+        <label>Purok / Zone *</label>
+        <input name="purok" value="{{ citizen.purok }}" required />
+        <label>Complete House / Street Address *</label>
+        <input name="address_line" value="{{ citizen.address_line }}" required />
+        <label>Mobile Number *</label>
+        <input name="mobile_number" value="{{ citizen.mobile_number }}" required />
+        <label>Email Address *</label>
+        <input type="email" name="email_address" value="{{ citizen.email_address }}" required />
+        <label>2x2 Official Profile Photo (Upload New / Clearer Copy)</label>
+        <input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp" />
+        <label>Supporting Document / Valid ID / Proof of Residency (Upload New / Clearer Copy)</label>
+        <input type="file" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple />
+        {% if citizen.status == "ACTIVE_RESIDENT" %}
+          <label>Place of Birth</label><input name="birth_place" value="{{ citizen.birth_place }}" />
+          <label>Religion</label><input name="religion" value="{{ citizen.religion }}" />
+          <label>Blood Type</label><input name="blood_type" value="{{ citizen.blood_type }}" placeholder="e.g., O+, A+" />
+          <label>Emergency Contact Person</label><input name="emergency_contact_name" value="{{ citizen.emergency_contact_name }}" />
+          <label>Emergency Contact Phone</label><input name="emergency_contact_phone" value="{{ citizen.emergency_contact_phone }}" />
+          <label>Occupation / Livelihood</label><input name="occupation" value="{{ citizen.occupation }}" />
+          <label>PhilSys Card Number (PCN)</label><input name="philsys_id" value="{{ citizen.philsys_id }}" />
+          <label>Voter's Precinct Number</label><input name="precinct_number" value="{{ citizen.precinct_number }}" />
+        {% endif %}
+        <button type="submit" style="margin-top:14px;width:100%;background:{% if citizen.status == 'REJECTED_RETURNED' %}#dc2626{% else %}#16a34a{% endif %};">
+          {% if citizen.status == "REJECTED_RETURNED" %}Save Fixes &amp; Resubmit for 201 Verification &rarr;{% else %}Save &amp; Sync 201 Profile &rarr;{% endif %}
+        </button>
+      </form>
+    </div>
+    {% endif %}
   </div>
 </body>
 </html>
