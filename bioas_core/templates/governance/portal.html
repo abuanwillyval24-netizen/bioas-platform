@@ -85,44 +85,53 @@
       {% csrf_token %}<input type="hidden" name="wizard_action" value="STEP1_SEND_OTP">
       <div class="sec-hdr" style="margin-top:0;">Personal Information</div>
       <div class="grid-3">
-        <div><label>Last Name *</label><input name="last_name" value="{{ draft.last_name }}" required></div>
-        <div><label>First Name *</label><input name="first_name" value="{{ draft.first_name }}" required></div>
         <div>
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;white-space:nowrap;">
+          <div style="display:flex;align-items:center;height:20px;margin-bottom:4px;"><label style="margin:0;">Last Name *</label></div>
+          <input name="last_name" value="{{ draft.last_name }}" required>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;height:20px;margin-bottom:4px;"><label style="margin:0;">First Name *</label></div>
+          <input name="first_name" value="{{ draft.first_name }}" required>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:6px;height:20px;margin-bottom:4px;white-space:nowrap;">
             <label style="margin:0;">Middle Name</label>
             <label style="margin:0;font-size:.66rem;font-weight:700;color:#475569;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="noMidChk" onchange="toggleIdleField('noMidChk','midNameInp')" style="width:12px;height:12px;margin:0;"> No middle name</label>
           </div>
           <input id="midNameInp" name="middle_name" value="{{ draft.middle_name }}">
-        </div></div>
-          <input id="midNameInp" name="middle_name" value="{{ draft.middle_name }}" style="margin-top:4px;">
         </div>
       </div>
       <div class="grid-3" style="margin-top:10px;">
         <div>
-          <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;white-space:nowrap;">
+          <div style="display:flex;align-items:center;gap:6px;height:20px;margin-bottom:4px;white-space:nowrap;">
             <label style="margin:0;">Suffix</label>
             <label style="margin:0;font-size:.66rem;font-weight:700;color:#475569;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="naSufChk" onchange="toggleIdleField('naSufChk','sufNameInp')" style="width:12px;height:12px;margin:0;"> Not applicable</label>
           </div>
           <input id="sufNameInp" name="suffix" value="{{ draft.suffix }}" placeholder="Jr., Sr., III">
-        </div></div>
-          <input id="sufNameInp" name="suffix" value="{{ draft.suffix }}" placeholder="Jr., Sr., III" style="margin-top:4px;">
         </div>
-        <div><label>Alias / Palayaw</label><input name="alias_nickname" value="{{ draft.alias_nickname }}"></div>
-        <div><label>Sex / Gender *</label><select name="sex" required><option value="MALE" {% if draft.sex == "MALE" %}selected{% endif %}>Male</option><option value="FEMALE" {% if draft.sex == "FEMALE" %}selected{% endif %}>Female</option></select></div>
+        <div>
+          <div style="display:flex;align-items:center;height:20px;margin-bottom:4px;"><label style="margin:0;">Alias / Palayaw</label></div>
+          <input name="alias_nickname" value="{{ draft.alias_nickname }}">
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;height:20px;margin-bottom:4px;"><label style="margin:0;">Sex / Gender *</label></div>
+          <select name="sex" required><option value="MALE" {% if draft.sex == "MALE" %}selected{% endif %}>Male</option><option value="FEMALE" {% if draft.sex == "FEMALE" %}selected{% endif %}>Female</option></select>
+        </div>
       </div>
       <div class="grid-2" style="margin-top:10px;">
         <div><label>Civil Status *</label><select name="civil_status"><option value="SINGLE" {% if draft.civil_status == "SINGLE" %}selected{% endif %}>Single</option><option value="MARRIED" {% if draft.civil_status == "MARRIED" %}selected{% endif %}>Married</option><option value="WIDOWED" {% if draft.civil_status == "WIDOWED" %}selected{% endif %}>Widowed</option><option value="SEPARATED" {% if draft.civil_status == "SEPARATED" %}selected{% endif %}>Separated</option></select></div>
         <div><label>Birthdate *</label><input type="date" name="birth_date" value="{{ draft.birth_date }}" required></div>
       </div>
+
       <div class="sec-hdr">Contact &amp; Residency Details</div>
       <div class="grid-2">
-        <div><label>Barangay *</label><select name="barangay_id">{% for b in barangays %}<option value="{{ b.id }}" {% if draft.barangay_id == b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}</select></div>
-        <div><label>Purok / Zone *</label><input name="purok" value="{{ draft.purok }}" placeholder="e.g., Purok I" required></div>
+        <div><label>Barangay *</label><select name="barangay_id" onchange="syncCurAddr()">{% for b in barangays %}<option value="{{ b.id }}" {% if draft.barangay_id == b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}</select></div>
+        <div><label>Purok / Zone *</label><input name="purok" value="{{ draft.purok }}" placeholder="e.g., Purok I" oninput="syncCurAddr()" required></div>
       </div>
       <div style="margin-top:10px;"><label>Permanent Barangay Address (House / Street) *</label><input id="permAddrInp" name="address_line" value="{{ draft.address_line }}" placeholder="e.g., Blk 2 Lot 5 Rizal St." oninput="syncCurAddr()" required></div>
       <div style="margin-top:10px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
-          <label style="margin:0;">Current Address (If currently residing outside Barangay for work/study)</label>
+          <label style="margin:0;">Current Address (If residing outside Barangay for work/study)</label>
           <label style="margin:0;font-size:.69rem;font-weight:700;color:#1e3a8a;display:inline-flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="sameAddrChk" onchange="syncCurAddr()" style="width:13px;height:13px;margin:0;"> Same as permanent address</label>
         </div>
         <input id="curAddrInp" name="current_address" value="{{ draft.current_address }}" placeholder="e.g., Apt 4B Makati City or check if same">
@@ -131,8 +140,9 @@
         <div><label>Email Address (For OTP &amp; Activation) *</label><input type="email" name="email_address" value="{{ draft.email_address }}" placeholder="name@example.com" required></div>
         <div><label>Mobile Number *</label><input name="mobile_number" value="{{ draft.mobile_number }}" placeholder="09XX-XXX-XXXX" required></div>
       </div>
+
       <div class="sec-hdr">Account Credentials</div>
-      <div><label>Portal Username * <span id="uAvailBadge" style="margin-left:6px;font-weight:800;"></span></label><input id="portalUserInp" name="portal_username" value="{{ draft.portal_username }}" placeholder="Choose a unique username" oninput="checkUserAvail(this.value)" required></div>
+      <div><label>Portal Username * <span id="uAvailBadge" style="margin-left:6px;font-weight:800;"></span></label><input id="portalUserInp" name="portal_username" value="{{ draft.portal_username }}" placeholder="Start with a letter (e.g., abuan24)" oninput="checkUserAvail(this.value)" required></div>
       <div class="grid-2" style="margin-top:10px;">
         <div><label>Password *</label><input type="password" id="pwInp" name="portal_password" placeholder="Create strong password" oninput="checkPwRules()" required></div>
         <div><label>Confirm Password * <span id="pwMatchTag" style="margin-left:4px;"></span></label><input type="password" id="pwConfInp" name="confirm_password" placeholder="Re-enter password" oninput="checkPwRules()" required></div>
