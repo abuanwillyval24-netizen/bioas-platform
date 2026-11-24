@@ -476,3 +476,25 @@ class BarangayPortalShowcase(models.Model):
 
     def __str__(self):
         return f"Portal Showcase — {self.barangay.name}"
+
+
+class BarangayBlastAdvisory(models.Model):
+    CATEGORY_CHOICES = [
+        ("MEMORANDUM", "Official Barangay Memorandum"),
+        ("AYUDA_PAYOUT", "Ayuda / Social Welfare Payout Schedule"),
+        ("WEATHER_DRRM", "BDRRMC Weather & Safety Alert"),
+        ("HEALTH_MISSION", "Health Center & Medical Mission"),
+        ("GENERAL_ADVISORY", "General Community Advisory"),
+    ]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="blast_advisories")
+    category = models.CharField(max_length=25, choices=CATEGORY_CHOICES, default="GENERAL_ADVISORY")
+    title = models.CharField(max_length=180)
+    message = models.TextField()
+    target_purok = models.CharField(max_length=60, default="ALL")
+    is_urgent = models.BooleanField(default=False)
+    posted_by_name = models.CharField(max_length=150, blank=True)
+    posted_by_role = models.CharField(max_length=80, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-is_urgent", "-created_at"]

@@ -356,6 +356,7 @@ def citizen_home(request):
             citizen.blood_type = request.POST.get("blood_type", citizen.blood_type).strip()
             citizen.civil_status = request.POST.get("civil_status", citizen.civil_status)
             citizen.address_line = request.POST.get("address_line", citizen.address_line).strip()
+            citizen.current_address = request.POST.get("current_address", citizen.current_address).strip()
             citizen.purok = request.POST.get("purok", citizen.purok).strip() or "Purok I"
             citizen.residency_status = request.POST.get("residency_status", citizen.residency_status)
             try:
@@ -448,7 +449,7 @@ def citizen_home(request):
     resp = HttpResponse(tpl.render({
         "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
         "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
-        "recent_certs": recent_certs, "recent_reports": recent_reports, "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
+        "recent_certs": recent_certs, "recent_reports": recent_reports, "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
     }, request))
     resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp["Pragma"] = "no-cache"

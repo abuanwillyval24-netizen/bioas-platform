@@ -208,6 +208,39 @@
           </div>
 
         {% elif module == "CITIZEN_REPORTS" %}
+          <div class="section-title"><span>&#128226; Broadcast Official Blast Notification / Memorandum to Citizen Dashboards ({{ blast_advisories|length }})</span></div>
+          <div class="card" style="padding:16px 18px;border-top:4px solid #0f766e;background:#f0fdfa;margin-bottom:18px;">
+            <form method="post" onsubmit="return confirm('Broadcast this Official Barangay Advisory / Blast Notification to Citizen Dashboards now?')" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+              {% csrf_token %}<input type="hidden" name="action" value="POST_BLAST_ADVISORY">
+              <select name="blast_category" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font-weight:700;">
+                <option value="MEMORANDUM">Official Barangay Memorandum</option>
+                <option value="AYUDA_PAYOUT">Ayuda / Social Welfare Payout Schedule</option>
+                <option value="WEATHER_DRRM">BDRRMC Weather &amp; Safety Alert</option>
+                <option value="HEALTH_MISSION">Health Center &amp; Medical Mission</option>
+                <option value="GENERAL_ADVISORY">General Community Advisory</option>
+              </select>
+              <input name="target_purok" value="ALL" placeholder="Target Audience (ALL or Purok I)" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;">
+              <input name="blast_title" placeholder="Headline / Memorandum Title *" required style="grid-column:1/-1;padding:8px 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font-weight:700;">
+              <textarea name="blast_message" rows="3" placeholder="Full Memorandum / Ayuda Schedule / Community Advisory details *" required style="grid-column:1/-1;padding:8px 10px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;"></textarea>
+              <div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.8rem;font-weight:700;color:#0f172a;">
+                  <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="is_urgent"> Pin as Urgent Alert</label>
+                  <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" name="send_email_blast" checked> Also Email Active Residents</label>
+                </div>
+                <button type="submit" style="background:#0f766e;color:#fff;border:0;padding:9px 16px;border-radius:7px;font-size:.8rem;font-weight:800;cursor:pointer;">Broadcast Blast Notification &rarr;</button>
+              </div>
+            </form>
+            {% if blast_advisories %}
+            <div style="margin-top:12px;border-top:1px solid #ccfbf1;padding-top:10px;display:grid;gap:6px;max-height:170px;overflow:auto;">
+              {% for adv in blast_advisories %}
+              <div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div><span class="badge" style="background:{% if adv.is_urgent %}#fee2e2;color:#991b1b{% else %}#dbeafe;color:#1e40af{% endif %};">{{ adv.get_category_display }}</span> <strong>{{ adv.title }}</strong> <span style="font-size:.74rem;color:#64748b;">({{ adv.target_purok }} &bull; {{ adv.created_at|date:"M d, Y H:i" }})</span></div>
+                <small style="color:#475569;">By {{ adv.posted_by_name }}</small>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
           <div class="section-title" style="margin-top:20px;"><span>02G. Citizen Portal Community Reports &amp; Complaints ({{ citizen_reports|length }})</span><a href="/citizen-home/" target="_blank" style="background:var(--primary);color:#fff;padding:6px 12px;border-radius:7px;text-decoration:none;font-size:.76rem;font-weight:700;">Open Citizen Portal &#8599;</a></div>
           <div class="card" style="padding:16px 18px;border-top:4px solid var(--primary);margin-bottom:20px;">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">

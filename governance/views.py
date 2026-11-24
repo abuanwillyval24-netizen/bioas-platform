@@ -845,6 +845,46 @@ def command_dashboard(request):
                     pol_obj.save()
                     SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=pol_obj.form_code or "BIOAS-PRIV-01", details=f"Punong Barangay approved & published updated Barangay Data Privacy Policy & Terms of Use.")
                     action_notice = "Approved & Published: Updated Barangay Data Privacy Policy & Terms of Use (RA 10173) is now live on the Citizen Sign-Up portal!"
+        elif act == "POST_BLAST_ADVISORY":
+            from .models import BarangayBlastAdvisory
+            from django.core.mail import send_mail
+            from django.conf import settings as dj_settings
+            b_title = request.POST.get("blast_title", "").strip()
+            b_msg = request.POST.get("blast_message", "").strip()
+            b_cat = request.POST.get("blast_category", "GENERAL_ADVISORY")
+            b_purok = request.POST.get("target_purok", "ALL").strip() or "ALL"
+            b_urg = bool(request.POST.get("is_urgent"))
+            if active_barangay and b_title and b_msg:
+                adv = BarangayBlastAdvisory.objects.create(
+                    barangay=active_barangay,
+                    category=b_cat,
+                    title=b_title,
+                    message=b_msg,
+                    target_purok=b_purok,
+                    is_urgent=b_urg,
+                    posted_by_name=actor_name,
+                    posted_by_role=actor_role,
+                )
+                emailed_n = 0
+                if request.POST.get("send_email_blast"):
+                    qs_em = CitizenProfile.objects.filter(barangay=active_barangay, status="ACTIVE_RESIDENT").exclude(email_address="")
+                    if b_purok != "ALL":
+                        qs_em = qs_em.filter(purok__iexact=b_purok)
+                    recips = list(qs_em.values_list("email_address", flat=True).distinct())
+                    if recips:
+                        try:
+                            send_mail(
+                                subject=f"[{active_barangay.name}] {adv.get_category_display()}: {b_title}",
+                                message=f"OFFICIAL BARANGAY ADVISORY ({active_barangay.name})\nCategory: {adv.get_category_display()}\nAudience: {b_purok}\n\n{b_msg}\n\nIssued By: {actor_name} ({actor_role})",
+                                from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                                recipient_list=recips,
+                                fail_silently=True,
+                            )
+                            emailed_n = len(recips)
+                        except Exception:
+                            pass
+                SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=f"BLAST-{adv.id}", details=f"Broadcasted '{b_title}' ({adv.get_category_display()}) to {b_purok}; emailed {emailed_n} resident(s).")
+                action_notice = f"Broadcasted Official Advisory '{b_title}' to all Citizen Dashboards ({b_purok}) and emailed {emailed_n} resident(s)!"
         elif act == "REJECT_POLICY_TEMPLATE":
             from .models import OfficialFormTemplate
             if request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN"):
@@ -1075,6 +1115,7 @@ def command_dashboard(request):
         "is_captain_or_admin": bool(request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN")),
         "pending_recoveries": list(__import__("governance.models", fromlist=["WalkInRecoveryRequest"]).WalkInRecoveryRequest.objects.select_related("citizen").filter(barangay=active_barangay, status="PENDING_CAPTAIN")) if active_barangay else [],
         "pending_policy_updates": list(__import__("governance.models", fromlist=["OfficialFormTemplate"]).OfficialFormTemplate.objects.filter(barangay=active_barangay, has_pending_approval=True)) if active_barangay else [],
+        "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=active_barangay)[:20]) if active_barangay else [],
         "form_templates": list(__import__("governance.models", fromlist=["OfficialFormTemplate"]).OfficialFormTemplate.objects.filter(barangay=active_barangay)) if active_barangay else [],
     }, request))
 
