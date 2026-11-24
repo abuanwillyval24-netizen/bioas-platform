@@ -59,7 +59,7 @@
       </div>
       <div id="otpRecoveryBox" style="display:{% if otp_stage %}block{% else %}none{% endif %};margin-top:16px;padding-top:14px;border-top:1px dashed #cbd5e1;">
         <h3 style="margin:0 0 6px;font-size:.96rem;color:#92400e;">Forgot Reference ID, Username, or Password? (Email OTP Recovery)</h3>
-        <p style="font-size:.78rem;color:#64748b;margin:0 0 8px;">Forgot your Reference Number or Username? Enter your <strong>Registered Email Address</strong> below?we will email your <strong>Citizen Reference ID</strong>, <strong>Username</strong>, and a <strong>6-digit OTP</strong> to reset your password.</p>
+        <p style="font-size:.78rem;color:#64748b;margin:0 0 8px;">Forgot your Reference Number or Username? Enter your <strong>Registered Email Address</strong> below &mdash; we will email your <strong>Citizen Reference ID</strong>, <strong>Username</strong>, and a <strong>6-digit OTP</strong> to reset your password.</p>
         <form method="post" style="margin-bottom:10px;">
           {% csrf_token %}<input type="hidden" name="action" value="SEND_RECOVERY_OTP">
           <label>Registered Email Address *</label><input type="email" name="rec_email" value="{{ rec_email }}" placeholder="name@example.com" required />

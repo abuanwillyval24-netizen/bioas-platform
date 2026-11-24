@@ -238,28 +238,24 @@ def citizen_home(request):
         else:
             code = f"{random.randint(100000, 999999)}"
             request.session["citizen_otp_code"], request.session["citizen_otp_cid"], otp_stage = code, cand.id, "VERIFY"
-            import os, json, urllib.request
-            resend_key = os.environ.get("RESEND_API_KEY", "").strip()
-            sent_live = False
-            msg_body = f"Good day {cand.full_name},\n\nYour Citizen Reference ID: {cand.citizen_qr_id}\nYour Portal Username: {cand.portal_username or '(Not set yet)'}\nYour 6-digit Password Reset OTP: {code}\n\nEnter this 6-digit OTP on /citizen-home/ to set a new password."
-            if resend_key:
-                try:
-                    req = urllib.request.Request(
-                        "https://api.resend.com/emails",
-                        data=json.dumps({
-                            "from": os.environ.get("RESEND_FROM_EMAIL", "BIOAS Portal <onboarding@resend.dev>"),
-                            "to": [cand.email_address],
-                            "subject": f"[{cand.barangay.name}] Reference ID, Username & Password Reset OTP",
-                            "text": msg_body,
-                        }).encode("utf-8"),
-                        headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
-                        method="POST",
-                    )
-                    with urllib.request.urlopen(req, timeout=8) as resp:
-                        sent_live = resp.status in (200, 201)
-                except Exception as mail_err:
-                    print("RESEND_OTP_ERROR:", repr(mail_err))
-                    sent_live = False
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings as dj_settings
+                send_mail(
+                    subject=f"[{cand.barangay.name}] Reference ID, Username & Password Reset OTP",
+                    message=(
+                        f"Good day {cand.full_name},\n\n"
+                        f"Your Citizen Reference ID: {cand.citizen_qr_id}\n"
+                        f"Your Portal Username: {cand.portal_username or '(Not set yet)'}\n"
+                        f"Your 6-digit Password Reset OTP: {code}\n\n"
+                        f"Enter this 6-digit OTP on /citizen-home/ to set a new password."
+                    ),
+                    from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                    recipient_list=[cand.email_address],
+                    fail_silently=False,
+                )
+            except Exception as mail_err:
+                print("BIOAS_EMAIL_DELIVERY_ERROR:", repr(mail_err))
             notice = "If an account is registered under that email address, your Citizen Reference ID, Username, and 6-digit OTP have been sent discreetly to your email inbox."
     elif top_act == "RESET_PASSWORD_OTP":
         if not request.session.get("citizen_otp_code") or request.POST.get("otp_code", "").strip() != request.session.get("citizen_otp_code"):
