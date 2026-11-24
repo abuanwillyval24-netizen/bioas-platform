@@ -322,6 +322,7 @@
                 <div><label style="font-size:.75rem;font-weight:700;">First Name *</label><input name="first_name" required></div>
                 <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"><label style="font-size:.75rem;font-weight:700;margin:0;">Middle Name</label><label style="font-size:.67rem;color:#1e3a8a;margin:0;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" style="width:12px;height:12px;" onchange="const m=document.getElementById('wkMid');m.disabled=this.checked;if(this.checked)m.value='';"> No middle name</label></div><input id="wkMid" name="middle_name"></div>
                 <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"><label style="font-size:.75rem;font-weight:700;margin:0;">Suffix</label><label style="font-size:.67rem;color:#1e3a8a;margin:0;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" style="width:12px;height:12px;" onchange="const s=document.getElementById('wkSuf');s.disabled=this.checked;if(this.checked)s.value='';"> N/A</label></div><input id="wkSuf" name="suffix" placeholder="Jr., Sr., III"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Alias / Palayaw</label><input name="alias_nickname" placeholder="Optional nickname"></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Legal Sex (PSA / Law) *</label><select name="sex"><option value="MALE">Male</option><option value="FEMALE">Female</option></select></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Gender Identity / LGBTQ+</label><select name="gender_identity"><option value="MALE">Male</option><option value="FEMALE">Female</option><option value="LGBTQ_MALE">LGBTQ+ (Male-Aligned)</option><option value="LGBTQ_FEMALE">LGBTQ+ (Female-Aligned)</option><option value="NON_BINARY">Non-Binary / Prefer Not to Say</option></select></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Birthdate *</label><input type="date" name="birth_date" required></div>
@@ -334,11 +335,11 @@
                 <div><label style="font-size:.75rem;font-weight:700;">Blood Type</label><input name="blood_type" placeholder="A+, B+, O+, AB+"></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Purok / Zone *</label><select name="purok"><option>Purok I</option><option>Purok II</option><option>Purok III</option><option>Purok IV</option><option>Purok V</option><option>Purok VI</option><option>Purok VII</option></select></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Permanent Barangay Address *</label><input id="wkPermAddr" name="address_line" required></div>
-                <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"><label style="font-size:.75rem;font-weight:700;margin:0;">Current Address</label><label style="font-size:.67rem;color:#1e3a8a;margin:0;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" style="width:12px;height:12px;" onchange="if(this.checked)document.getElementById('wkCurAddr').value=document.getElementById('wkPermAddr').value;"> Same</label></div><input id="wkCurAddr" name="current_address"></div>
+                <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"><label style="font-size:.75rem;font-weight:700;margin:0;">Current Address</label><label style="font-size:.67rem;color:#1e3a8a;margin:0;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="wkSameAddr" style="width:12px;height:12px;" onchange="if(this.checked)document.getElementById('wkCurAddr').value=document.getElementById('wkPermAddr').value;"> Same as permanent</label></div><input id="wkCurAddr" name="current_address"></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Residency Status</label><select name="residency_status"><option value="PERMANENT">Permanent / Homeowner</option><option value="RENTER">Renter / Boarder</option><option value="SHARER">Sharer / Living with Relatives</option><option value="TRANSIENT">Transient / Temporary</option></select></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Mobile Number</label><input name="mobile_number" placeholder="09XXXXXXXXX"></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Email Address (For Credentials)</label><input type="email" name="email_address" placeholder="resident@email.com"></div>
-                <div><label style="font-size:.75rem;font-weight:700;">Portal Username (Optional)</label><input name="portal_username" placeholder="Auto-generated if blank"></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Portal Username (Optional) <span id="wkUAvailBadge" style="margin-left:4px;font-weight:800;"></span></label><input id="wkPortalUserInp" name="portal_username" placeholder="Auto-generated if blank" oninput="checkWkUserAvail(this.value)"></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Temporary Portal Password</label><div style="display:flex;gap:4px;"><input id="wkPortalPw" name="portal_password" placeholder="Auto-generated if blank"><button type="button" onclick="document.getElementById('wkPortalPw').value='Brgy@'+Math.floor(1000+Math.random()*9000)" style="background:#0f766e;color:#fff;border:0;border-radius:6px;padding:0 9px;font-size:.72rem;font-weight:800;cursor:pointer;">Gen</button></div></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Occupation / Livelihood</label><input name="occupation"></div>
                 <div><label style="font-size:.75rem;font-weight:700;">PhilSys / National ID</label><input name="philsys_id"></div>
@@ -346,6 +347,7 @@
                 <div><label style="font-size:.75rem;font-weight:700;">Household Head Full Name</label><input name="household_head_name"></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Relationship to Head</label><select name="relationship_to_head"><option value="HEAD">Head</option><option value="SPOUSE">Spouse</option><option value="CHILD">Child</option><option value="PARENT">Parent</option><option value="RELATIVE">Relative</option></select></div>
                 <div><label style="font-size:.75rem;font-weight:700;">2x2 Photo</label><div style="display:flex;gap:4px;"><input id="wkPhotoInp" type="file" name="photo" accept=".png,.jpg,.jpeg,.webp" onchange="document.getElementById('wkPhotoClr').style.display=this.files.length?'inline-block':'none'"><button type="button" id="wkPhotoClr" onclick="const f=document.getElementById('wkPhotoInp');f.value='';this.style.display='none';" style="display:none;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:0 8px;font-weight:800;cursor:pointer;">&#10005;</button></div></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Data Privacy Consent (RA 10173) *</label><label style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:#1e293b;margin-top:6px;cursor:pointer;"><input type="checkbox" name="data_privacy_consent" required checked style="width:15px;height:15px;"> Signed / Verbal Consent Verified</label></div>
                 <div><label style="font-size:.75rem;font-weight:700;">Supporting Docs (Auto-PDF)</label><div style="display:flex;gap:4px;"><input id="wkDocInp" type="file" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple onchange="document.getElementById('wkDocClr').style.display=this.files.length?'inline-block':'none'"><button type="button" id="wkDocClr" onclick="const f=document.getElementById('wkDocInp');f.value='';this.style.display='none';" style="display:none;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:0 8px;font-weight:800;cursor:pointer;">&#10005;</button></div></div>
               </div>
               <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.82rem;">
@@ -671,5 +673,24 @@
     });
     if (realInput.value) ghostInput.value = findShadowMatch(realInput.value);
   </script>
+
+<script>
+let wkUCheckTimer = null;
+function checkWkUserAvail(val) {
+  const b = document.getElementById('wkUAvailBadge');
+  if (!b) return;
+  const u = val.trim();
+  if (u.length < 4) { b.textContent = u ? 'Min 4 chars' : ''; b.style.color = '#64748b'; return; }
+  clearTimeout(wkUCheckTimer);
+  wkUCheckTimer = setTimeout(() => {
+    fetch('/portal/?check_username=' + encodeURIComponent(u))
+      .then(r => r.json())
+      .then(d => {
+        b.style.color = d.available ? '#16a34a' : '#dc2626';
+        b.textContent = d.available ? '? Available' : '? ' + (d.message || 'Taken');
+      }).catch(() => {});
+  }, 250);
+}
+</script>
 </body>
 </html>

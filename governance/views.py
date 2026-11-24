@@ -353,6 +353,8 @@ def command_dashboard(request):
                 cit.household = hh
                 cit.relationship_to_head = request.POST.get("relationship_to_head", "HEAD")
 
+            cit.alias_nickname = request.POST.get("alias_nickname", "").strip()
+            cit.data_privacy_consent = True
             cit.gender_identity = request.POST.get("gender_identity", cit.sex)
             cit.religion = request.POST.get("religion", "").strip()
             cit.blood_type = request.POST.get("blood_type", "").strip()
@@ -369,7 +371,7 @@ def command_dashboard(request):
                 pass
             from django.contrib.auth.hashers import make_password
             w_uname = request.POST.get("portal_username", "").strip().lower()
-            w_temp_pw = request.POST.get("temp_password", "").strip()
+            w_temp_pw = (request.POST.get("portal_password") or request.POST.get("temp_password") or "").strip()
             if is_new and not w_uname:
                 base_u = "".join(c for c in cit.last_name.lower() if c.isalnum()) or "resident"
                 w_uname = f"{base_u}{cit.id or CitizenProfile.objects.count()+1}"
