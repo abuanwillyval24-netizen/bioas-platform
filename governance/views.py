@@ -283,10 +283,17 @@ def command_dashboard(request):
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
             is_new = cit is None
             if is_new:
-                cit = CitizenProfile(
-                    barangay=active_barangay,
-                    citizen_qr_id=f"CIT-{uuid.uuid4().hex[:6].upper()}",
-                )
+                from django.utils import timezone as dj_tz
+                yr_now = dj_tz.now().year
+                p_code = "".join(ch for ch in active_barangay.city_municipality.province.name.upper() if ch.isalpha())[:3] or "NUE"
+                m_code = "".join(ch for ch in active_barangay.city_municipality.name.upper() if ch.isalpha())[:3] or "CAB"
+                b_code = "".join(ch for ch in active_barangay.name.replace("Barangay", "").strip().upper() if ch.isalpha())[:3] or "LAG"
+                seq_num = CitizenProfile.objects.filter(barangay=active_barangay).count() + 1
+                gen_ref = f"{p_code}-{m_code}-{b_code}-{yr_now}-{seq_num:05d}"
+                while CitizenProfile.objects.filter(citizen_qr_id=gen_ref).exists():
+                    seq_num += 1
+                    gen_ref = f"{p_code}-{m_code}-{b_code}-{yr_now}-{seq_num:05d}"
+                cit = CitizenProfile(barangay=active_barangay, citizen_qr_id=gen_ref)
             cit.last_name = request.POST.get("last_name", cit.last_name).strip()
             cit.first_name = request.POST.get("first_name", cit.first_name).strip()
             cit.middle_name = request.POST.get("middle_name", "").strip()
@@ -346,7 +353,63 @@ def command_dashboard(request):
                 cit.household = hh
                 cit.relationship_to_head = request.POST.get("relationship_to_head", "HEAD")
 
+            cit.gender_identity = request.POST.get("gender_identity", cit.sex)
+            cit.religion = request.POST.get("religion", "").strip()
+            cit.blood_type = request.POST.get("blood_type", "").strip()
+            cit.height = request.POST.get("height", "").strip()
+            cit.weight = request.POST.get("weight", "").strip()
+            cit.complexion = request.POST.get("complexion", "").strip()
+            cit.current_address = request.POST.get("current_address", "").strip() or cit.address_line
+            cit.father_name = request.POST.get("father_name", "").strip()
+            cit.mother_maiden_name = request.POST.get("mother_maiden_name", "").strip()
+            cit.spouse_name = request.POST.get("spouse_name", "").strip()
+            try:
+                cit.years_in_barangay = max(0, int(request.POST.get("years_in_barangay", 1) or 1))
+            except ValueError:
+                pass
+            from django.contrib.auth.hashers import make_password
+            w_uname = request.POST.get("portal_username", "").strip().lower()
+            w_temp_pw = request.POST.get("temp_password", "").strip()
+            if is_new and not w_uname:
+                base_u = "".join(c for c in cit.last_name.lower() if c.isalnum()) or "resident"
+                w_uname = f"{base_u}{cit.id or CitizenProfile.objects.count()+1}"
+            if w_uname and not CitizenProfile.objects.exclude(id=cit.id).filter(portal_username__iexact=w_uname).exists():
+                cit.portal_username = w_uname
+            if is_new and not w_temp_pw:
+                w_temp_pw = f"Bioas@{uuid.uuid4().hex[:5].upper()}"
+            if w_temp_pw:
+                cit.portal_password_hash = make_password(w_temp_pw)
             cit.save()
+            from citizens.views import save_standardized_citizen_files
+            save_standardized_citizen_files(
+                cit,
+                photo_file=request.FILES.get("photo"),
+                doc_files=request.FILES.getlist("supporting_document"),
+                source_channel="WALKIN_DESK",
+                uploaded_by=actor_name,
+            )
+            if is_new and cit.email_address and w_temp_pw:
+                try:
+                    from django.core.mail import send_mail
+                    from django.conf import settings as dj_settings
+                    login_link = request.build_absolute_uri("/login/?role=CITIZEN")
+                    send_mail(
+                        subject=f"[{active_barangay.name}] Walk-In 201 Registration & Portal Account - {cit.citizen_qr_id}",
+                        message=(
+                            f"Good day {cit.full_name},\n\n"
+                            f"Your Walk-In Barangay 201 Citizen Registration at {active_barangay.name} has been encoded and activated.\n\n"
+                            f"Citizen Unique Reference ID : {cit.citizen_qr_id}\n"
+                            f"Portal Sign-In Username     : {cit.portal_username}\n"
+                            f"Temporary Portal Password   : {w_temp_pw}\n"
+                            f"Unified Citizen Sign-In URL : {login_link}\n\n"
+                            f"Please sign in and update your password under Account & Theme Settings."
+                        ),
+                        from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None),
+                        recipient_list=[cit.email_address],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
             SystemAuditLog.objects.create(
                 barangay=active_barangay,
                 action_type="PORTAL_SYNC_APPROVED",
@@ -355,7 +418,8 @@ def command_dashboard(request):
                 reference_code=cit.citizen_qr_id,
                 details=f"{'Encoded walk-in' if is_new else 'Updated'} 201 Master Record for {cit.full_name} ({cit.citizen_qr_id}).",
             )
-            action_notice = f"{'Encoded new' if is_new else 'Updated'} 201 Master Record: {cit.full_name} ({cit.citizen_qr_id})."
+            cred_note = f" | Portal Username: {cit.portal_username} | Temp Password: {w_temp_pw}" if (is_new and w_temp_pw) else ""
+            action_notice = f"{'Encoded new' if is_new else 'Updated'} 201 Master Record: {cit.full_name} ({cit.citizen_qr_id}){cred_note}"
         elif act == "BULK_IMPORT_201" and request.FILES.get("excel_file"):
             import csv, io, zipfile, xml.etree.ElementTree as ET
             up_file = request.FILES["excel_file"]
