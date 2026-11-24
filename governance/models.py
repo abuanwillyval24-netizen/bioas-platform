@@ -332,19 +332,20 @@ class BarangayStaffProfile(models.Model):
         ("AUDIT", "12. COA & DILG Audit"),
         ("TURNOVER", "13. Governance Turnover"),
         ("POLICY", "14. Policy & Glossary"),
+        ("TEMPLATES", "15. Official Forms & Templates"),
     ]
     ROLE_DEFAULT_MODULES = {
-        "CAPTAIN": ["OVERVIEW", "CITIZENS", "LEDGER_201", "CERTIFICATES", "BLOTTER", "TREASURY", "HEALTH", "WELFARE", "FLEET", "DRRM", "SK", "LEGISLATION", "AUDIT", "TURNOVER", "POLICY"],
-        "COUNCILOR": ["OVERVIEW", "CITIZENS", "LEDGER_201", "WELFARE", "FLEET", "DRRM", "LEGISLATION", "TURNOVER", "POLICY"],
-        "SK_CHAIRMAN": ["OVERVIEW", "LEDGER_201", "SK", "LEGISLATION", "TURNOVER", "POLICY"],
+        "CAPTAIN": ["OVERVIEW", "CITIZENS", "LEDGER_201", "CERTIFICATES", "BLOTTER", "TREASURY", "HEALTH", "WELFARE", "FLEET", "DRRM", "SK", "LEGISLATION", "AUDIT", "TURNOVER", "POLICY", "TEMPLATES"],
+        "COUNCILOR": ["OVERVIEW", "CITIZENS", "LEDGER_201", "WELFARE", "FLEET", "DRRM", "LEGISLATION", "TURNOVER", "POLICY", "TEMPLATES"],
+        "SK_CHAIRMAN": ["OVERVIEW", "LEDGER_201", "SK", "LEGISLATION", "TURNOVER", "POLICY", "TEMPLATES"],
         "SK_COUNCILOR": ["OVERVIEW", "SK", "POLICY"],
-        "SECRETARY": ["OVERVIEW", "CITIZENS", "LEDGER_201", "CERTIFICATES", "BLOTTER", "LEGISLATION", "AUDIT", "TURNOVER", "POLICY"],
+        "SECRETARY": ["OVERVIEW", "CITIZENS", "LEDGER_201", "CERTIFICATES", "BLOTTER", "LEGISLATION", "AUDIT", "TURNOVER", "POLICY", "TEMPLATES"],
         "ASST_SECRETARY": ["OVERVIEW", "CITIZENS", "LEDGER_201", "CERTIFICATES", "POLICY"],
-        "TREASURER": ["OVERVIEW", "CERTIFICATES", "TREASURY", "FLEET", "AUDIT", "TURNOVER", "POLICY"],
+        "TREASURER": ["OVERVIEW", "CERTIFICATES", "TREASURY", "FLEET", "AUDIT", "TURNOVER", "POLICY", "TEMPLATES"],
         "ASST_TREASURER": ["OVERVIEW", "CERTIFICATES", "TREASURY", "POLICY"],
         "HEPE": ["OVERVIEW", "CITIZENS", "BLOTTER", "FLEET", "DRRM", "POLICY"],
-        "WAREHOUSE_KEEPER": ["OVERVIEW", "FLEET", "DRRM", "TURNOVER", "POLICY"],
-        "CUSTODIAN": ["OVERVIEW", "FLEET", "AUDIT", "TURNOVER", "POLICY"],
+        "WAREHOUSE_KEEPER": ["OVERVIEW", "FLEET", "DRRM", "TURNOVER", "POLICY", "TEMPLATES"],
+        "CUSTODIAN": ["OVERVIEW", "FLEET", "AUDIT", "TURNOVER", "POLICY", "TEMPLATES"],
         "SOCIAL_WORKER": ["OVERVIEW", "CITIZENS", "LEDGER_201", "HEALTH", "WELFARE", "DRRM", "POLICY"],
     }
 
@@ -394,6 +395,52 @@ class TrustedLoginDevice(models.Model):
 
     def __str__(self):
         return f"{self.account_key} ({self.ip_prefix})"
+
+
+class WalkInRecoveryRequest(models.Model):
+    STATUS_CHOICES = [
+        ("PENDING_CAPTAIN", "Pending Punong Barangay Approval"),
+        ("APPROVED", "Approved & Activated"),
+        ("REJECTED", "Rejected"),
+    ]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="walkin_recovery_requests")
+    citizen = models.ForeignKey("citizens.CitizenProfile", on_delete=models.CASCADE, related_name="recovery_requests")
+    requested_username = models.CharField(max_length=60)
+    pending_password_hash = models.CharField(max_length=128)
+    signed_request_letter_uri = models.TextField(blank=True)
+    signed_request_letter_name = models.CharField(max_length=160, blank=True)
+    submitted_by_name = models.CharField(max_length=150)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING_CAPTAIN")
+    reviewed_by_name = models.CharField(max_length=150, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class OfficialFormTemplate(models.Model):
+    CATEGORY_CHOICES = [
+        ("COMPLETION_REPORT", "Completion Report"),
+        ("ACCEPTANCE_REPORT", "Acceptance Report"),
+        ("INSPECTION_REPORT", "Inspection Report"),
+        ("ASSET_PROFILE", "Asset Profile"),
+        ("WORK_ORDER", "Work Order"),
+        ("WALKIN_RECOVERY_LETTER", "Walk-In Account Recovery Request Letter"),
+        ("OTHER", "Other Official Form"),
+    ]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="form_templates")
+    category = models.CharField(max_length=35, choices=CATEGORY_CHOICES, default="COMPLETION_REPORT")
+    title = models.CharField(max_length=160)
+    form_code = models.CharField(max_length=40, blank=True)
+    description = models.TextField(blank=True)
+    body_template = models.TextField(blank=True)
+    file_data_uri = models.TextField(blank=True)
+    file_name = models.CharField(max_length=160, blank=True)
+    updated_by = models.CharField(max_length=150, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["category", "title"]
 
 
 class TermArchiveSnapshot(models.Model):

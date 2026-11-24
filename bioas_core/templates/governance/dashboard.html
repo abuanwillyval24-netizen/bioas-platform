@@ -132,6 +132,7 @@
       <div class="side-group">Transition &amp; Reference</div>
       {% if "TURNOVER" in visible_modules %}<a href="?tier=BARANGAY&module=TURNOVER" class="{% if module == 'TURNOVER' %}active{% endif %}"><span>13. Governance Turnover</span><span class="pill">{{ total_pending_turnover }}</span></a>{% endif %}
       {% if "POLICY" in visible_modules %}<a href="?tier=BARANGAY&module=POLICY" class="{% if module == 'POLICY' %}active{% endif %}"><span>14. Policy &amp; Glossary</span><span class="pill">SOP</span></a>{% endif %}
+      {% if "TEMPLATES" in visible_modules %}<a href="?tier=BARANGAY&module=TEMPLATES" class="{% if module == 'TEMPLATES' %}active{% endif %}"><span>15. Official Forms &amp; Templates</span><span class="pill">{{ form_templates|length }}</span></a>{% endif %}
     </aside>
     {% endif %}
 
@@ -1070,7 +1071,49 @@
           <table><thead><tr><th>Series</th><th>Title</th><th>Author</th><th>Status</th></tr></thead><tbody>
             {% for m in measures %}<tr><td><strong>{{ m.series_number }}</strong></td><td>{{ m.title }}</td><td>{{ m.authored_by }}</td><td><span class="badge">{{ m.get_status_display }}</span></td></tr>{% endfor %}
           </tbody></table>
-                  {% elif module == "AUDIT" %}
+                  {% elif module == "TEMPLATES" %}
+          <div class="section-title"><span>15. Official Barangay Forms &amp; Operational Templates ({{ form_templates|length }})</span></div>
+          <div class="card" style="border-top:4px solid var(--primary);margin-bottom:18px;">
+            <h3 style="margin-top:0;font-size:.95rem;color:var(--primary);">+ Add or Customize Official Form Template</h3>
+            <form method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
+              {% csrf_token %}<input type="hidden" name="action" value="SAVE_FORM_TEMPLATE">
+              <select name="category" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
+                <option value="COMPLETION_REPORT">Completion Report</option>
+                <option value="ACCEPTANCE_REPORT">Acceptance Report</option>
+                <option value="INSPECTION_REPORT">Inspection Report</option>
+                <option value="ASSET_PROFILE">Asset Profile</option>
+                <option value="WORK_ORDER">Work Order</option>
+                <option value="WALKIN_RECOVERY_LETTER">Walk-In Account Recovery Request Letter</option>
+                <option value="OTHER">Other Official Form</option>
+              </select>
+              <input name="form_code" placeholder="Form Code (e.g., BIOAS-FRM-07)" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
+              <input name="title" placeholder="Official Form Title *" required style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
+              <input type="file" name="template_file" accept=".pdf,.doc,.docx,.xlsx,.png,.jpg" style="padding:6px;border:1px solid #cbd5e1;border-radius:7px;">
+              <input name="description" placeholder="Short purpose / description" style="grid-column:1/-1;padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
+              <textarea name="body_template" rows="4" placeholder="Printable / copyable standard template text..." style="grid-column:1/-1;padding:8px;border:1px solid #cbd5e1;border-radius:7px;font-family:monospace;font-size:.8rem;"></textarea>
+              <button type="submit" style="background:var(--primary);color:#fff;border:0;padding:9px 14px;border-radius:7px;font-weight:800;cursor:pointer;">Save Template &rarr;</button>
+            </form>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px;">
+            {% for ft in form_templates %}
+            <div class="card" style="border-top:4px solid #1e3a8a;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                  <span class="badge">{{ ft.get_category_display }}</span>
+                  <strong style="font-size:.74rem;color:#64748b;">{{ ft.form_code }}</strong>
+                </div>
+                <h4 style="margin:8px 0 4px;font-size:.95rem;color:#0f172a;">{{ ft.title }}</h4>
+                <p style="margin:0 0 8px;font-size:.78rem;color:#475569;">{{ ft.description }}</p>
+                {% if ft.body_template %}<pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:.72rem;white-space:pre-wrap;max-height:170px;overflow:auto;margin:0;">{{ ft.body_template }}</pre>{% endif %}
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                {% if ft.file_data_uri %}<a href="{{ ft.file_data_uri }}" download="{{ ft.file_name|default:'template' }}" style="background:#0f766e;color:#fff;padding:6px 11px;border-radius:6px;text-decoration:none;font-size:.75rem;font-weight:700;">Download File &darr;</a>{% endif %}
+                <button type="button" onclick="const w=window.open('','_blank');w.document.write('<pre style=font-family:serif;font-size:13pt;white-space:pre-wrap;padding:28px>'+this.closest('.card').querySelector('pre').innerText+'</pre>');w.print();" style="background:#1e3a8a;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;">Print Template &#128424;</button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% elif module == "AUDIT" %}
           <div class="section-title"><span>12A. COA Audit &amp; Liquidation Packages</span><a href="/admin/audit_analytics/coaauditcompliance/add/">+ Log COA Package</a></div>
           <table><thead><tr><th>Reference</th><th>Audit Type</th><th>Period</th><th>Amount</th><th>Status</th></tr></thead><tbody>
             {% for ca in coa_audits %}<tr><td><strong>{{ ca.audit_reference }}</strong></td><td>{{ ca.get_audit_type_display }}</td><td>{{ ca.period_covered }}</td><td>&#8369;{{ ca.amount_involved }}</td><td><span class="badge">{{ ca.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No COA audit packages logged yet.</td></tr>{% endfor %}
@@ -1191,6 +1234,25 @@
             {% for d in dilg_reports %}<tr><td><strong>{{ d.get_report_category_display }}</strong></td><td>{{ d.reporting_period }}</td><td><span class="badge">{{ d.get_status_display }}</span></td><td>{{ d.transmittal_reference }}</td></tr>{% empty %}<tr><td colspan="4">No DILG reports logged yet.</td></tr>{% endfor %}
           </tbody></table>
         {% else %}
+          {% if is_captain_or_admin and pending_recoveries %}
+          <div class="card" style="border-top:4px solid #d97706;background:#fffbeb;margin-bottom:16px;">
+            <div style="font-weight:900;color:#92400e;font-size:.95rem;margin-bottom:8px;">&#128273; Punong Barangay Approval Queue: Walk-In Account Recovery Requests ({{ pending_recoveries|length }})</div>
+            <table style="margin:0;background:#fff;"><thead><tr><th>Resident &amp; Ref ID</th><th>Requested Username</th><th>Signed Request Letter</th><th>Submitted By</th><th style="text-align:right;">Captain Decision</th></tr></thead><tbody>
+              {% for pr in pending_recoveries %}
+              <tr>
+                <td><strong>{{ pr.citizen.full_name }}</strong><div style="font-size:.74rem;color:#64748b;">{{ pr.citizen.citizen_qr_id }}</div></td>
+                <td><strong>{{ pr.requested_username }}</strong></td>
+                <td>{% if pr.signed_request_letter_uri %}<a href="{{ pr.signed_request_letter_uri }}" target="_blank" style="color:#1e3a8a;font-weight:700;">View Signed Letter ({{ pr.signed_request_letter_name|default:"PDF/Image" }}) &nearr;</a>{% else %}-{% endif %}</td>
+                <td>{{ pr.submitted_by_name }}<div style="font-size:.72rem;color:#64748b;">{{ pr.created_at|date:"M d, Y H:i" }}</div></td>
+                <td style="text-align:right;white-space:nowrap;">
+                  <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="APPROVE_WALKIN_RECOVERY"><input type="hidden" name="recovery_id" value="{{ pr.id }}"><button type="submit" style="background:#16a34a;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Approve &amp; Activate &#10003;</button></form>
+                  <form method="post" style="display:inline;margin-left:4px;">{% csrf_token %}<input type="hidden" name="action" value="REJECT_WALKIN_RECOVERY"><input type="hidden" name="recovery_id" value="{{ pr.id }}"><button type="submit" style="background:#dc2626;color:#fff;border:0;padding:5px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Reject &#10005;</button></form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody></table>
+          </div>
+          {% endif %}
           <style>
             .cmd-hero {
               max-width: 620px;
@@ -1332,6 +1394,10 @@
             <a href="?tier=BARANGAY&module=GLOSSARY" class="mod-card">
               <div><div class="mod-head"><h3>14. Policy &amp; Glossary</h3><span class="mod-arrow">&#8599;</span></div><div class="stat">6 Laws</div></div>
               <small>RA 7160, 11261, 9262 &amp; SOPs</small>
+            </a>
+            <a href="?tier=BARANGAY&module=TEMPLATES" class="mod-card">
+              <div><div class="mod-head"><h3>15. Official Forms &amp; Templates</h3><span class="mod-arrow">?</span></div><div class="stat">{{ form_templates|length }}</div></div>
+              <small>Completion, Acceptance, Inspection, Asset &amp; WO</small>
             </a>
           </div>
           {% endif %}

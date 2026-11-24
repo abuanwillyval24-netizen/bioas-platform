@@ -658,6 +658,8 @@ def citizen_201_inspect(request, citizen_id):
             request.session["bioas_inspect_banner"] = action_banner
         return redirect(request.get_full_path())
 
+    view_mode = (request.GET.get("view") or "desktop").strip().lower()
+    device_label = "Mobile / Handset Preview (430px)" if view_mode == "mobile" else "Official Desktop / Workstation View"
     p_col = c.barangay.default_primary_color if c.barangay else "#1E3A8A"
     s_col = c.barangay.default_secondary_color if c.barangay else "#F59E0B"
     repo_docs = list(c.repository_docs.all())

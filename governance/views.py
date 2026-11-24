@@ -687,6 +687,48 @@ def command_dashboard(request):
                 )
             skip_msg = f" Skipped {len(skipped_files)} unmatched file(s): {', '.join(skipped_files[:5])}." if skipped_files else ""
             action_notice = f"Batch QR Sync Complete: Attached {matched_photos} 2x2 profile photo(s) and {matched_docs} PDF supporting doc(s) by exact Citizen ID.{skip_msg}"
+        elif act == "APPROVE_WALKIN_RECOVERY":
+            from .models import WalkInRecoveryRequest
+            if request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN"):
+                req_obj = WalkInRecoveryRequest.objects.select_related("citizen").filter(id=request.POST.get("recovery_id"), barangay=active_barangay, status="PENDING_CAPTAIN").first()
+                if req_obj:
+                    cit = req_obj.citizen
+                    cit.portal_username = req_obj.requested_username
+                    cit.portal_password_hash = req_obj.pending_password_hash
+                    cit.save(update_fields=["portal_username", "portal_password_hash"])
+                    req_obj.status = "APPROVED"
+                    req_obj.reviewed_by_name = actor_name
+                    req_obj.save(update_fields=["status", "reviewed_by_name"])
+                    SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=cit.citizen_qr_id, details=f"Punong Barangay approved Walk-In Account Recovery for {cit.full_name} ({cit.citizen_qr_id}). Activated username: {cit.portal_username}.")
+                    action_notice = f"Approved Walk-In Account Recovery for {cit.full_name} ({cit.citizen_qr_id})! New credentials are now active."
+        elif act == "REJECT_WALKIN_RECOVERY":
+            from .models import WalkInRecoveryRequest
+            if request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN"):
+                req_obj = WalkInRecoveryRequest.objects.select_related("citizen").filter(id=request.POST.get("recovery_id"), barangay=active_barangay, status="PENDING_CAPTAIN").first()
+                if req_obj:
+                    req_obj.status = "REJECTED"
+                    req_obj.reviewed_by_name = actor_name
+                    req_obj.save(update_fields=["status", "reviewed_by_name"])
+                    action_notice = f"Rejected Walk-In Account Recovery request for {req_obj.citizen.full_name}."
+        elif act == "SAVE_FORM_TEMPLATE":
+            from .models import OfficialFormTemplate
+            import base64
+            tpl_id = request.POST.get("template_id")
+            obj = OfficialFormTemplate.objects.filter(id=tpl_id, barangay=active_barangay).first() if tpl_id else OfficialFormTemplate(barangay=active_barangay)
+            if obj:
+                obj.category = request.POST.get("category", "COMPLETION_REPORT")
+                obj.title = request.POST.get("title", "").strip() or "Official Barangay Form"
+                obj.form_code = request.POST.get("form_code", "").strip()
+                obj.description = request.POST.get("description", "").strip()
+                obj.body_template = request.POST.get("body_template", "").strip()
+                obj.updated_by = actor_name
+                up_f = request.FILES.get("template_file")
+                if up_f:
+                    b64 = base64.b64encode(up_f.read()).decode("ascii")
+                    obj.file_data_uri = f"data:{up_f.content_type or 'application/pdf'};base64,{b64}"
+                    obj.file_name = up_f.name[:150]
+                obj.save()
+                action_notice = f"Saved Official Form Template: {obj.title}."
         if action_notice:
             request.session["bioas_flash_notice"] = action_notice
         return redirect(request.get_full_path())
@@ -850,6 +892,18 @@ def command_dashboard(request):
     city_barangays = BarangayTenant.objects.filter(city_municipality=city).annotate(subdivision_count=Count("subdivisions", distinct=True), structure_count=Count("structures", distinct=True)) if city else BarangayTenant.objects.none()
     province_cities = CityMunicipality.objects.filter(province=province).annotate(barangay_count=Count("barangays", distinct=True)) if province else CityMunicipality.objects.none()
 
+    if active_barangay:
+        from .models import OfficialFormTemplate
+        if not OfficialFormTemplate.objects.filter(barangay=active_barangay).exists():
+            for cat, code, ttl, desc, body in [
+                ("COMPLETION_REPORT", "BIOAS-FRM-01", "Certificate of Project / Work Completion Report", "Official Barangay engineering & infrastructure project completion sign-off form.", "REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nCERTIFICATE OF COMPLETION REPORT\nProject Title: ___________________________\nLocation / Purok: ________________________\nContractor / Implementing Unit: __________\nDate Completed: __________________________\n\nCertified Correct:\nBarangay Secretary / Project Engineer\n\nApproved By:\nPunong Barangay"),
+                ("ACCEPTANCE_REPORT", "BIOAS-FRM-02", "Inspection & Final Acceptance Report (IAR)", "COA-compliant property, equipment, and project final acceptance form.", "REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nFINAL ACCEPTANCE REPORT\nPO / Work Order No.: ____________________\nSupplier / Contractor: ___________________\nTotal Contract Amount: ___________________\nCondition Upon Acceptance: [ ] Complete & Functional\n\nAccepted By:\nProperty Custodian / Barangay Treasurer\n\nNoted By:\nPunong Barangay"),
+                ("INSPECTION_REPORT", "BIOAS-FRM-03", "Pre-Repair / Site & Equipment Inspection Report", "Field inspection checklist prior to work order issuance or liquidation.", "REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nTECHNICAL INSPECTION REPORT\nAsset / Facility Inspected: ______________\nFindings / Defects Observed: _____________\nRecommended Action: ______________________\n\nInspected By: ____________________________\nDate: ____________________________________"),
+                ("ASSET_PROFILE", "BIOAS-FRM-04", "Barangay Property & Asset Profile Sheet", "Individual accountability & lifecycle registry profile for LGU assets and vehicles.", "REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nOFFICIAL ASSET PROFILE RECORD\nAsset Tag / Plate No.: ___________________\nItem Description & Serial No.: ___________\nAcquisition Date & Cost: _________________\nAssigned Accountable Officer: ____________\nCurrent Condition: _______________________"),
+                ("WORK_ORDER", "BIOAS-FRM-05", "Barangay Maintenance & Dispatch Work Order", "Official job order for utility, tanod, engineering, or equipment repairs.", "REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nOFFICIAL BARANGAY WORK ORDER\nWork Order No.: __________________________\nRequested By / Purok: ____________________\nScope of Work: ___________________________\nTarget Completion Date: __________________\n\nIssued By: Barangay Secretary\nApproved By: Punong Barangay"),
+                ("WALKIN_RECOVERY_LETTER", "BIOAS-FRM-06", "Sworn Walk-In Account Recovery Request Letter", "Mandatory signed request letter for residents requesting manual credential reset.", "REPUBLIC OF THE PHILIPPINES\nBARANGAY " + active_barangay.name.upper() + "\n\nREQUEST FOR WALK-IN PORTAL ACCOUNT RECOVERY\nDate: ____________________________________\n\nTo: The Punong Barangay\nThru: Office of the Barangay Secretary\n\nI, __________________________, of legal age, resident of Purok _____, with Citizen Reference ID __________________, respectfully request manual reset of my BIOAS Resident Portal credentials due to loss of access to my registered email/device. Attached is a photocopy of my valid government ID.\n\n______________________________\nSignature Over Printed Name of Resident"),
+            ]:
+                OfficialFormTemplate.objects.create(barangay=active_barangay, category=cat, form_code=code, title=ttl, description=desc, body_template=body, updated_by="System Default")
     html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "dashboard.html"
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(template.render({
@@ -872,6 +926,9 @@ def command_dashboard(request):
         "query": query, "search_results": search_results, "suggestions_json": json.dumps(sorted(set(suggestions))), "search_index_json": json.dumps(search_index),
         "pop_stats": pop_stats, "household_rows": household_rows, "action_notice": action_notice,
         "visible_modules": visible_modules, "staff_profile": staff_profile,
+        "is_captain_or_admin": bool(request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN")),
+        "pending_recoveries": list(__import__("governance.models", fromlist=["WalkInRecoveryRequest"]).WalkInRecoveryRequest.objects.select_related("citizen").filter(barangay=active_barangay, status="PENDING_CAPTAIN")) if active_barangay else [],
+        "form_templates": list(__import__("governance.models", fromlist=["OfficialFormTemplate"]).OfficialFormTemplate.objects.filter(barangay=active_barangay)) if active_barangay else [],
     }, request))
 
 
