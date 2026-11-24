@@ -352,6 +352,8 @@ class BarangayStaffProfile(models.Model):
     barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="staff_profiles")
     citizen = models.OneToOneField("citizens.CitizenProfile", on_delete=models.SET_NULL, null=True, blank=True, related_name="staff_account", help_text="Optional link to verified 201 Master Resident record")
     seat_code = models.CharField(max_length=40, blank=True, help_text="Persistent official seat ID (e.g., SEAT-CAPTAIN, SEAT-KAGAWAD-1, SEAT-SK-CHAIR)")
+    official_code = models.CharField(max_length=40, unique=True, null=True, blank=True, help_text="Unique Official Code assigned upon appointment/election; deactivated upon term turnover")
+    is_term_active = models.BooleanField(default=True, help_text="False once term ends and post-election turnover completes")
     full_name = models.CharField(max_length=150)
     role = models.CharField(max_length=25, choices=ROLE_CHOICES)
     committee_or_unit = models.CharField(max_length=150, blank=True)
@@ -371,9 +373,27 @@ class BarangayStaffProfile(models.Model):
         if not self.allowed_modules:
             self.allowed_modules = list(self.ROLE_DEFAULT_MODULES.get(self.role, ["OVERVIEW", "POLICY"]))
         super().save(*args, **kwargs)
+        if not self.official_code:
+            b_code = getattr(self.barangay, "code", "BRGY")
+            self.official_code = f"OFF-{b_code}-{timezone.now().year}-{self.id:04d}"
+            type(self).objects.filter(pk=self.pk).update(official_code=self.official_code)
 
     def __str__(self):
         return f"{self.full_name} — {self.get_role_display()} ({self.get_approval_status_display()})"
+
+
+class TrustedLoginDevice(models.Model):
+    account_key = models.CharField(max_length=80, db_index=True)
+    device_token_hash = models.CharField(max_length=128, db_index=True)
+    device_label = models.CharField(max_length=160, blank=True)
+    ip_prefix = models.CharField(max_length=45, blank=True)
+    verified_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("account_key", "device_token_hash")
+
+    def __str__(self):
+        return f"{self.account_key} ({self.ip_prefix})"
 
 
 class TermArchiveSnapshot(models.Model):

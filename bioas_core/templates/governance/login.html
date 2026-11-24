@@ -1,0 +1,124 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BIOAS Official Portal - {{ brgy.name|default:"Barangay Lagare" }}</title>
+<style>*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}body{margin:0;min-height:100vh;{{ bg_css|safe }}color:#fff;display:flex;flex-direction:column;justify-content:space-between}.hero-stage{padding:28px 36px 24px;display:flex;flex-direction:column;justify-content:space-between;min-height:74vh}.top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:14px;max-width:620px}.seal{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.5);background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.35)}.seal-fallback{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;color:#fbbf24;letter-spacing:.05em}.gov-tag{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fbbf24;margin-bottom:4px}.brand h1{margin:0;font-size:1.75rem;font-weight:800;letter-spacing:-.01em;text-shadow:0 2px 10px rgba(0,0,0,.4)}.brand p{margin:4px 0 0;color:#e2e8f0;font-size:.92rem;text-shadow:0 1px 6px rgba(0,0,0,.4)}.login-card{width:360px;max-width:100%;background:rgba(255,255,255,.97);color:#0f172a;border-radius:14px;padding:24px 26px;box-shadow:0 20px 50px rgba(0,0,0,.45);border-top:4px solid #1e3a8a}.login-card h2{margin:0 0 4px;font-size:1.15rem;color:#0f172a}.login-card .sub{margin:0 0 14px;font-size:.8rem;color:#64748b}label{display:block;font-size:.78rem;font-weight:700;color:#334155;margin:10px 0 4px}input{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.9rem;background:#f8fafc}input:focus{outline:none;border-color:#1e3a8a;background:#fff;box-shadow:0 0 0 3px rgba(30,58,138,.12)}button{width:100%;margin-top:16px;padding:11px;background:#1e3a8a;color:#fff;border:0;border-radius:8px;font-weight:700;font-size:.92rem;cursor:pointer;transition:background .15s}button:hover{background:#1d4ed8}.recovery-row{text-align:center;margin-top:10px;font-size:.75rem;color:#64748b}.recovery-row a{color:#1e3a8a;text-decoration:none;font-weight:600}.recovery-row a:hover{text-decoration:underline}.err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;padding:8px 10px;border-radius:8px;font-size:.8rem;margin-bottom:10px;font-weight:600}.links{margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:.78rem}.links a{color:#1e3a8a;font-weight:700;text-decoration:none}.links a:hover{text-decoration:underline}.accomplishments{display:flex;gap:10px;flex-wrap:wrap;max-width:860px;margin-top:24px}.acc-pill{background:rgba(15,23,42,.68);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);padding:8px 14px;border-radius:10px;font-size:.8rem;color:#f8fafc}.acc-pill span{color:#fbbf24;font-weight:800;margin-right:6px}.gov-footer{background:#0b1324;border-top:3px solid #f59e0b;color:#cbd5e1}.tier1-grid{max-width:1240px;margin:0 auto;padding:28px 36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px}.tier1-grid h4{margin:0 0 10px;font-size:.84rem;text-transform:uppercase;letter-spacing:.06em;color:#fbbf24}.tier1-grid p,.tier1-grid li{font-size:.78rem;line-height:1.6;color:#cbd5e1;margin:0 0 4px}.tier1-grid ul{list-style:none;padding:0;margin:0}.tier1-grid a{color:#e2e8f0;text-decoration:none}.tier1-grid a:hover{color:#fbbf24;text-decoration:underline}.agency-badge{display:flex;align-items:center;gap:10px;margin-bottom:8px}.agency-badge img,.agency-mini{width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid #f59e0b;background:#1e3a8a;color:#fbbf24;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.75rem}.social-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}.social-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:.75rem;font-weight:800;text-decoration:none;transition:background .15s,transform .15s}.social-btn:hover{background:#f59e0b;color:#0f172a;transform:translateY(-2px)}.tier2-strip{background:#060a14;border-top:1px solid rgba(255,255,255,.12);padding:22px 36px}.tier2-grid{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;align-items:start}.rep-seal{display:flex;gap:12px;align-items:flex-start}.coat{width:46px;height:46px;border-radius:50%;border:2px solid #94a3b8;background:#0f172a;color:#f8fafc;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.72rem;flex-shrink:0}.tier2-grid h5{margin:0 0 8px;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#f8fafc}.tier2-grid p,.tier2-grid li{font-size:.75rem;line-height:1.55;color:#94a3b8;margin:0 0 4px}.tier2-grid ul{list-style:none;padding:0;margin:0}.tier2-grid a{color:#94a3b8;text-decoration:none}.tier2-grid a:hover{color:#fff;text-decoration:underline}</style></head><body>
+<div class="hero-stage">
+  <div class="top-row">
+    <div class="brand">
+      {% if showcase and showcase.featured_photo_url %}<img src="{{ showcase.featured_photo_url }}" alt="Official Seal" class="seal">{% else %}<div class="seal-fallback">BIOAS</div>{% endif %}
+      <div>
+        <div class="gov-tag">Republic of the Philippines &bull; Official LGU Command Portal</div>
+        <h1>{{ brgy.name|default:"Barangay Lagare" }}</h1>
+        <p>{{ showcase.hero_tagline|default:"Transparent, Fast & Citizen-Centered Digital Barangay Governance" }}</p>
+      </div>
+    </div>
+    <div class="login-card">
+      <h2>Unified Portal Sign In</h2>
+      <p class="sub">Citizen Services &amp; Barangay Operations Access</p>
+      {% if error %}<div class="err">{{ error }}</div>{% endif %}
+      {% if notice %}<div style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:8px 10px;border-radius:8px;font-size:.79rem;margin-bottom:10px;font-weight:600;">{{ notice }}</div>{% endif %}
+      {% if otp_pending %}
+      <form method="post">{% csrf_token %}<input type="hidden" name="login_step" value="VERIFY_LOGIN_OTP">
+        <label>6-Digit Verification OTP (Sent to {{ otp_masked_email }}) *</label>
+        <input name="login_otp_code" maxlength="6" placeholder="Enter 6-digit OTP" required autofocus>
+        <button type="submit" style="background:#16a34a;">Verify Device &amp; Complete Sign In &rarr;</button>
+      </form>
+      <div class="recovery-row"><a href="/login/">&larr; Back to Login</a></div>
+      {% else %}
+      <form method="post">{% csrf_token %}<input type="hidden" name="login_step" value="CREDENTIALS">
+        <label>Login as *</label>
+        <select name="role_type" id="roleSelector" onchange="syncRoleFields()" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.88rem;background:#f8fafc;">
+          <option value="CITIZEN" {% if role_type == "CITIZEN" %}selected{% endif %}>Citizen (Resident Self-Service)</option>
+          <option value="OFFICIAL" {% if role_type == "OFFICIAL" %}selected{% endif %}>Barangay Official (Elected / Appointed)</option>
+        </select>
+        <label id="refCodeLabel">{% if role_type == "CITIZEN" %}System-Generated Reference Number *{% else %}Unique Official Code{% endif %}</label>
+        <input name="ref_code" id="refCodeInput" value="{{ ref_code }}" placeholder="{% if role_type == 'CITIZEN' %}e.g., NUE-CAB-LAG-2026-00201{% else %}e.g., OFF-CAB-LAG-2026-0001{% endif %}" {% if role_type == "CITIZEN" %}required{% endif %}>
+        <label>Username *</label><input name="username" value="{{ username_in }}" placeholder="Enter username" required autofocus>
+        <label>Password *</label><input type="password" name="password" placeholder="Enter password" required>
+        <button type="submit">Sign In &rarr;</button>
+      </form>
+      <script>function syncRoleFields(){const r=document.getElementById('roleSelector').value,l=document.getElementById('refCodeLabel'),i=document.getElementById('refCodeInput');if(r==='CITIZEN'){l.textContent='System-Generated Reference Number *';i.placeholder='e.g., NUE-CAB-LAG-2026-00201';i.required=true;}else{l.textContent='Unique Official Code';i.placeholder='e.g., OFF-CAB-LAG-2026-0001';i.required=false;}}</script>
+      {% endif %}
+      <div class="recovery-row"><a href="/citizen-home/">Forgot Citizen Ref ID / Username / Password?</a></div>
+      <div class="links"><a href="/portal/">Citizen Sign-Up</a><a href="/citizen-home/">Resident Self-Service</a></div>
+    </div>
+  </div>
+  <div class="accomplishments">
+    <div class="acc-pill"><span>&#10003;</span>{{ showcase.accomplishment_1|default:"100% Digital Citizen 201 & QR ID Synchronization" }}</div>
+    <div class="acc-pill"><span>&#10003;</span>{{ showcase.accomplishment_2|default:"Zero-Backlog Barangay & Business Clearance Issuance" }}</div>
+    <div class="acc-pill"><span>&#10003;</span>{{ showcase.accomplishment_3|default:"COA & DILG Full Disclosure Policy Compliant" }}</div>
+  </div>
+</div>
+
+<footer class="gov-footer">
+  <div class="tier1-grid">
+    <div>
+      <div class="agency-badge">
+        {% if showcase and showcase.featured_photo_url %}<img src="{{ showcase.featured_photo_url }}" alt="LGU Seal">{% else %}<span class="agency-mini">LGU</span>{% endif %}
+        <strong style="color:#fff;font-size:.92rem;">{{ brgy.name|default:"Barangay Lagare" }}</strong>
+      </div>
+      <p>{{ brgy.city_municipality.name|default:"Cabanatuan City" }}, {{ brgy.city_municipality.province.name|default:"Nueva Ecija" }}, Philippines</p>
+      <p>Email: info@barangaylagare.gov.ph</p>
+      <p>Tel: (044) 463-0000</p>
+    </div>
+    <div>
+      <h4>About Us</h4>
+      <ul>
+        <li><a href="/portal-info/#mandate">&bull; Who We Are / Mandate</a></li>
+        <li><a href="/portal-info/#officials">&bull; Key Officials</a></li>
+        <li><a href="/portal-info/#charter">&bull; Citizen's Charter</a></li>
+        <li><a href="/portal-info/#transparency">&bull; Transparency Seal</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Help &amp; Legal</h4>
+      <ul>
+        <li><a href="/portal-info/#guide">&bull; User Guide / How to Register</a></li>
+        <li><a href="/portal-info/#faqs">&bull; FAQs</a></li>
+        <li><a href="/portal-info/#contact">&bull; Contact Us / Helpdesk</a></li>
+        <li><a href="/portal-info/#privacy">&bull; Data Privacy Notice (RA 10173)</a></li>
+        <li><a href="/portal-info/#terms">&bull; Terms of Use</a></li>
+      </ul>
+
+          </div>
+    <div>
+      <h4>Connect With Us</h4>
+      <div class="social-row">
+        <a href="https://facebook.com" target="_blank" rel="noopener" class="social-btn" title="Facebook">FB</a>
+        <a href="https://instagram.com" target="_blank" rel="noopener" class="social-btn" title="Instagram">IG</a>
+        <a href="https://tiktok.com" target="_blank" rel="noopener" class="social-btn" title="TikTok">TT</a>
+        <a href="/portal-info/#mandate" class="social-btn" title="Official Website">WEB</a>
+      </div>
+      <p>Follow our verified social media pages for official updates.</p>
+    </div>
+  </div>
+  <div class="tier2-strip">
+    <div class="tier2-grid">
+      <div class="rep-seal">
+        <div class="coat">RP</div>
+        <div>
+          <h5>Republic of the Philippines</h5>
+          <p>All content is in the public domain unless otherwise stated.</p>
+        </div>
+      </div>
+      <div>
+        <h5>About GOV.PH</h5>
+        <p>Learn more about the Philippine government, its structure, how government works, and the people behind it.</p>
+        <ul>
+          <li><a href="https://www.gov.ph" target="_blank" rel="noopener">&bull; GOV.PH</a></li>
+          <li><a href="https://data.gov.ph" target="_blank" rel="noopener">&bull; Open Data Portal</a></li>
+          <li><a href="https://officialgazette.gov.ph" target="_blank" rel="noopener">&bull; Official Gazette</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Government Links</h5>
+        <ul>
+          <li><a href="https://op-proper.gov.ph" target="_blank" rel="noopener">&bull; Office of the President</a></li>
+          <li><a href="https://ovp.gov.ph" target="_blank" rel="noopener">&bull; Office of the Vice President</a></li>
+          <li><a href="https://senate.gov.ph" target="_blank" rel="noopener">&bull; Senate of the Philippines</a></li>
+          <li><a href="https://congress.gov.ph" target="_blank" rel="noopener">&bull; House of Representatives</a></li>
+          <li><a href="https://judiciary.gov.ph" target="_blank" rel="noopener">&bull; Supreme Court</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+</body></html>
