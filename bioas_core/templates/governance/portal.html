@@ -204,8 +204,9 @@
           <input type="text" name="portal_username" class="track-field" minlength="4" maxlength="40" placeholder="e.g., willy.abuan" required />
         </div>
         <div>
-          <label>Create Portal Password (Min 6 Characters) *</label>
-          <input type="password" name="portal_password" class="track-field" minlength="6" placeholder="Enter strong password" required />
+          <label>Create Portal Password *</label>
+          <input type="password" name="portal_password" class="track-field" minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Minimum 8 characters with uppercase, lowercase, number, and special character." placeholder="Enter strong password" required />
+          <span style="display:block;font-size:.74rem;color:#475569;margin-top:4px;">Minimum 8 characters required, mixed with Uppercase (A-Z), Lowercase (a-z), Number (0-9), and Special Character (!@#$%).</span>
         </div>
       </div>
       <div class="row">

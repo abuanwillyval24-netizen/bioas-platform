@@ -69,7 +69,7 @@
         <form method="post" style="background:#fffbeb;padding:12px;border-radius:8px;border:1px solid #f59e0b;">
           {% csrf_token %}<input type="hidden" name="action" value="RESET_PASSWORD_OTP">
           <label>6-Digit OTP Code *</label><input name="otp_code" maxlength="6" placeholder="123456" required />
-          <label>New Portal Password (Min 6 Chars) *</label><input type="password" name="new_password" minlength="6" required />
+          <label>New Portal Password *</label><input type="password" name="new_password" minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Minimum 8 characters with uppercase, lowercase, number, and special character." placeholder="Enter strong password" required /><span style="display:block;font-size:.74rem;color:#475569;margin-top:4px;">Minimum 8 characters required, mixed with Uppercase (A-Z), Lowercase (a-z), Number (0-9), and Special Character (!@#$%).</span>
           <button type="submit" style="margin-top:10px;background:#16a34a;">Verify OTP &amp; Save New Password</button>
         </form>
         {% endif %}

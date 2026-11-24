@@ -260,8 +260,8 @@ def citizen_home(request):
     elif top_act == "RESET_PASSWORD_OTP":
         if not request.session.get("citizen_otp_code") or request.POST.get("otp_code", "").strip() != request.session.get("citizen_otp_code"):
             error, otp_stage = "Invalid or expired 6-digit OTP code.", "VERIFY"
-        elif len(request.POST.get("new_password", "").strip()) < 6:
-            error, otp_stage = "New password must be at least 6 characters.", "VERIFY"
+        elif not __import__("re").match(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$", request.POST.get("new_password", "").strip()):
+            error, otp_stage = "Password must be at least 8 characters and include Uppercase, Lowercase, Number, and Special Character.", "VERIFY"
         else:
             cand = CitizenProfile.objects.filter(id=request.session.get("citizen_otp_cid")).first()
             if cand:
