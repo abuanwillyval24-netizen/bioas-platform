@@ -52,27 +52,94 @@
 
   <div class="wrap">
     {% if action_banner %}
-      <div class="card no-print" style="background:#dcfce7;border:1px solid #16a34a;border-left:5px solid #16a34a;color:#14532d;font-weight:800;margin-bottom:14px;">
-        &#10004; {{ action_banner }}
+      <div id="inspectAckModal" class="no-print" style="position:fixed;inset:0;background:rgba(15,23,42,.56);backdrop-filter:blur(2px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;">
+        <div style="background:#fff;max-width:440px;width:100%;border-radius:16px;padding:24px;box-shadow:0 24px 48px rgba(15,23,42,.28);border-top:5px solid #16a34a;text-align:center;">
+          <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;">&#10003;</div>
+          <h3 style="margin:0 0 8px;font-size:1.08rem;font-weight:800;color:#0f172a;">Thank You &mdash; Request Submitted</h3>
+          <p style="margin:0 0 18px;font-size:.86rem;line-height:1.5;color:#475569;">{{ action_banner }}</p>
+          <button type="button" onclick="document.getElementById('inspectAckModal').remove()" style="width:100%;background:#1e3a8a;color:#fff;border:0;padding:10px;border-radius:8px;font-weight:800;cursor:pointer;">OK, Acknowledge</button>
+        </div>
       </div>
     {% endif %}
     {% if is_official %}
       <div class="no-print" style="margin-bottom:14px;">
-        <button type="button" onclick="const b=document.getElementById('walkinRecoveryDrawer');b.style.display=b.style.display==='none'?'block':'none';" style="background:#f8fafc;color:#1e3a8a;border:1px solid #cbd5e1;padding:7px 13px;border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;">
-          &#128273; Walk-In Account Recovery Request (Requires Signed Letter &amp; Captain Approval) &#9662;
-        </button>
+        <button type="button" onclick="const b=document.getElementById('walkinRecoveryDrawer');b.style.display=b.style.display==='none'?'block':'none';" style="background:#f8fafc;color:#1e3a8a;border:1px solid #cbd5e1;padding:7px 13px;border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;">&#128273; Walk-In Account Recovery Request (Requires Signed Letter &amp; Captain Approval) &#9662;</button>
         <div id="walkinRecoveryDrawer" style="display:none;margin-top:8px;background:#ffffff;border:1px solid #cbd5e1;border-left:5px solid #1e3a8a;border-radius:10px;padding:14px 16px;">
-          <div style="font-size:.82rem;font-weight:800;color:#1e3a8a;margin-bottom:4px;">Walk-In Account Recovery Request &bull; Account Username: <span style="color:#0f172a;">{{ c.portal_username|default:c.citizen_qr_id|lower }}</span></div>
-          <p style="font-size:.75rem;color:#64748b;margin:0 0 10px;">Upload the resident&rsquo;s <strong>Signed Request Letter</strong> (downloadable from Module 15) to unlock the temporary password field and submit for <strong>Punong Barangay (Captain) Approval</strong>.</p>
-          <form method="post" enctype="multipart/form-data" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0;">
-            {% csrf_token %}
-            <input type="hidden" name="inspect_action" value="WALKIN_RESET_CREDS">
-            <input type="file" id="walkinSignedLetter" name="signed_request_letter" accept=".pdf,.png,.jpg,.jpeg" required onchange="const ok=this.files.length>0;const pw=document.getElementById('walkinTempPw');const btn=document.getElementById('walkinSubmitBtn');pw.disabled=!ok;btn.disabled=!ok;pw.style.background=ok?'#fff':'#e2e8f0';btn.style.opacity=ok?'1':'.5';btn.style.cursor=ok?'pointer':'not-allowed';" style="padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:.76rem;background:#f8fafc;">
-            <input type="password" id="walkinTempPw" name="walkin_temp_pass" minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Minimum 8 characters with Uppercase, Lowercase, Number, and Special Character." placeholder="Temporary Password (Upload Letter First)" disabled required style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;background:#e2e8f0;min-width:240px;">
-            <button type="submit" id="walkinSubmitBtn" disabled style="background:#d97706;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.77rem;font-weight:800;opacity:.5;cursor:not-allowed;">Subject for Approval &rarr;</button>
+          <div style="font-size:.82rem;font-weight:800;color:#1e3a8a;margin-bottom:4px;">Walk-In Account Recovery Request &bull; Username: <span style="color:#0f172a;">{{ c.portal_username|default:c.citizen_qr_id|lower }}</span></div>
+          <p style="font-size:.75rem;color:#64748b;margin:0 0 10px;">Upload the resident&rsquo;s <strong>Signed Request Letter</strong> (from Module 15) to unlock the temporary password box and submit for <strong>Punong Barangay (Captain) Approval</strong>.</p>
+          <form id="walkinRecoveryForm" method="post" enctype="multipart/form-data" style="margin:0;">
+            {% csrf_token %}<input type="hidden" name="inspect_action" value="WALKIN_RESET_CREDS">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
+              <div style="display:flex;align-items:center;gap:6px;border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;background:#f8fafc;">
+                <input type="file" id="walkinSignedLetter" name="signed_request_letter" accept=".pdf,.png,.jpg,.jpeg" required onchange="handleWalkinFileSelect(this)" style="border:0;padding:2px;font-size:.76rem;background:transparent;">
+                <button type="button" id="walkinClearFileBtn" title="Remove attached letter" onclick="clearWalkinLetter()" style="display:none;background:#fee2e2;color:#dc2626;border:0;width:22px;height:22px;border-radius:5px;font-weight:900;cursor:pointer;align-items:center;justify-content:center;">&#10005;</button>
+              </div>
+              <div style="min-width:255px;flex:1;">
+                <input type="password" id="walkinTempPw" name="walkin_temp_pass" minlength="8" placeholder="Temporary Password (Upload Letter First)" oninput="evaluateWalkinPw(this.value)" disabled required style="width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;background:#e2e8f0;">
+                <div id="walkinPwMeterWrap" style="display:none;margin-top:5px;">
+                  <div style="height:5px;width:100%;background:#e2e8f0;border-radius:999px;overflow:hidden;"><div id="walkinPwBar" style="height:100%;width:0%;background:#dc2626;transition:width .2s,background .2s;"></div></div>
+                  <div id="walkinPwLabel" style="font-size:.71rem;font-weight:700;color:#64748b;margin-top:2px;">Strength: Weak</div>
+                </div>
+              </div>
+              <button type="button" id="walkinSubmitBtn" disabled onclick="openWalkinReminderModal()" style="background:#d97706;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.77rem;font-weight:800;opacity:.5;cursor:not-allowed;">Subject for Approval &rarr;</button>
+            </div>
+            <div id="walkinUploadProgWrap" style="display:none;margin-top:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:.72rem;font-weight:700;color:#1e3a8a;margin-bottom:3px;"><span id="walkinUploadProgText">Verifying Signed Request Letter...</span><span id="walkinUploadProgPct">0%</span></div>
+              <div style="height:6px;width:100%;background:#e2e8f0;border-radius:999px;overflow:hidden;"><div id="walkinUploadProgBar" style="height:100%;width:0%;background:#1e3a8a;transition:width .18s;"></div></div>
+            </div>
           </form>
         </div>
       </div>
+      <div id="walkinWarnModal" class="no-print" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.56);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+        <div style="background:#fff;max-width:430px;width:100%;border-radius:16px;padding:24px;box-shadow:0 24px 48px rgba(15,23,42,.28);border-top:5px solid #d97706;text-align:center;">
+          <div style="width:48px;height:48px;border-radius:50%;margin:0 auto 12px;background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;">&#9888;</div>
+          <h3 id="walkinModalTitle" style="margin:0 0 8px;font-size:1.06rem;font-weight:800;color:#0f172a;">Warning</h3>
+          <p id="walkinModalBody" style="margin:0 0 18px;font-size:.85rem;line-height:1.5;color:#475569;"></p>
+          <div style="display:flex;gap:8px;"><button type="button" id="walkinModalCancel" style="flex:1;background:#e2e8f0;color:#0f172a;border:0;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button><button type="button" id="walkinModalConfirm" style="flex:1;background:#1e3a8a;color:#fff;border:0;padding:10px;border-radius:8px;font-weight:800;cursor:pointer;">Confirm &amp; Proceed</button></div>
+        </div>
+      </div>
+      <script>
+        function clearWalkinLetter(){
+          document.getElementById('walkinSignedLetter').value='';
+          document.getElementById('walkinClearFileBtn').style.display='none';
+          document.getElementById('walkinUploadProgWrap').style.display='none';
+          document.getElementById('walkinPwMeterWrap').style.display='none';
+          const pw=document.getElementById('walkinTempPw'),btn=document.getElementById('walkinSubmitBtn');
+          pw.value='';pw.disabled=true;pw.style.background='#e2e8f0';pw.placeholder='Temporary Password (Upload Letter First)';
+          btn.disabled=true;btn.style.opacity='.5';btn.style.cursor='not-allowed';
+        }
+        function handleWalkinFileSelect(inp){
+          if(!inp.files||!inp.files.length){clearWalkinLetter();return;}
+          const m=document.getElementById('walkinWarnModal');
+          document.getElementById('walkinModalTitle').textContent='Signed Request Letter Warning';
+          document.getElementById('walkinModalBody').textContent='Confirm that "'+inp.files.name+'" is physically signed by the resident with verified ID before proceeding.';
+          m.style.display='flex';
+          document.getElementById('walkinModalCancel').onclick=function(){m.style.display='none';clearWalkinLetter();};
+          document.getElementById('walkinModalConfirm').onclick=function(){
+            m.style.display='none';document.getElementById('walkinClearFileBtn').style.display='inline-flex';
+            const wrap=document.getElementById('walkinUploadProgWrap'),bar=document.getElementById('walkinUploadProgBar'),pct=document.getElementById('walkinUploadProgPct'),txt=document.getElementById('walkinUploadProgText');
+            wrap.style.display='block';let p=20;bar.style.width='20%';pct.textContent='20%';txt.textContent='Verifying Signed Request Letter...';
+            const iv=setInterval(function(){p+=25;if(p>100)p=100;bar.style.width=p+'%';pct.textContent=p+'%';if(p>=100){clearInterval(iv);txt.textContent='Signed Request Letter Verified & Unlocked';const pw=document.getElementById('walkinTempPw'),btn=document.getElementById('walkinSubmitBtn');pw.disabled=false;pw.style.background='#fff';pw.placeholder='Enter Temporary Password (Min 8 chars)';document.getElementById('walkinPwMeterWrap').style.display='block';btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';pw.focus();}},140);
+          };
+        }
+        function evaluateWalkinPw(val){
+          const bar=document.getElementById('walkinPwBar'),lbl=document.getElementById('walkinPwLabel');let s=0;
+          if(val.length>=8)s++;if(/[A-Z]/.test(val))s++;if(/[a-z]/.test(val))s++;if(/[0-9]/.test(val))s++;if(/[^A-Za-z0-9]/.test(val))s++;
+          bar.style.width=(s*20)+'%';
+          if(s<=2){bar.style.background='#dc2626';lbl.style.color='#b91c1c';lbl.textContent='Weak ('+s+'/5) ? Mix Uppercase, Lowercase, Number & Special Character (Up to you to continue)';}
+          else if(s<=4){bar.style.background='#d97706';lbl.style.color='#92400e';lbl.textContent='Moderate ('+s+'/5) ? Add remaining character types for full strength (Up to you to continue)';}
+          else{bar.style.background='#16a34a';lbl.style.color='#15803d';lbl.textContent='Strong Password (5/5 ISO Compliant)';}
+        }
+        function openWalkinReminderModal(){
+          const pw=document.getElementById('walkinTempPw');if(!pw.value||pw.value.length<8){pw.reportValidity();return;}
+          const m=document.getElementById('walkinWarnModal');
+          document.getElementById('walkinModalTitle').textContent='Reminder: Route for Captain Approval';
+          document.getElementById('walkinModalBody').textContent='This Walk-In Recovery Request will be sent to the Punong Barangay (Captain) for approval before taking effect. Submit now?';
+          m.style.display='flex';
+          document.getElementById('walkinModalCancel').onclick=function(){m.style.display='none';};
+          document.getElementById('walkinModalConfirm').onclick=function(){m.style.display='none';document.getElementById('walkinUploadProgText').textContent='Submitting to Captain Approval Queue...';document.getElementById('walkinUploadProgBar').style.width='85%';document.getElementById('walkinUploadProgPct').textContent='85%';document.getElementById('walkinRecoveryForm').submit();};
+        }
+      </script>
     {% endif %}
     {% if is_official and c.status == "PENDING_APPROVAL" %}
       <div class="card no-print" style="background:#fffbeb;border:1px solid #f59e0b;border-left:5px solid #d97706;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
