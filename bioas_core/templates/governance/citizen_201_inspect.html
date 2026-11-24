@@ -57,14 +57,21 @@
       </div>
     {% endif %}
     {% if is_official %}
-      <div class="card no-print" style="background:#f8fafc;border:1px solid #cbd5e1;border-left:5px solid #1e3a8a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-        <div><strong style="color:#1e3a8a;font-size:.86rem;">&#128273; Walk-In Assisted Account Recovery (ID-Verified Resident)</strong><div style="font-size:.76rem;color:#475569;">Current Username: <strong>{{ c.portal_username|default:"Not Set" }}</strong></div></div>
-        <form method="post" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0;">
-          {% csrf_token %}<input type="hidden" name="inspect_action" value="WALKIN_RESET_CREDS">
-          <input name="walkin_username" value="{{ c.portal_username|default:c.citizen_qr_id|lower }}" placeholder="New Username" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;" required>
-          <input name="walkin_temp_pass" minlength="6" placeholder="Temp Password (6+ chars)" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;" required>
-          <button type="submit" style="background:#1e3a8a;color:#fff;border:0;padding:7px 12px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Reset Credentials</button>
-        </form>
+      <div class="no-print" style="margin-bottom:14px;">
+        <button type="button" onclick="const b=document.getElementById('walkinRecoveryDrawer');b.style.display=b.style.display==='none'?'block':'none';" style="background:#f8fafc;color:#1e3a8a;border:1px solid #cbd5e1;padding:7px 13px;border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;">
+          &#128273; Walk-In Account Recovery Request (Requires Signed Letter &amp; Captain Approval) &#9662;
+        </button>
+        <div id="walkinRecoveryDrawer" style="display:none;margin-top:8px;background:#ffffff;border:1px solid #cbd5e1;border-left:5px solid #1e3a8a;border-radius:10px;padding:14px 16px;">
+          <div style="font-size:.82rem;font-weight:800;color:#1e3a8a;margin-bottom:4px;">Walk-In Account Recovery Request &bull; Account Username: <span style="color:#0f172a;">{{ c.portal_username|default:c.citizen_qr_id|lower }}</span></div>
+          <p style="font-size:.75rem;color:#64748b;margin:0 0 10px;">Upload the resident&rsquo;s <strong>Signed Request Letter</strong> (downloadable from Module 15) to unlock the temporary password field and submit for <strong>Punong Barangay (Captain) Approval</strong>.</p>
+          <form method="post" enctype="multipart/form-data" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0;">
+            {% csrf_token %}
+            <input type="hidden" name="inspect_action" value="WALKIN_RESET_CREDS">
+            <input type="file" id="walkinSignedLetter" name="signed_request_letter" accept=".pdf,.png,.jpg,.jpeg" required onchange="const ok=this.files.length>0;const pw=document.getElementById('walkinTempPw');const btn=document.getElementById('walkinSubmitBtn');pw.disabled=!ok;btn.disabled=!ok;pw.style.background=ok?'#fff':'#e2e8f0';btn.style.opacity=ok?'1':'.5';btn.style.cursor=ok?'pointer':'not-allowed';" style="padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:.76rem;background:#f8fafc;">
+            <input type="password" id="walkinTempPw" name="walkin_temp_pass" minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}" title="Minimum 8 characters with Uppercase, Lowercase, Number, and Special Character." placeholder="Temporary Password (Upload Letter First)" disabled required style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;background:#e2e8f0;min-width:240px;">
+            <button type="submit" id="walkinSubmitBtn" disabled style="background:#d97706;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-size:.77rem;font-weight:800;opacity:.5;cursor:not-allowed;">Subject for Approval &rarr;</button>
+          </form>
+        </div>
       </div>
     {% endif %}
     {% if is_official and c.status == "PENDING_APPROVAL" %}

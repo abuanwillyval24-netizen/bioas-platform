@@ -621,36 +621,39 @@ def citizen_201_inspect(request, citizen_id):
                     pass
             action_banner = f"Returned {full_nm} ({qr_ref}) for revision. Reason saved & citizen notified to log in and resubmit."
         elif act_cmd == "WALKIN_RESET_CREDS":
+            import base64, re
             from django.contrib.auth.hashers import make_password
-            new_u = request.POST.get("walkin_username", "").strip().lower() or c.citizen_qr_id.lower()
+            from governance.models import WalkInRecoveryRequest
+            letter_file = request.FILES.get("signed_request_letter")
             new_p = request.POST.get("walkin_temp_pass", "").strip()
-            if len(new_p) >= 6:
-                c.portal_username, c.portal_password_hash = new_u, make_password(new_p)
-                c.save(update_fields=["portal_username", "portal_password_hash"])
-                SystemAuditLog.objects.create(barangay=c.barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=act_nm, actor_role=act_rl, reference_code=c.citizen_qr_id, details=f"Walk-In Assisted Account Recovery for {c.full_name} ({c.citizen_qr_id}). Username: {new_u}.")
-                action_banner = f"Walk-In Account Recovery complete! New Username: '{new_u}' (Temp Password set & logged to Audit Trail)."
-
-    ua = request.META.get("HTTP_USER_AGENT", "")
-    is_mobile_ua = any(k in ua for k in ("Mobile", "Android", "iPhone", "iPad", "Opera Mini", "IEMobile"))
-    view_mode = request.GET.get("view", "").strip().lower()
-    if view_mode not in ("mobile", "sheet"):
-        view_mode = "mobile" if (is_mobile_ua and is_owner_citizen) else "sheet"
-    device_label = "Mobile Phone" if is_mobile_ua else "Desktop Computer"
-
-    if is_owner_citizen:
-        try:
-            from audit_analytics.models import SystemAuditLog, DILGComplianceReport, COAAuditCompliance
-            SystemAuditLog.objects.create(
-                barangay=c.barangay,
-                action_type="PORTAL_SYNC_APPROVED",
-                actor_name=c.full_name,
-                actor_role=f"CITIZEN_SELF_SERVICE ({device_label})",
-                reference_code=c.citizen_qr_id,
-                details=f"Resident viewed synchronized 201 profile ({view_mode.upper()} mode) via {device_label}.",
-            )
-        except Exception:
-            pass
-
+            target_u = (c.portal_username or c.citizen_qr_id.lower()).strip()
+            if not letter_file:
+                action_banner = "Error: Signed Request Letter upload is required before submitting Walk-In Account Recovery."
+            elif not re.match(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$", new_p):
+                action_banner = "Error: Temporary password must be at least 8 characters with Uppercase, Lowercase, Number, and Special Character."
+            else:
+                raw_bytes = letter_file.read()
+                mime = getattr(letter_file, "content_type", "") or "application/pdf"
+                data_uri = f"data:{mime};base64,{base64.b64encode(raw_bytes).decode('ascii')}"
+                WalkInRecoveryRequest.objects.create(
+                    barangay=c.barangay,
+                    citizen=c,
+                    requested_username=target_u,
+                    pending_password_hash=make_password(new_p),
+                    signed_request_letter_uri=data_uri,
+                    signed_request_letter_name=letter_file.name[:150],
+                    submitted_by_name=act_nm,
+                    status="PENDING_CAPTAIN",
+                )
+                SystemAuditLog.objects.create(
+                    barangay=c.barangay,
+                    action_type="PORTAL_SYNC_APPROVED",
+                    actor_name=act_nm,
+                    actor_role=act_rl,
+                    reference_code=c.citizen_qr_id,
+                    details=f"Submitted Walk-In Account Recovery Request for {c.full_name} ({c.citizen_qr_id}) with Signed Letter '{letter_file.name}' -> Pending Punong Barangay Approval.",
+                )
+                action_banner = f"Submitted Walk-In Recovery Request for {c.full_name} ({c.citizen_qr_id}) ? Subject for Punong Barangay (Captain) Approval!"
         if action_banner:
             request.session["bioas_inspect_banner"] = action_banner
         return redirect(request.get_full_path())
