@@ -24,8 +24,8 @@ from audit_analytics.models import SystemAuditLog, DILGComplianceReport, COAAudi
 def staff_login(request):
     import hashlib, random, secrets
     from django.contrib.auth.hashers import check_password
-    from .models import StaffProfile, TrustedLoginDevice
-    for sp_u in StaffProfile.objects.filter(official_code__isnull=True):
+    from .models import BarangayStaffProfile, TrustedLoginDevice
+    for sp_u in BarangayStaffProfile.objects.filter(official_code__isnull=True):
         sp_u.save()
     if request.user.is_authenticated:
         return redirect("/")
@@ -128,7 +128,7 @@ def staff_logout(request):
 def command_dashboard(request):
     import uuid
     from datetime import date, timedelta
-    from .models import BarangayStaffProfile
+    from .models import BarangayBarangayStaffProfile
 
     params = request.GET
     if params.get("download_201_template") == "1":
@@ -149,7 +149,7 @@ def command_dashboard(request):
     active_barangay = barangays.filter(tenant_code=params.get("tenant")).first() or barangays.first()
 
     staff_profile = getattr(request.user, "staff_profile", None)
-    all_mod_codes = [code for code, _ in BarangayStaffProfile.ALL_MODULE_CHOICES]
+    all_mod_codes = [code for code, _ in BarangayBarangayStaffProfile.ALL_MODULE_CHOICES]
     if request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN"):
         visible_modules = list(all_mod_codes)
     elif staff_profile:
@@ -877,7 +877,7 @@ def command_dashboard(request):
 
 @login_required(login_url="/login/")
 def theme_settings(request):
-    from .models import BarangayStaffProfile
+    from .models import BarangayBarangayStaffProfile
 
     barangay = BarangayTenant.objects.first()
     showcase, _ = BarangayPortalShowcase.objects.get_or_create(barangay=barangay) if barangay else (None, False)
@@ -900,7 +900,7 @@ def theme_settings(request):
             role = request.POST.get("officer_role", "COUNCILOR")
             seat_code = request.POST.get("officer_seat_code", "").strip()
             committee = request.POST.get("officer_committee", "").strip()
-            chosen_mods = request.POST.getlist("modules") or list(BarangayStaffProfile.ROLE_DEFAULT_MODULES.get(role, ["OVERVIEW", "POLICY"]))
+            chosen_mods = request.POST.getlist("modules") or list(BarangayBarangayStaffProfile.ROLE_DEFAULT_MODULES.get(role, ["OVERVIEW", "POLICY"]))
             if not uname or len(pwd) < 6 or not fname:
                 error = "Full name (from 201 or manual), username, and password (min 6 chars) are required."
             elif linked_cit and hasattr(linked_cit, "staff_account") and linked_cit.staff_account is not None:
@@ -911,7 +911,7 @@ def theme_settings(request):
                 parts = fname.split()
                 new_user = User.objects.create_user(username=uname, password=pwd, first_name=parts, last_name=" ".join(parts[1:]))
                 auto_status = "ACTIVE" if (u.is_superuser or (current_prof and current_prof.role == "CAPTAIN")) else "PENDING_CAPTAIN"
-                sp = BarangayStaffProfile.objects.create(
+                sp = BarangayBarangayStaffProfile.objects.create(
                     user=new_user,
                     barangay=barangay,
                     citizen=linked_cit,
@@ -936,7 +936,7 @@ def theme_settings(request):
                 notice = f"Officer account '{uname}' ({sp.get_role_display()}) created{link_note} with {len(chosen_mods)} configured modules ({sp.get_approval_status_display()})."
         elif act == "UPDATE_OFFICER_MODULES" and can_manage_officers and barangay:
             sp_id = request.POST.get("staff_profile_id")
-            sp = BarangayStaffProfile.objects.filter(barangay=barangay, id=sp_id).first()
+            sp = BarangayBarangayStaffProfile.objects.filter(barangay=barangay, id=sp_id).first()
             if sp:
                 chosen_mods = request.POST.getlist("modules") or ["OVERVIEW", "POLICY"]
                 new_status = request.POST.get("approval_status", sp.approval_status)
@@ -1060,7 +1060,7 @@ def theme_settings(request):
                     notice = f"Classification updated immediately: {barangay.name} is now officially classified as {barangay.get_barangay_classification_display()}!"
 
 
-    staff_list = BarangayStaffProfile.objects.select_related("user", "citizen").filter(barangay=barangay) if barangay else []
+    staff_list = BarangayBarangayStaffProfile.objects.select_related("user", "citizen").filter(barangay=barangay) if barangay else []
     available_201 = CitizenProfile.objects.filter(barangay=barangay, status="ACTIVE_RESIDENT", staff_account__isnull=True).order_by("last_name", "first_name") if barangay else []
     p_col = getattr(barangay, "default_primary_color", "#1E3A8A") if barangay else "#1E3A8A"
     s_col = getattr(barangay, "default_secondary_color", "#F59E0B") if barangay else "#F59E0B"
@@ -1197,7 +1197,7 @@ function sc(a,b){document.getElementById('p').value=a;document.getElementById('s
     return HttpResponse(engines["django"].from_string(tpl).render({
         "u": u, "p_col": p_col, "s_col": s_col, "notice": notice, "error": error, "showcase": showcase,
         "barangay": barangay, "can_manage_officers": can_manage_officers, "staff_list": staff_list, "available_201": available_201,
-        "role_choices": BarangayStaffProfile.ROLE_CHOICES, "status_choices": BarangayStaffProfile.STATUS_CHOICES,
+        "role_choices": BarangayBarangayStaffProfile.ROLE_CHOICES, "status_choices": BarangayBarangayStaffProfile.STATUS_CHOICES,
 
-        "module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "role_presets_json": json.dumps(BarangayStaffProfile.ROLE_DEFAULT_MODULES),
+        "module_choices": BarangayBarangayStaffProfile.ALL_MODULE_CHOICES, "role_presets_json": json.dumps(BarangayBarangayStaffProfile.ROLE_DEFAULT_MODULES),
     }, request))
