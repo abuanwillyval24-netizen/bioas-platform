@@ -1074,9 +1074,12 @@
                   {% elif module == "TEMPLATES" %}
           <div class="section-title"><span>15. Official Barangay Forms &amp; Operational Templates ({{ form_templates|length }})</span></div>
           <div class="card" style="border-top:4px solid var(--primary);margin-bottom:18px;">
-            <h3 style="margin-top:0;font-size:.95rem;color:var(--primary);">+ Add or Customize Official Form Template</h3>
-            <form method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
-              {% csrf_token %}<input type="hidden" name="action" value="SAVE_FORM_TEMPLATE">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <h3 id="tplEditorHeading" style="margin:0;font-size:.95rem;color:var(--primary);">+ Add or Replace Official Form Template</h3>
+              <button type="button" id="tplResetBtn" onclick="resetTplEditor()" style="display:none;background:#e2e8f0;color:#0f172a;border:0;padding:4px 10px;border-radius:6px;font-size:.74rem;font-weight:700;cursor:pointer;">Cancel Replace / New Form</button>
+            </div>
+            <form id="tplEditorForm" method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
+              {% csrf_token %}<input type="hidden" name="action" value="SAVE_FORM_TEMPLATE"><input type="hidden" name="template_id" id="tplEditId" value="">
               <select name="category" style="padding:8px;border:1px solid #cbd5e1;border-radius:7px;">
                 <option value="COMPLETION_REPORT">Completion Report</option>
                 <option value="ACCEPTANCE_REPORT">Acceptance Report</option>
@@ -1108,11 +1111,34 @@
               </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
                 {% if ft.file_data_uri %}<a href="{{ ft.file_data_uri }}" download="{{ ft.file_name|default:'template' }}" style="background:#0f766e;color:#fff;padding:6px 11px;border-radius:6px;text-decoration:none;font-size:.75rem;font-weight:700;">Download File &darr;</a>{% endif %}
-                <button type="button" onclick="const w=window.open('','_blank');w.document.write('<pre style=font-family:serif;font-size:13pt;white-space:pre-wrap;padding:28px>'+this.closest('.card').querySelector('pre').innerText+'</pre>');w.print();" style="background:#1e3a8a;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;">Print Template &#128424;</button>
+                <button type="button" onclick="const w=window.open('','_blank');w.document.write('<pre style=font-family:serif;font-size:13pt;white-space:pre-wrap;padding:28px>'+(this.closest('.card').querySelector('pre')?.innerText||'')+'</pre>');w.print();" style="background:#1e3a8a;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;">Print Template &#128424;</button>
+                <button type="button" data-id="{{ ft.id }}" data-cat="{{ ft.category }}" data-code="{{ ft.form_code }}" data-title="{{ ft.title }}" data-desc="{{ ft.description }}" onclick="loadTplForReplace(this)" style="background:#d97706;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;">Replace / Edit &#9998;</button>
               </div>
             </div>
             {% endfor %}
           </div>
+          <script>
+            function loadTplForReplace(btn){
+              const f=document.getElementById('tplEditorForm');
+              document.getElementById('tplEditId').value=btn.dataset.id||'';
+              f.querySelector('[name=category]').value=btn.dataset.cat||'OTHER';
+              f.querySelector('[name=form_code]').value=btn.dataset.code||'';
+              f.querySelector('[name=title]').value=btn.dataset.title||'';
+              f.querySelector('[name=description]').value=btn.dataset.desc||'';
+              const pre=btn.closest('.card').querySelector('pre');
+              f.querySelector('[name=body_template]').value=pre?pre.innerText:'';
+              document.getElementById('tplEditorHeading').textContent='Replacing / Editing Template: '+(btn.dataset.title||'');
+              document.getElementById('tplResetBtn').style.display='inline-block';
+              f.scrollIntoView({behavior:'smooth',block:'center'});
+            }
+            function resetTplEditor(){
+              const f=document.getElementById('tplEditorForm');
+              f.reset();
+              document.getElementById('tplEditId').value='';
+              document.getElementById('tplEditorHeading').textContent='+ Add or Replace Official Form Template';
+              document.getElementById('tplResetBtn').style.display='none';
+            }
+          </script>
         {% elif module == "AUDIT" %}
           <div class="section-title"><span>12A. COA Audit &amp; Liquidation Packages</span><a href="/admin/audit_analytics/coaauditcompliance/add/">+ Log COA Package</a></div>
           <table><thead><tr><th>Reference</th><th>Audit Type</th><th>Period</th><th>Amount</th><th>Status</th></tr></thead><tbody>
