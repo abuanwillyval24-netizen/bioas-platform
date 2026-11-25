@@ -371,6 +371,22 @@ def command_dashboard(request):
             c_cnt = stale_qs.delete()
             SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code="PURGE-BULK-201", details=f"Hard-purged {c_cnt} incomplete/bulk sample citizens and {d_cnt} supporting documents.")
             action_notice = f"Hard-purged {c_cnt} incomplete/bulk sample citizens and {d_cnt} supporting documents from database."
+        elif act == "CREATE_WALKIN_ICN" and active_barangay:
+            import secrets
+            from .models import WalkInIncidentTicket
+            icode = f"ICN-{timezone.now().year}-{secrets.randbelow(90000)+10000}-{secrets.token_hex(2).upper()}"
+            WalkInIncidentTicket.objects.create(barangay=active_barangay, icn_code=icode, category=request.POST.get("category", "WALKIN_201_SIGNUP"), description=request.POST.get("description", "").strip(), created_by_name=actor_name, created_by_role=actor_role)
+            SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=icode, details=f"Opened Walk-In Incident {icode}.")
+            action_notice = f"Created Incident Control Number {icode} in your Open ICN Bucket."
+        elif act == "CLOSE_WALKIN_ICN" and active_barangay:
+            from .models import WalkInIncidentTicket
+            tkt = WalkInIncidentTicket.objects.filter(barangay=active_barangay, id=request.POST.get("icn_id")).first()
+            if tkt:
+                tkt.status = "CLOSED_ARCHIVED"
+                tkt.closed_at = timezone.now()
+                tkt.resolution_note = request.POST.get("resolution_note", "Resolved & Closed by Officer").strip()[:240]
+                tkt.save(update_fields=["status", "closed_at", "resolution_note"])
+                action_notice = f"Incident {tkt.icn_code} closed and archived."
         elif act == "SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
@@ -1262,6 +1278,8 @@ def command_dashboard(request):
         "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "households": households, "citizen_reports": citizen_reports,
         "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
+        "open_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="OPEN")[:30]) if active_barangay else [],
+        "archived_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="CLOSED_ARCHIVED")[:30]) if active_barangay else [],
         "vawc_cases": list(__import__("blotter.models", fromlist=["BlotterCase"]).BlotterCase.objects.filter(barangay=active_barangay, is_vawc_confidential=True)[:25]) if (active_barangay and "VAWC" in visible_modules) else [],
         "anon_reports": list(__import__("governance.models", fromlist=["AnonymousCommunityReport"]).AnonymousCommunityReport.objects.filter(barangay=active_barangay).exclude(**({} if (request.user.is_superuser or actor_role == 'CAPTAIN') else {"report_type": "OFFICIAL_COMPLAINT"}))[:25]) if active_barangay else [],
         "qr_feedbacks": list(__import__("governance.models", fromlist=["ServiceEventQRFeedback"]).ServiceEventQRFeedback.objects.filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [], "lupon_summons": list(__import__("blotter.models", fromlist=["LuponSummonNotice"]).LuponSummonNotice.objects.select_related("blotter_case", "recipient_citizen").filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [],

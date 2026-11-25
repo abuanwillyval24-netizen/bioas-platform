@@ -590,3 +590,21 @@ class CommitteeModuleEntry(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class WalkInIncidentTicket(models.Model):
+    STATUS_CHOICES = [("OPEN", "Open (In Bucket)"), ("CLOSED_ARCHIVED", "Closed & Archived")]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="walkin_incidents")
+    icn_code = models.CharField(max_length=36, unique=True, db_index=True)
+    category = models.CharField(max_length=60, default="WALKIN_201_SIGNUP")
+    description = models.TextField()
+    created_by_name = models.CharField(max_length=120)
+    created_by_role = models.CharField(max_length=60, blank=True)
+    linked_citizen_qr = models.CharField(max_length=40, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="OPEN")
+    resolution_note = models.CharField(max_length=240, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
