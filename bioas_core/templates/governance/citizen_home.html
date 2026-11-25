@@ -87,7 +87,8 @@
           <button type="submit" class="btn" style="width:100%;margin-top:14px;">Reset Password &amp; Sign In &rarr;</button>
         </form>
       </div>
-    {% include "governance/_citizen_staging.html" %}
+    {% elif citizen and citizen.status != "ACTIVE_RESIDENT" %}
+      {% include "governance/_citizen_staging.html" %}
     {% elif citizen %}
       <div class="dash-shell">
         <aside class="navy-sidebar">
