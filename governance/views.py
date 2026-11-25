@@ -335,7 +335,7 @@ def command_dashboard(request):
         elif act == "UPDATE_ANON_REPORT" and active_barangay:
             from .models import AnonymousCommunityReport
             ar = AnonymousCommunityReport.objects.filter(barangay=active_barangay, id=request.POST.get("anon_id")).first()
-            if ar and (ar.report_type != "OFFICIAL_COMPLAINT" or is_exec):
+            if ar and (ar.report_type != "OFFICIAL_COMPLAINT" or (request.user.is_superuser or actor_role == 'CAPTAIN')):
                 ar.status = request.POST.get("status", ar.status)
                 ar.official_response = request.POST.get("official_response", "").strip()[:240]
                 ar.save(update_fields=["status", "official_response"])
@@ -1248,7 +1248,7 @@ def command_dashboard(request):
         "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
         "vawc_cases": list(__import__("blotter.models", fromlist=["BlotterCase"]).BlotterCase.objects.filter(barangay=active_barangay, is_vawc_confidential=True)[:25]) if (active_barangay and "VAWC" in visible_modules) else [],
-        "anon_reports": list(__import__("governance.models", fromlist=["AnonymousCommunityReport"]).AnonymousCommunityReport.objects.filter(barangay=active_barangay).exclude(**({} if is_exec else {"report_type": "OFFICIAL_COMPLAINT"}))[:25]) if active_barangay else [],
+        "anon_reports": list(__import__("governance.models", fromlist=["AnonymousCommunityReport"]).AnonymousCommunityReport.objects.filter(barangay=active_barangay).exclude(**({} if (request.user.is_superuser or actor_role == 'CAPTAIN') else {"report_type": "OFFICIAL_COMPLAINT"}))[:25]) if active_barangay else [],
         "qr_feedbacks": list(__import__("governance.models", fromlist=["ServiceEventQRFeedback"]).ServiceEventQRFeedback.objects.filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [], "lupon_summons": list(__import__("blotter.models", fromlist=["LuponSummonNotice"]).LuponSummonNotice.objects.select_related("blotter_case", "recipient_citizen").filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [],
         "receipts": receipts, "abuloy_sheets": abuloy_sheets, "total_collections": total_collections,
         "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "rejected_citizens": list(citizens.filter(status="REJECTED_RETURNED").order_by("updated_at")), "associations": associations,
