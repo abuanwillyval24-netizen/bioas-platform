@@ -121,6 +121,7 @@
             <button type="button" class="tab-btn" onclick="openCitTab('tabCerts',this)"><span>&#128220; Request Certificates</span><span class="badge">{{ recent_certs|length }}</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabReports',this)"><span>&#9888; Report Concerns</span><span class="badge">{{ recent_reports|length }}</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabSocial',this)"><span>&#129309; My Social Assistance &amp; Programs</span><span class="badge">&bull;</span></button>
+            <button type="button" class="tab-btn" onclick="openCitTab('tabReserve',this)"><span>&#127963; Reserve Facility &amp; Gear</span><span class="badge">{{ my_reservations|length }}</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabProfile',this)"><span>&#129706; My 201 Profile &amp; Docs</span><span class="badge">&rarr;</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabSettings',this)"><span>&#9881; Account &amp; Theme Settings</span><span class="badge">&bull;</span></button>
           </nav>
@@ -241,6 +242,16 @@
               </form>
             </div>
             <div class="card"><h4 style="margin-top:0;">My Supporting Documents Vault ({{ citizen.repository_docs.all|length }})</h4><table><thead><tr><th>Document Title</th><th>Uploaded</th><th>Action</th></tr></thead><tbody>{% for d in citizen.repository_docs.all %}<tr><td><strong>{{ d.title }}</strong></td><td>{{ d.uploaded_at|date:"M d, Y" }}</td><td><a href="/citizen-docs/{{ citizen.citizen_qr_id }}/" target="_blank" class="badge" style="text-decoration:none;">Open PDF &nearr;</a></td></tr>{% empty %}<tr><td colspan="3">No supporting documents uploaded yet.</td></tr>{% endfor %}</tbody></table></div>
+          </div>
+          <div id="tabReserve" class="panel">
+            <div class="card" style="border-top:4px solid #0f766e;"><h3 style="margin-top:0;color:#0f766e;font-size:1rem;">&#127963; Reserve Barangay Facility or Equipment (Auto Time-Slot Conflict Lock)</h3>
+              <form method="post">{% csrf_token %}<input type="hidden" name="action" value="BOOK_FACILITY_EQUIPMENT">
+                <div class="grid-2"><div><label>Facility / Equipment *</label><select name="facility_or_item"><option value="COVERED_COURT">Barangay Covered Court / Gym</option><option value="MULTIPURPOSE_HALL">Barangay Multipurpose Hall</option><option value="TENTS_CHAIRS">Event Tents, Tables &amp; Chairs</option><option value="SOUND_SYSTEM">Barangay Sound System / PA</option><option value="SERVICE_VEHICLE">Barangay Utility / Service Vehicle</option></select></div><div><label>Event / Purpose *</label><input name="purpose" placeholder="e.g., Community Meeting, Family Event" required></div></div>
+                <div class="grid-3" style="margin-top:8px;"><div><label>Date *</label><input type="date" name="reservation_date" required></div><div><label>Start Time *</label><input type="time" name="start_time" required></div><div><label>End Time *</label><input type="time" name="end_time" required></div></div>
+                <button type="submit" class="btn" style="margin-top:12px;background:#0f766e;">Lock Time-Slot &amp; Submit Reservation &rarr;</button>
+              </form>
+            </div>
+            <div class="card"><h4 style="margin-top:0;">My Facility &amp; Equipment Bookings</h4><table><thead><tr><th>Booking Code</th><th>Asset</th><th>Date &amp; Time</th><th>Status</th></tr></thead><tbody>{% for rv in my_reservations %}<tr><td><strong>{{ rv.booking_code }}</strong></td><td>{{ rv.get_facility_or_item_display }}</td><td>{{ rv.reservation_date }} ({{ rv.start_time|time:"H:i" }}-{{ rv.end_time|time:"H:i" }})</td><td><span class="badge">{{ rv.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="4">No reservations yet.</td></tr>{% endfor %}</tbody></table></div>
           </div>
           <div id="tabSettings" class="panel">
             <div class="card" style="border-top:4px solid var(--cit-accent);">

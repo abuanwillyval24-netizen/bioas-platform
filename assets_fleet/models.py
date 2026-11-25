@@ -82,3 +82,42 @@ class CommunityEquipmentLoan(models.Model):
 
     def __str__(self):
         return f"{self.equipment_description} (x{self.quantity}) — {self.borrower_name}"
+
+
+class FacilityEquipmentReservation(models.Model):
+    ASSET_CHOICES = [
+        ("COVERED_COURT", "Barangay Covered Court / Gym"),
+        ("MULTIPURPOSE_HALL", "Barangay Multipurpose Hall"),
+        ("TENTS_CHAIRS", "Event Tents, Tables & Monobloc Chairs"),
+        ("SOUND_SYSTEM", "Barangay Sound System / PA"),
+        ("SERVICE_VEHICLE", "Barangay Utility / Service Vehicle"),
+    ]
+    STATUS_CHOICES = [("PENDING", "Pending Custodian Approval"), ("APPROVED", "Approved & Slot Locked"), ("REJECTED", "Declined / Unavailable"), ("COMPLETED", "Completed / Returned")]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="reservations")
+    citizen = models.ForeignKey(CitizenProfile, on_delete=models.CASCADE, related_name="facility_reservations")
+    booking_code = models.CharField(max_length=32, unique=True)
+    facility_or_item = models.CharField(max_length=30, choices=ASSET_CHOICES)
+    reservation_date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    purpose = models.CharField(max_length=180)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    custodian_remarks = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.end_time and self.start_time and self.end_time <= self.start_time:
+            raise ValidationError("End time must be later than start time.")
+        if self.barangay_id and self.reservation_date and self.start_time and self.end_time:
+            clash = FacilityEquipmentReservation.objects.filter(
+                barangay_id=self.barangay_id, facility_or_item=self.facility_or_item,
+                reservation_date=self.reservation_date, status__in=["PENDING", "APPROVED"],
+                start_time__lt=self.end_time, end_time__gt=self.start_time,
+            ).exclude(pk=self.pk).first()
+            if clash:
+                raise ValidationError(f"Time-Slot Conflict Lock: Already reserved on {self.reservation_date} from {clash.start_time.strftime('%H:%M')} to {clash.end_time.strftime('%H:%M')} ({clash.booking_code}).")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)

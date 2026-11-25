@@ -502,6 +502,21 @@ def citizen_home(request):
                 c_obj.dispute_status = "DISPUTE_OPEN"
                 c_obj.save(update_fields=["citizen_dispute_note", "dispute_status"])
                 notice = f"Dispute / Hold inquiry logged for {c_obj.control_number}. The Barangay Secretary has been notified."
+        elif act == "BOOK_FACILITY_EQUIPMENT":
+            import secrets
+            from assets_fleet.models import FacilityEquipmentReservation
+            try:
+                b_code = f"RES-{uuid.uuid4().hex[:6].upper()}-{secrets.token_hex(2).upper()}"
+                FacilityEquipmentReservation.objects.create(
+                    barangay=citizen.barangay, citizen=citizen, booking_code=b_code,
+                    facility_or_item=request.POST.get("facility_or_item", "COVERED_COURT"),
+                    reservation_date=request.POST.get("reservation_date"),
+                    start_time=request.POST.get("start_time"), end_time=request.POST.get("end_time"),
+                    purpose=request.POST.get("purpose", "").strip(),
+                )
+                notice = f"Reservation {b_code} submitted and time-slot locked! Pending Property Custodian approval."
+            except Exception as res_err:
+                error = str(res_err)
         elif act == "REQUEST_CERT":
             ctype = request.POST["cert_type"]
             exempt = ctype in ("INDIGENCY", "FIRST_TIME_JOBSEEKER")
@@ -527,7 +542,7 @@ def citizen_home(request):
     resp = HttpResponse(tpl.render({
         "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
         "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
-        "recent_certs": recent_certs, "recent_reports": recent_reports, "active_sk_seat": __import__("sk_youth.models", fromlist=["SKOfficialSeat"]).SKOfficialSeat.objects.filter(citizen=citizen, term_status="ACTIVE").first() if citizen else None, "social_assistance_records": next((list(m.objects.filter(citizen=citizen).order_by("-id")[:15]) for m in __import__("django.apps", fromlist=["apps"]).apps.get_models() if "Social" in m.__name__ or "Aid" in m.__name__ or "Welfare" in m.__name__), []) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
+        "recent_certs": recent_certs, "recent_reports": recent_reports, "my_reservations": list(citizen.facility_reservations.all()[:15]) if citizen else [], "active_sk_seat": __import__("sk_youth.models", fromlist=["SKOfficialSeat"]).SKOfficialSeat.objects.filter(citizen=citizen, term_status="ACTIVE").first() if citizen else None, "social_assistance_records": next((list(m.objects.filter(citizen=citizen).order_by("-id")[:15]) for m in __import__("django.apps", fromlist=["apps"]).apps.get_models() if "Social" in m.__name__ or "Aid" in m.__name__ or "Welfare" in m.__name__), []) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
     }, request))
     resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp["Pragma"] = "no-cache"

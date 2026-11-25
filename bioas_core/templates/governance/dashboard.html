@@ -1060,6 +1060,10 @@
           <table><thead><tr><th>Plate</th><th>Vehicle</th><th>Driver</th><th>Status</th></tr></thead><tbody>
             {% for v in vehicles %}<tr><td><strong>{{ v.plate_or_body_number }}</strong></td><td>{{ v.vehicle_name }}</td><td>{{ v.assigned_driver }}</td><td><span class="badge">{{ v.get_status_display }}</span></td></tr>{% endfor %}
           </tbody></table>
+          <div class="section-title" style="margin-top:18px;"><span>08B. Facility &amp; Equipment Reservations (Time-Slot Conflict Locked)</span></div>
+          <table><thead><tr><th>Code</th><th>Resident</th><th>Facility / Gear</th><th>Schedule</th><th>Status</th><th>Custodian Action</th></tr></thead><tbody>
+            {% for rv in reservations %}<tr><td><strong>{{ rv.booking_code }}</strong></td><td>{{ rv.citizen.full_name }}</td><td>{{ rv.get_facility_or_item_display }}<div style="font-size:.73rem;color:#64748b;">{{ rv.purpose }}</div></td><td>{{ rv.reservation_date }} ({{ rv.start_time|time:"H:i" }}-{{ rv.end_time|time:"H:i" }})</td><td><span class="badge">{{ rv.get_status_display }}</span></td><td><form method="post" style="display:flex;gap:4px;">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_RESERVATION_STATUS"><input type="hidden" name="res_id" value="{{ rv.id }}"><select name="new_status" style="padding:4px 6px;font-size:.75rem;"><option value="APPROVED">Approve</option><option value="REJECTED">Decline</option><option value="COMPLETED">Completed</option></select><button type="submit" style="background:#0f766e;color:#fff;border:0;border-radius:6px;padding:4px 9px;font-size:.74rem;font-weight:700;cursor:pointer;">Save</button></form></td></tr>{% empty %}<tr><td colspan="6">No facility/equipment bookings yet.</td></tr>{% endfor %}
+          </tbody></table>
         {% elif module == "DRRM" %}
           <div class="section-title"><span>09. BDRRMC & Evacuation</span><a href="/admin/drrm/">+ Manage DRRM</a></div>
           <table><thead><tr><th>Code</th><th>Alert</th><th>Level</th><th>Families</th></tr></thead><tbody>

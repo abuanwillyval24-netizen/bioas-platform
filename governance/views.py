@@ -295,6 +295,16 @@ def command_dashboard(request):
                 c_obj.save()
                 SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=c_obj.control_number, details=f"Certificate {c_obj.control_number} updated ({mode}): {msg}")
                 action_notice = f"Updated certificate {c_obj.control_number} ({mode})."
+        elif act == "UPDATE_RESERVATION_STATUS" and active_barangay:
+            from assets_fleet.models import FacilityEquipmentReservation
+            rv = FacilityEquipmentReservation.objects.filter(barangay=active_barangay, id=request.POST.get("res_id")).first()
+            st = request.POST.get("new_status", "APPROVED")
+            if rv and st in ("APPROVED", "REJECTED", "COMPLETED"):
+                rv.status = st
+                rv.custodian_remarks = request.POST.get("remarks", "").strip()
+                rv.save()
+                SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=rv.booking_code, details=f"Reservation {rv.booking_code} marked {st}.")
+                action_notice = f"Reservation {rv.booking_code} updated to {rv.get_status_display()}."
         elif act == "SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
@@ -1193,7 +1203,7 @@ def command_dashboard(request):
             "lower_middle": citizens.filter(status="ACTIVE_RESIDENT", socioeconomic_tier="LOWER_MIDDLE").count(),
             "self_sustaining": citizens.filter(status="ACTIVE_RESIDENT", socioeconomic_tier="SELF_SUSTAINING").count(),
         },
-        "vehicles": vehicles, "trips": trips, "equipment_loans": equipment_loans,
+        "vehicles": vehicles, "reservations": list(__import__("assets_fleet.models", fromlist=["FacilityEquipmentReservation"]).FacilityEquipmentReservation.objects.select_related("citizen").filter(barangay=active_barangay).order_by("-reservation_date")[:25]) if active_barangay else [], "trips": trips, "equipment_loans": equipment_loans,
         "hazards": hazards, "evac_centers": evac_centers, "kk_youth": kk_youth, "sk_projects": sk_projects,
         "measures": measures, "bdp_projects": bdp_projects, "audit_logs": audit_logs, "dilg_reports": dilg_reports, "coa_audits": coa_audits,
         "turnovers": turnovers, "turnover_summary": turnover_summary, "total_pending_turnover": total_pending_turnover,
