@@ -114,7 +114,7 @@
                 <div style="font-size:.66rem;font-weight:800;color:#1e3a8a;margin-top:3px;">&#128269; Click QR to Enlarge</div>
               </div>
             {% endif %}
-            <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" style="display:block;margin-top:10px;background:#1d4ed8;color:#fff;padding:8px 12px;border-radius:9px;text-decoration:none;font-size:.79rem;font-weight:800;">&#128196; Download Digital ID</a>
+            <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" style="display:block;margin-top:10px;background:#1d4ed8;color:#fff;padding:8px 12px;border-radius:9px;text-decoration:none;font-size:.79rem;font-weight:800;">&#128196; Download Digital ID</a>{% if active_sk_seat %}<a href="/sk-portal/" style="display:block;margin-top:8px;background:#0f766e;color:#fff;padding:8px 12px;border-radius:9px;text-decoration:none;font-size:.79rem;font-weight:800;">&#9889; View SK Portal ({{ active_sk_seat.get_position_display }})</a>{% endif %}
           </div>
           <nav class="side-nav">
             <button type="button" class="tab-btn active" onclick="openCitTab('tabAdvisories',this)"><span>&#128226; Advisories &amp; Blast Feed</span><span class="badge" style="background:#1e3a8a;color:#fff;">{{ blast_advisories|length }}</span></button>

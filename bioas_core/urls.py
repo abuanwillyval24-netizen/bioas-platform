@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path, re_path
 from bioas_core.hybrid_sync import hybrid_sync_pull
+from sk_youth.views import sk_portal
 from django.conf import settings
 from django.views.static import serve
 from governance.views import command_dashboard, theme_settings, staff_login, staff_logout
@@ -22,6 +23,7 @@ urlpatterns = [
     path("staff-roster/archive/<int:archive_id>/", download_term_archive, name="download_term_archive"),
     path("portal/", citizen_portal, name="citizen_portal"),
     path("citizen-home/", citizen_home, name="citizen_home"),
+    path("sk-portal/", sk_portal, name="sk_portal"),
     path("citizen-docs/<str:qr_id>/", citizen_docs_repository, name="citizen_docs_repository"),
     path("citizen-inspect/<int:citizen_id>/", citizen_201_inspect, name="citizen_201_inspect"),
     path("citizen-proof/<int:citizen_id>/", citizen_proof_pdf, name="citizen_proof_pdf"),

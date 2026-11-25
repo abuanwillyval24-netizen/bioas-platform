@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>{{ citizen.barangay.name }} &mdash; Sangguniang Kabataan (SK) Mini-Portal</title>
+  <style>
+    *{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+    body{margin:0;background:#eef2f6;color:#0f172a}
+    .top{background:#0f172a;color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid #0f766e}
+    .wrap{max-width:1140px;margin:18px auto;padding:0 16px 36px}
+    .card{background:#fff;border-radius:14px;padding:18px;border:1px solid #e2e8f0;box-shadow:0 4px 12px rgba(15,23,42,.04);margin-bottom:16px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+    label{display:block;font-size:.75rem;font-weight:700;color:#334155;margin-bottom:4px}
+    input,select{width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:.85rem}
+    .btn{background:#0f766e;color:#fff;border:0;padding:9px 15px;border-radius:8px;font-weight:800;cursor:pointer}
+    table{width:100%;border-collapse:collapse;font-size:.82rem}th,td{padding:9px 10px;border-bottom:1px solid #e2e8f0;text-align:left}th{background:#f8fafc;color:#475569;font-size:.73rem;text-transform:uppercase}
+    .badge{background:#ccfbf1;color:#115e59;padding:3px 9px;border-radius:999px;font-size:.71rem;font-weight:800}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div><strong>&#9889; {{ citizen.barangay.name }} SK Mini-Portal</strong> <span class="badge">{{ seat.get_position_display }} &bull; {{ seat.term_label }}</span></div>
+    <a href="/citizen-home/" style="background:#1e3a8a;color:#fff;padding:6px 14px;border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:800;">&larr; Back to Citizen Portal</a>
+  </div>
+  <div class="wrap">
+    {% if notice %}<div class="card" style="background:#dcfce7;color:#166534;font-weight:700;">{{ notice }}</div>{% endif %}
+    {% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
+    <div class="grid" style="margin-bottom:16px;">
+      <div class="card" style="margin:0;border-top:4px solid #0f766e;"><small style="color:#64748b;font-weight:700;">KK YOUTH REGISTRY (15-30)</small><div style="font-size:1.6rem;font-weight:900;">{{ kk_list|length }}</div></div>
+      <div class="card" style="margin:0;border-top:4px solid #1e3a8a;"><small style="color:#64748b;font-weight:700;">ABYIP YOUTH PROJECTS</small><div style="font-size:1.6rem;font-weight:900;">{{ projects|length }}</div></div>
+      <div class="card" style="margin:0;border-top:4px solid #d97706;"><small style="color:#64748b;font-weight:700;">10% SK FUND ALLOCATED</small><div style="font-size:1.6rem;font-weight:900;">&#8369;{{ total_sk_fund|floatformat:2 }}</div></div>
+      <div class="card" style="margin:0;border-top:4px solid #16a34a;"><small style="color:#64748b;font-weight:700;">ACTIVE SK COUNCIL SEATS</small><div style="font-size:1.6rem;font-weight:900;">{{ sk_seats|length }} / 10</div></div>
+    </div>
+    <div class="card" style="border-top:4px solid #0f766e;">
+      <h3 style="margin-top:0;color:#0f766e;">1. Katipunan ng Kabataan (KK) Youth Registry (RA 10742: Ages 15&ndash;30)</h3>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="ADD_KK_MEMBER">
+        <div class="grid">
+          <div><label>Resident Reference ID *</label><input name="kk_citizen_qr" placeholder="NUE-CAB-LAG-2026-XXXXX" required></div>
+          <div><label>Youth Classification</label><select name="youth_classification"><option value="IN_SCHOOL">In-School Youth (ISY)</option><option value="OUT_OF_SCHOOL">Out-of-School Youth (OSY)</option><option value="WORKING_YOUTH">Working Youth (WY)</option><option value="SPECIFIC_NEEDS">Youth with Specific Needs</option></select></div>
+          <div><label>Education Level</label><select name="education_level"><option value="JUNIOR_HIGH">Junior High</option><option value="SENIOR_HIGH">Senior High</option><option value="TECH_VOC">TESDA / Tech-Voc</option><option value="COLLEGE_UNDERGRAD">College Undergrad</option><option value="COLLEGE_GRADUATE">College Graduate</option></select></div>
+          <div><label>Skills &amp; Interests</label><input name="skills" placeholder="Sports, Coding, Arts"></div>
+        </div>
+        <button type="submit" class="btn" style="margin-top:10px;">+ Register KK Youth Member</button>
+      </form>
+      <table style="margin-top:12px;"><thead><tr><th>Ref ID</th><th>Full Name</th><th>Age</th><th>Classification</th><th>Education</th></tr></thead><tbody>{% for k in kk_list %}<tr><td><strong>{{ k.citizen.citizen_qr_id }}</strong></td><td>{{ k.citizen.full_name }}</td><td>{{ k.citizen.age }}</td><td>{{ k.get_youth_classification_display }}</td><td>{{ k.get_education_level_display }}</td></tr>{% empty %}<tr><td colspan="5">No KK members registered yet.</td></tr>{% endfor %}</tbody></table>
+    </div>
+    <div class="card" style="border-top:4px solid #1e3a8a;">
+      <h3 style="margin-top:0;color:#1e3a8a;">2. ABYIP / CBYDP Youth Projects &amp; 10% SK Fund Tracker</h3>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="ADD_SK_PROJECT">
+        <div class="grid">
+          <div><label>Project Title *</label><input name="title" placeholder="e.g., Inter-Purok Youth Basketball & Anti-Drug League" required></div>
+          <div><label>Category</label><select name="category"><option value="SPORTS_WELLNESS">Sports &amp; Youth Wellness</option><option value="EDUCATION_SCHOLARSHIP">Educational Assistance</option><option value="ENVIRONMENT_CLEANUP">Tree Planting &amp; Clean-Up</option><option value="LIVELIHOOD_SKILLS">Digital &amp; Livelihood Training</option><option value="KK_ASSEMBLY">KK General Assembly</option></select></div>
+          <div><label>10% SK Fund Allocation (&#8369;) *</label><input type="number" step="0.01" name="allocated_budget" value="15000.00" required></div>
+        </div>
+        <button type="submit" class="btn" style="margin-top:10px;background:#1e3a8a;">+ Add ABYIP Youth Project</button>
+      </form>
+      <table style="margin-top:12px;"><thead><tr><th>Code</th><th>Project Title</th><th>Category</th><th>Budget</th><th>Status</th></tr></thead><tbody>{% for p in projects %}<tr><td><strong>{{ p.project_code }}</strong></td><td>{{ p.title }}</td><td>{{ p.get_category_display }}</td><td>&#8369;{{ p.allocated_budget }}</td><td><span class="badge">{{ p.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No ABYIP projects recorded yet.</td></tr>{% endfor %}</tbody></table>
+    </div>
+    {% if seat.position == "SK_CHAIRPERSON" %}
+    <div class="card" style="border-top:4px solid #d97706;">
+      <h3 style="margin-top:0;color:#92400e;">3. SK Council &amp; Officers Term Roster (RA 10742: Age 18&ndash;24 on Election Day)</h3>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="ASSIGN_SK_SEAT">
+        <div class="grid">
+          <div><label>Resident Reference ID *</label><input name="seat_citizen_qr" placeholder="NUE-CAB-LAG-2026-XXXXX" required></div>
+          <div><label>SK Position</label><select name="position"><option value="SK_KAGAWAD">SK Kagawad (Max 7)</option><option value="SK_SECRETARY">SK Secretary (Max 1)</option><option value="SK_TREASURER">SK Treasurer (Max 1)</option></select></div>
+          <div><label>Election Day Date (Age 18-24 Check) *</label><input type="date" name="election_date" value="{{ seat.election_date|date:'Y-m-d' }}" required></div>
+        </div>
+        <button type="submit" class="btn" style="margin-top:10px;background:#d97706;">+ Assign Active SK Seat</button>
+      </form>
+      <table style="margin-top:12px;"><thead><tr><th>Position</th><th>Officer Name</th><th>Ref ID</th><th>Term</th></tr></thead><tbody>{% for s in sk_seats %}<tr><td><strong>{{ s.get_position_display }}</strong></td><td>{{ s.citizen.full_name }}</td><td>{{ s.citizen.citizen_qr_id }}</td><td><span class="badge">{{ s.term_label }}</span></td></tr>{% endfor %}</tbody></table>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>
