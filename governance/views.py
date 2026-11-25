@@ -1224,6 +1224,10 @@ def theme_settings(request):
                 error = f"{linked_cit.full_name} ({linked_cit.citizen_qr_id}) already has an officer account."
             elif User.objects.filter(username=uname).exists():
                 error = f"Username '{uname}' already exists."
+            elif role == "BARANGAY_TANOD" and barangay.barangay_classification == "RURAL" and BarangayStaffProfile.objects.filter(barangay=barangay, role="BARANGAY_TANOD", is_term_active=True).exclude(approval_status="SUSPENDED").count() >= 19:
+                error = "Rural Barangay Limit Reached: Maximum 19 Barangay Tanods (20 total with Chief Tanod / Hepe) allowed under Rural classification."
+            elif role in ("VAW_OFFICER", "BARC", "BNS") and BarangayStaffProfile.objects.filter(barangay=barangay, role=role, is_term_active=True).exclude(approval_status="SUSPENDED").exists():
+                error = f"Only 1 active {role} holder is allowed per Barangay. Attach the module to an existing officer instead."
             else:
                 parts = fname.split()
                 new_user = User.objects.create_user(username=uname, password=pwd, first_name=parts, last_name=" ".join(parts[1:]))
@@ -1255,7 +1259,7 @@ def theme_settings(request):
             sp_id = request.POST.get("staff_profile_id")
             sp = BarangayStaffProfile.objects.filter(barangay=barangay, id=sp_id).first()
             if sp:
-                chosen_mods = request.POST.getlist("modules") or ["OVERVIEW", "POLICY"]
+                chosen_mods = [m for m in (request.POST.getlist("modules") or ["OVERVIEW", "POLICY"]) if not (sp.role == "LUPON" and m == "VAWC")]
                 new_status = request.POST.get("approval_status", sp.approval_status)
                 sp.allowed_modules = chosen_mods
                 if new_status in ("ACTIVE", "PENDING_CAPTAIN", "SUSPENDED"):

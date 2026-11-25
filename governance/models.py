@@ -309,6 +309,17 @@ class BarangayStaffProfile(models.Model):
         ("WAREHOUSE_KEEPER", "Warehouse Keeper"),
         ("CUSTODIAN", "Property Custodian"),
         ("SOCIAL_WORKER", "Barangay Social Worker (DSWD / MSWD)"),
+        ("BARANGAY_CLERK", "Barangay Clerk (Under Secretary)"),
+        ("TREASURY_CLERK", "Treasury Clerk (Under Treasurer)"),
+        ("LUPON", "Lupong Tagapamayapa Member"),
+        ("BARANGAY_TANOD", "Barangay Tanod (Under Hepe)"),
+        ("BHW", "Barangay Health Worker (BHW)"),
+        ("BNS", "Barangay Nutrition Scholar (BNS)"),
+        ("DAYCARE_WORKER", "Day Care / Child Development Worker"),
+        ("BARC", "BARC Chairman (Agrarian Reform)"),
+        ("VAW_OFFICER", "VAW Officer (RA 9262 Desk)"),
+        ("BADAC_FOCAL", "BADAC Focal (Anti-Drug Council)"),
+        ("BCPC_FOCAL", "BCPC Focal (Child Protection Council)"),
     ]
     STATUS_CHOICES = [
         ("PENDING_CAPTAIN", "Pending Captain Approval"),
@@ -333,6 +344,12 @@ class BarangayStaffProfile(models.Model):
         ("TURNOVER", "13. Governance Turnover"),
         ("POLICY", "14. Policy & Glossary"),
         ("TEMPLATES", "15. Official Forms & Templates"),
+        ("VAWC", "16. VAWC Confidential Desk (RA 9262)"),
+        ("BADAC", "17. BADAC Anti-Drug Council"),
+        ("BCPC", "18. BCPC Child Protection"),
+        ("BARC", "19. BARC Agrarian Reform"),
+        ("NUTRITION", "20. BNS Nutrition & Timbang"),
+        ("DAYCARE", "21. Day Care / Child Dev"),
     ]
     ROLE_DEFAULT_MODULES = {
         "CAPTAIN": ["OVERVIEW", "CITIZENS", "LEDGER_201", "CERTIFICATES", "BLOTTER", "TREASURY", "HEALTH", "WELFARE", "FLEET", "DRRM", "SK", "LEGISLATION", "AUDIT", "TURNOVER", "POLICY", "TEMPLATES"],
@@ -366,9 +383,10 @@ class BarangayStaffProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def get_visible_modules(self):
-        if self.allowed_modules:
-            return list(self.allowed_modules)
-        return self.ROLE_DEFAULT_MODULES.get(self.role, ["OVERVIEW", "POLICY"])
+        mods = list(self.allowed_modules) if self.allowed_modules else list(self.ROLE_DEFAULT_MODULES.get(self.role, ["OVERVIEW", "POLICY"]))
+        if self.role == "LUPON" and "VAWC" in mods:
+            mods.remove("VAWC")
+        return mods
 
     def save(self, *args, **kwargs):
         if not self.allowed_modules:
