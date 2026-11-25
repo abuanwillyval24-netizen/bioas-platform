@@ -132,6 +132,7 @@
       <div class="side-group">Transition &amp; Reference</div>
       {% if "TURNOVER" in visible_modules %}<a href="?tier=BARANGAY&module=TURNOVER" class="{% if module == 'TURNOVER' %}active{% endif %}"><span>13. Governance Turnover</span><span class="pill">{{ total_pending_turnover }}</span></a>{% endif %}
       {% if "POLICY" in visible_modules %}<a href="?tier=BARANGAY&module=POLICY" class="{% if module == 'POLICY' %}active{% endif %}"><span>14. Policy &amp; Glossary</span><span class="pill">SOP</span></a>{% endif %}
+      {% if "VAWC" in visible_modules %}<a href="?tier=BARANGAY&module=VAWC" class="{% if module == 'VAWC' %}active{% endif %}">16. VAWC Desk (RA 9262)</a>{% endif %}
       {% if "TEMPLATES" in visible_modules %}<a href="?tier=BARANGAY&module=TEMPLATES" class="{% if module == 'TEMPLATES' %}active{% endif %}"><span>15. Official Forms &amp; Templates</span><span class="pill">{{ form_templates|length }}</span></a>{% endif %}
     </aside>
     {% endif %}
@@ -894,6 +895,11 @@
           <table><thead><tr><th>Case No.</th><th>Parties (VAWC Masked)</th><th>Stage</th><th>Clearance</th></tr></thead><tbody>
             {% for b in blotter_cases %}<tr><td><strong>{{ b.case_number }}</strong></td><td>{{ b.masked_title }}</td><td><span class="badge">{{ b.get_stage_display }}</span></td><td>{% if b.blocks_clearance %}<span class="badge badge-warn">Blocked</span>{% else %}<span class="badge">Cleared</span>{% endif %}</td></tr>{% endfor %}
           </tbody></table>
+          <div class="card" style="margin-top:14px;border-top:4px solid #0f766e;">
+            <div style="font-weight:800;color:#0f766e;margin-bottom:8px;">04C. Anonymous Community Reports (ACR) &amp; QR Event/Service Feedback Watch Desk</div>
+            <table><thead><tr><th>Tracking Code</th><th>Category &amp; Landmark</th><th>Details</th><th>Status &amp; Reply</th></tr></thead><tbody>{% for ar in anon_reports %}<tr><td><strong>{{ ar.tracking_code }}</strong></td><td>{{ ar.get_report_type_display }} &bull; {{ ar.location_landmark }}</td><td>{{ ar.details }}</td><td><form method="post" style="display:flex;gap:4px;">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_ANON_REPORT"><input type="hidden" name="anon_id" value="{{ ar.id }}"><select name="status" style="padding:4px;font-size:.74rem;"><option value="RECEIVED" {% if ar.status == "RECEIVED" %}selected{% endif %}>Received</option><option value="DISPATCHED" {% if ar.status == "DISPATCHED" %}selected{% endif %}>Dispatched</option><option value="RESOLVED" {% if ar.status == "RESOLVED" %}selected{% endif %}>Resolved</option></select><input name="official_response" value="{{ ar.official_response }}" placeholder="Public reply..." style="padding:4px 7px;font-size:.74rem;"><button type="submit" style="background:#0f766e;color:#fff;border:0;border-radius:6px;padding:4px 8px;font-size:.74rem;font-weight:700;cursor:pointer;">Update</button></form></td></tr>{% empty %}<tr><td colspan="4">No anonymous community reports yet.</td></tr>{% endfor %}</tbody></table>
+            <div style="margin-top:10px;font-size:.78rem;color:#334155;"><strong>Recent QR Feedback ({{ qr_feedbacks|length }}):</strong> {% for fb in qr_feedbacks %}<span style="display:inline-block;background:#f1f5f9;padding:3px 8px;border-radius:999px;margin:2px;">{{ fb.event_or_service }}: <strong>{{ fb.rating }}</strong>{% if fb.comment %} ({{ fb.comment }}){% endif %}</span>{% empty %}None yet.{% endfor %}</div>
+          </div>
           <div class="card" style="margin-top:14px;border-top:4px solid #b45309;">
             <div style="font-weight:800;color:#92400e;margin-bottom:8px;">04B. Issue Verified Katarungang Pambarangay e-Summon (Patawag) &mdash; RA 9262 VAWC Protected</div>
             <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;align-items:end;">{% csrf_token %}<input type="hidden" name="action" value="ISSUE_LUPON_ESUMMON">
@@ -1091,7 +1097,19 @@
           <table><thead><tr><th>Series</th><th>Title</th><th>Author</th><th>Status</th></tr></thead><tbody>
             {% for m in measures %}<tr><td><strong>{{ m.series_number }}</strong></td><td>{{ m.title }}</td><td>{{ m.authored_by }}</td><td><span class="badge">{{ m.get_status_display }}</span></td></tr>{% endfor %}
           </tbody></table>
-                  {% elif module == "TEMPLATES" %}
+        {% elif module == "VAWC" and "VAWC" in visible_modules %}
+          <div class="section-title"><span>16. Confidential VAWC &amp; BPO Desk (RA 9262 &mdash; Sealed Access)</span></div>
+          <div class="card" style="border-top:4px solid #be123c;margin-bottom:16px;">
+            <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:end;">{% csrf_token %}<input type="hidden" name="action" value="CREATE_VAWC_BPO">
+              <div><label style="font-size:.73rem;font-weight:700;">Victim / Complainant Name *</label><input name="victim_name" required></div>
+              <div><label style="font-size:.73rem;font-weight:700;">Respondent Name *</label><input name="respondent_name" required></div>
+              <div><label style="font-size:.73rem;font-weight:700;">Incident Location *</label><input name="incident_location" required></div>
+              <div><label style="font-size:.73rem;font-weight:700;">Confidential BPO / Intake Summary *</label><input name="narrative" required></div>
+              <button type="submit" style="background:#be123c;color:#fff;border:0;padding:9px 14px;border-radius:7px;font-weight:800;cursor:pointer;">+ Log Sealed VAWC / BPO</button>
+            </form>
+          </div>
+          <table><thead><tr><th>Case Code</th><th>Complainant</th><th>Respondent</th><th>Location</th><th>Stage</th></tr></thead><tbody>{% for v in vawc_cases %}<tr><td><strong>{{ v.case_number }}</strong></td><td>{{ v.complainant_name }}</td><td>{{ v.respondent_name }}</td><td>{{ v.incident_location }}</td><td><span class="badge">{{ v.get_stage_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No confidential VAWC records logged.</td></tr>{% endfor %}</tbody></table>
+        {% elif module == "TEMPLATES" %}
           <div class="section-title"><span>15. Official Barangay Forms &amp; Operational Templates ({{ form_templates|length }})</span><a href="/?download_201_template=1" style="background:#0f766e;color:#fff;padding:7px 13px;border-radius:7px;font-size:.78rem;font-weight:800;text-decoration:none;">&#128229; Download Multi-Sheet 201 Bulk Excel Template (.xlsx)</a></div>
           <div class="card" style="border-top:4px solid var(--primary);margin-bottom:18px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">

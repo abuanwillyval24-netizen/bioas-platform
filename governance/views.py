@@ -320,6 +320,28 @@ def command_dashboard(request):
                     action_notice = f"Issued Verified e-Summon {scode} to {rc.full_name} ({rc.citizen_qr_id})."
                 except Exception as sm_err:
                     action_notice = f"Blocked: {sm_err}"
+        elif act == "CREATE_VAWC_BPO" and active_barangay and ("VAWC" in visible_modules):
+            import secrets
+            from blotter.models import BlotterCase
+            v_code = f"VAWC-{timezone.now().year}-{secrets.randbelow(9000)+1000}-{secrets.token_hex(2).upper()}"
+            BlotterCase.objects.create(
+                barangay=active_barangay, case_number=v_code, category="VAWC_RA9262", is_vawc_confidential=True,
+                complainant_name=request.POST.get("victim_name", "").strip(),
+                respondent_name=request.POST.get("respondent_name", "").strip(),
+                incident_location=request.POST.get("incident_location", "").strip(),
+                narrative_summary=request.POST.get("narrative", "").strip(),
+                presiding_officer=actor_name,
+            )
+            SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=v_code, details="Confidential RA 9262 VAWC / BPO case logged (identity sealed).")
+            action_notice = f"Confidential RA 9262 VAWC / BPO Record {v_code} logged and sealed."
+        elif act == "UPDATE_ANON_REPORT" and active_barangay:
+            from .models import AnonymousCommunityReport
+            ar = AnonymousCommunityReport.objects.filter(barangay=active_barangay, id=request.POST.get("anon_id")).first()
+            if ar and (ar.report_type != "OFFICIAL_COMPLAINT" or is_exec):
+                ar.status = request.POST.get("status", ar.status)
+                ar.official_response = request.POST.get("official_response", "").strip()[:240]
+                ar.save(update_fields=["status", "official_response"])
+                action_notice = f"Updated Anonymous Report {ar.tracking_code}."
         elif act == "SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
@@ -1209,7 +1231,10 @@ def command_dashboard(request):
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
         "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "households": households, "citizen_reports": citizen_reports,
-        "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases, "lupon_summons": list(__import__("blotter.models", fromlist=["LuponSummonNotice"]).LuponSummonNotice.objects.select_related("blotter_case", "recipient_citizen").filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [],
+        "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
+        "vawc_cases": list(__import__("blotter.models", fromlist=["BlotterCase"]).BlotterCase.objects.filter(barangay=active_barangay, is_vawc_confidential=True)[:25]) if (active_barangay and "VAWC" in visible_modules) else [],
+        "anon_reports": list(__import__("governance.models", fromlist=["AnonymousCommunityReport"]).AnonymousCommunityReport.objects.filter(barangay=active_barangay).exclude(**({} if is_exec else {"report_type": "OFFICIAL_COMPLAINT"}))[:25]) if active_barangay else [],
+        "qr_feedbacks": list(__import__("governance.models", fromlist=["ServiceEventQRFeedback"]).ServiceEventQRFeedback.objects.filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [], "lupon_summons": list(__import__("blotter.models", fromlist=["LuponSummonNotice"]).LuponSummonNotice.objects.select_related("blotter_case", "recipient_citizen").filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [],
         "receipts": receipts, "abuloy_sheets": abuloy_sheets, "total_collections": total_collections,
         "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "rejected_citizens": list(citizens.filter(status="REJECTED_RETURNED").order_by("updated_at")), "associations": associations,
         "socio_counts": {
