@@ -170,7 +170,7 @@
             <td style="white-space:nowrap;"><a href="{{ item.url }}" {% if "/citizen-inspect/" in item.url %}target="_blank"{% endif %} style="background:#1e3a8a;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.75rem;font-weight:700;">Open &rarr;</a></td>
           </tr>
           {% endfor %}
-        </tbody></table>
+        </tbody></table><script>(function(){function numPendRows(){var n=1;document.querySelectorAll("#pendQueueTable tbody tr").forEach(function(r){var s=r.querySelector(".pend-row-num");if(s&&r.style.display!=="none"){s.textContent=n++;}});}numPendRows();window.numPendRows=numPendRows;})();</script>
         {% else %}
         <p style="margin:4px 0 0;color:#64748b;font-size:.85rem;">No matching records found across your authorized modules for "<strong>{{ query }}</strong>".</p>
         {% endif %}
@@ -286,16 +286,6 @@
               });
             }
           </script>
-          <div id="walkinStickyDeck" class="intake-grid">
-            <div class="intake-box" style="border-top-color:#1e3a8a;">
-              <div>
-                <span class="ib-tag">02B-3 &bull; WALK-IN DESK</span>
-                <h4>Complete 201 Master Encoder</h4>
-                <p>Encode a single walk-in resident and link Household Family Tree.</p>
-              </div>
-              <button type="button" id="btnToggle201Form" class="intake-btn" onclick="toggleIntakeDrawer('walkin201Box')">Open Walk-In Encoder &#9662;</button>
-            </div>
-          </div>
           </div>
           {% if action_notice %}
           <div id="resultOkModal" style="position:fixed;inset:0;background:rgba(15,23,42,.58);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;">
@@ -377,17 +367,18 @@
           <form method="post" id="massApproveForm" style="margin-bottom:18px;">
             {% csrf_token %}
             <input type="hidden" id="massActionInp" name="action" value="MASS_APPROVE_201"><input type="hidden" id="massRejectReasonInp" name="reject_reason" value="">
-            <div id="pendStickyBar" class="section-title" style="position:sticky;top:0;z-index:80;box-shadow:0 4px 12px rgba(15,23,42,.06);background:#ffffff;padding:12px 14px;margin:0 -4px 10px;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:10px;box-shadow:0 4px 14px rgba(15,23,42,.08);flex-wrap:wrap;gap:8px;">
+            <div id="pendStickyBar" class="section-title" style="position:sticky;top:0;background:#fff;padding:10px 4px;border-bottom:1px solid #e2e8f0;z-index:80;box-shadow:0 4px 12px rgba(15,23,42,.06);background:#ffffff;padding:12px 14px;margin:0 -4px 10px;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:10px;box-shadow:0 4px 14px rgba(15,23,42,.08);flex-wrap:wrap;gap:8px;">
               <span>02B. Pending Citizen Verification Queue ({{ turnover_summary.pending_citizens }} Awaiting Official Check)</span>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input id="pendSearchInput" value="{{ search_query }}" oninput="filterPendQueue()" placeholder="Filter pending by Name, QR ID, or Purok..." style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;min-width:200px;"><span id="pendSelBadge" style="background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;">0 Selected</span><button type="button" onclick="selectNoDocRows()" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Select No-Doc Rows</button><button type="button" onclick="submitMassReject()" style="background:#dc2626;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Reject Selected &#10005;</button>
                 <button type="submit" onclick="return confirm('Approve ONLY the checked citizen records into the official 201 Master File?')" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">&#9989; Approve Checked</button>
 <form method="post" style="display:inline;" onsubmit="return confirm('HARD-DELETE all incomplete/bulk-uploaded & pending sample citizens plus their supporting documents from the database? Active verified citizens will remain untouched.');">{% csrf_token %}<input type="hidden" name="action" value="PURGE_INCOMPLETE_SAMPLE_CITIZENS"><button type="submit" style="background:#991b1b;color:#fff;border:0;padding:6px 11px;border-radius:7px;font-size:.76rem;font-weight:800;cursor:pointer;">&#128465; Purge Bulk/Pending Sample Citizens &amp; Docs</button></form>
 <button type="button" id="toggleRejTabBtn" onclick="toggleRejectedTab()" style="background:#fee2e2;color:#991b1b;border:1px solid #f87171;padding:6px 13px;border-radius:6px;font-size:.78rem;font-weight:800;cursor:pointer;">&#128683; Rejected / Returned ({{ rejected_citizens|length }})</button>
+                <a href="/portal/" target="_blank" style="background:#1e3a8a;color:#fff;padding:6px 11px;border-radius:7px;font-size:.76rem;font-weight:800;text-decoration:none;white-space:nowrap;">&#10133; Walk-In Sign-Up &#8599;</a>
               </div>
             </div>
             <div style="overflow-x:auto;">
               <table id="pendQueueTable" style="width:100%;border-collapse:collapse;"><thead><tr>
-                <th style="width:34px;text-align:center;"><input type="checkbox" onclick="document.querySelectorAll('.pend-chk').forEach(c=>{c.checked=this.checked;c.closest('tr').classList.toggle('is-checked',this.checked);});updatePendCount();"></th>
+                <th style="width:68px;text-align:center;white-space:nowrap;"><span style="font-size:.7rem;color:#64748b;margin-right:4px;">#</span><input type="checkbox" onclick="document.querySelectorAll('.pend-chk').forEach(c=>{c.checked=this.checked;c.closest('tr').classList.toggle('is-checked',this.checked);});updatePendCount();"></th>
                 <th style="white-space:nowrap;">QR ID</th>
                 <th style="white-space:nowrap;">Full Name <small style="font-weight:500;color:#64748b;">(Click to Inspect Full 201 &#8599;)</small></th>
                 <th style="white-space:nowrap;">Purok</th>
@@ -396,7 +387,7 @@
               </tr></thead><tbody>
                 {% for c in citizens %}{% if c.status == "PENDING_APPROVAL" %}
                 <tr data-has-doc="{% if c.supporting_doc_data_uri or c.supporting_document or c.repository_docs.all|length > 0 %}1{% else %}0{% endif %}">
-                  <td style="text-align:center;"><input type="checkbox" class="pend-chk" onchange="this.closest('tr').classList.toggle('is-checked',this.checked);updatePendCount();" name="pending_ids" value="{{ c.id }}"></td>
+                  <td style="text-align:center;white-space:nowrap;"><span class="pend-row-num" style="display:inline-block;min-width:20px;font-size:.75rem;font-weight:800;color:#64748b;margin-right:4px;"></span><input type="checkbox" class="pend-chk" onchange="this.closest('tr').classList.toggle('is-checked',this.checked);updatePendCount();" name="pending_ids" value="{{ c.id }}"></td>
                   <td style="white-space:nowrap;"><strong>{{ c.citizen_qr_id }}</strong></td>
                   <td>
                     <a href="/citizen-inspect/{{ c.id }}/" target="_blank" style="color:#1e3a8a;font-weight:800;text-decoration:none;font-size:.9rem;">{{ c.full_name }} &#8599;</a>
