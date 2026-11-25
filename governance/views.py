@@ -356,6 +356,21 @@ def command_dashboard(request):
                 )
                 SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=ref, details=f"Recorded {m_code} entry {ref}.")
                 action_notice = f"Saved {m_code} record ({ref})."
+        elif act == "PURGE_INCOMPLETE_SAMPLE_CITIZENS" and active_barangay and (request.user.is_superuser or actor_role == "CAPTAIN"):
+            from django.db.models import Q
+            from citizens.models import CitizenSupportingDocument
+            stale_qs = CitizenProfile.objects.filter(barangay=active_barangay).filter(
+                Q(citizen_qr_id__startswith="CIT-") | Q(encoded_by__icontains="Bulk") | Q(status__in=["PENDING_APPROVAL", "PENDING_PORTAL", "REJECTED_RETURNED"])
+            )
+            docs_qs = CitizenSupportingDocument.objects.filter(citizen__in=stale_qs)
+            for d in docs_qs:
+                if d.file:
+                    d.file.delete(save=False)
+            d_cnt = docs_qs.delete()
+            CertificateRequest.objects.filter(citizen__in=stale_qs).delete()
+            c_cnt = stale_qs.delete()
+            SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code="PURGE-BULK-201", details=f"Hard-purged {c_cnt} incomplete/bulk sample citizens and {d_cnt} supporting documents.")
+            action_notice = f"Hard-purged {c_cnt} incomplete/bulk sample citizens and {d_cnt} supporting documents from database."
         elif act == "SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
