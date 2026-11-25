@@ -87,59 +87,7 @@
           <button type="submit" class="btn" style="width:100%;margin-top:14px;">Reset Password &amp; Sign In &rarr;</button>
         </form>
       </div>
-    {% elif citizen and citizen.status != "ACTIVE_RESIDENT" %}
-      <div style="max-width:920px;margin:10px auto;overflow-y:auto;padding-bottom:36px;">
-        <div class="card" style="border-left:6px solid {% if citizen.status == 'REJECTED_RETURNED' %}#dc2626{% else %}#d97706{% endif %};background:{% if citizen.status == 'REJECTED_RETURNED' %}#fef2f2{% else %}#fffbeb{% endif %};margin-bottom:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <strong style="font-size:1.02rem;color:{% if citizen.status == 'REJECTED_RETURNED' %}#991b1b{% else %}#92400e{% endif %};">{% if citizen.status == 'REJECTED_RETURNED' %}&#9888; Temporary 201 Staging &mdash; Application Returned for Revision{% else %}&#9203; Temporary 201 Staging &mdash; Application Pending Official Verification{% endif %}</strong>
-            <span class="badge" style="background:{% if citizen.status == 'REJECTED_RETURNED' %}#fee2e2;color:#991b1b{% else %}#fef3c7;color:#92400e{% endif %};">{{ citizen.get_status_display }}</span>
-          </div>
-          <div style="font-size:.82rem;color:#334155;margin-top:6px;">Reference ID: <strong>{{ citizen.citizen_qr_id }}</strong> &bull; Username: <strong>{{ citizen.portal_username }}</strong></div>
-          {% if citizen.rejection_remarks %}<div style="margin-top:8px;padding:10px 12px;background:#fff;border:1px solid #fecaca;border-radius:8px;font-size:.86rem;color:#991b1b;"><strong>Official Return Remarks:</strong> {{ citizen.rejection_remarks }}</div>{% else %}<div style="margin-top:6px;font-size:.83rem;color:#475569;">Review your encoded 201 details and uploaded proof below. Full citizen services and certificate requests remain locked until the Barangay Secretary approves your application.</div>{% endif %}
-        </div>
-        <div class="card" style="border-top:4px solid #1e3a8a;">
-          <h3 style="margin-top:0;color:#1e3a8a;font-size:1rem;">&#128221; Review &amp; Correct Encoded 201 Application Data &amp; Attachments</h3>
-          <form method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="RESUBMIT_201_APPLICATION">
-            <div class="grid-3">
-              <div><label>Last Name *</label><input name="last_name" value="{{ citizen.last_name }}" required></div>
-              <div><label>First Name *</label><input name="first_name" value="{{ citizen.first_name }}" required></div>
-              <div><label>Middle Name</label><input name="middle_name" value="{{ citizen.middle_name }}"></div>
-            </div>
-            <div class="grid-3" style="margin-top:8px;">
-              <div><label>Suffix</label><input name="suffix" value="{{ citizen.suffix }}"></div>
-              <div><label>Birthdate *</label><input type="date" name="birth_date" value="{{ citizen.birth_date|date:'Y-m-d' }}" required></div>
-              <div><label>Legal Sex *</label><select name="sex"><option value="MALE" {% if citizen.sex == 'MALE' %}selected{% endif %}>Male</option><option value="FEMALE" {% if citizen.sex == 'FEMALE' %}selected{% endif %}>Female</option></select></div>
-            </div>
-            <div class="grid-3" style="margin-top:8px;">
-              <div><label>Civil Status</label><select name="civil_status"><option value="SINGLE" {% if citizen.civil_status == 'SINGLE' %}selected{% endif %}>Single</option><option value="MARRIED" {% if citizen.civil_status == 'MARRIED' %}selected{% endif %}>Married</option><option value="WIDOWED" {% if citizen.civil_status == 'WIDOWED' %}selected{% endif %}>Widowed</option><option value="SEPARATED" {% if citizen.civil_status == 'SEPARATED' %}selected{% endif %}>Separated</option></select></div>
-              <div><label>Purok / Zone *</label><input name="purok" value="{{ citizen.purok }}" required></div>
-              <div><label>Occupation</label><input name="occupation" value="{{ citizen.occupation }}"></div>
-            </div>
-            <div class="grid-2" style="margin-top:8px;">
-              <div><label>Permanent Barangay Address *</label><input name="address_line" value="{{ citizen.address_line }}" required></div>
-              <div><label>Current Address</label><input name="current_address" value="{{ citizen.current_address }}"></div>
-            </div>
-            <div class="grid-2" style="margin-top:8px;">
-              <div><label>Mobile Number *</label><input name="mobile_number" value="{{ citizen.mobile_number }}" required></div>
-              <div><label>Email Address *</label><input type="email" name="email_address" value="{{ citizen.email_address }}" required></div>
-            </div>
-            <div style="margin-top:12px;padding:12px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;">
-              <div style="font-weight:800;font-size:.82rem;color:#0f172a;margin-bottom:8px;">Previously Uploaded Attachments &amp; Replacement Upload</div>
-              <input type="hidden" id="clrPhotoInp" name="clear_photo" value="0"><input type="hidden" id="clrDocInp" name="clear_supporting_doc" value="0">
-              <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-                {% if citizen.photo_data_uri or citizen.photo %}<div id="stgPhotoWrap" style="display:inline-flex;align-items:center;gap:6px;"><img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" onclick="document.getElementById('stgZoomImg').src=this.src;document.getElementById('stgPhotoModal').style.display='flex';" title="Click to inspect 2x2 photo" style="width:64px;height:64px;border-radius:8px;object-fit:cover;border:2px solid #1e3a8a;cursor:zoom-in;"><button type="button" onclick="document.getElementById('clrPhotoInp').value='1';document.getElementById('stgPhotoWrap').style.display='none';" style="background:#fee2e2;color:#991b1b;border:0;border-radius:6px;padding:4px 7px;font-size:.72rem;font-weight:800;cursor:pointer;">&#10005; Remove</button></div>{% endif %}
-                <div id="stgDocWrap">{% if citizen.supporting_doc_data_uri or citizen.supporting_document %}<a href="/citizen-proof/{{ citizen.id }}/" target="_blank" class="badge" style="background:#dbeafe;color:#1e40af;text-decoration:none;">&#128196; View Uploaded Supporting Proof &nearr;</a> <button type="button" onclick="document.getElementById('clrDocInp').value='1';document.getElementById('stgDocWrap').innerHTML='<span class=badge style=background:#fee2e2;color:#991b1b>Marked for removal on save</span>';" style="background:#fee2e2;color:#991b1b;border:0;border-radius:6px;padding:4px 7px;font-size:.72rem;font-weight:800;cursor:pointer;">&#10005; Remove</button>{% else %}<span class="badge" style="background:#fee2e2;color:#991b1b;">No Supporting Proof Attached Yet</span>{% endif %}</div>
-              </div>
-              <div class="grid-2">
-                <div><label>Replace / Upload 2x2 ID Photo</label><div style="display:flex;gap:6px;align-items:center;"><input id="stgPhotoFile" type="file" name="photo" accept="image/*"><button type="button" onclick="document.getElementById('stgPhotoFile').value='';" style="background:#fee2e2;color:#991b1b;border:0;border-radius:7px;padding:8px 10px;font-weight:800;cursor:pointer;">&#10005;</button></div></div>
-                <div><label>Replace / Upload Supporting ID or Proof</label><div style="display:flex;gap:6px;align-items:center;"><input id="stgDocFile" type="file" name="supporting_document" multiple accept="image/*,.pdf"><button type="button" onclick="document.getElementById('stgDocFile').value='';" style="background:#fee2e2;color:#991b1b;border:0;border-radius:7px;padding:8px 10px;font-weight:800;cursor:pointer;">&#10005;</button></div></div>
-              </div>
-              <div id="stgPhotoModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.7);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;padding:16px;border-radius:14px;max-width:420px;width:100%;text-align:center;"><img id="stgZoomImg" src="" style="width:100%;max-height:360px;object-fit:contain;border-radius:8px;"><button type="button" onclick="document.getElementById('stgPhotoModal').style.display='none'" class="btn" style="margin-top:10px;width:100%;">Close Preview</button></div></div>
-            </div>
-            <button type="submit" class="btn" style="margin-top:14px;background:#16a34a;">&#10003; Save &amp; Resubmit Application for Verification</button>
-          </form>
-        </div>
-      </div>
+    {% include "governance/_citizen_staging.html" %}
     {% elif citizen %}
       <div class="dash-shell">
         <aside class="navy-sidebar">

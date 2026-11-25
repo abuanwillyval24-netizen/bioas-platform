@@ -389,30 +389,50 @@ def citizen_home(request):
 
 
     if request.method == "POST" and citizen:
-        if citizen.status != "ACTIVE_RESIDENT" and request.POST.get("action") not in ("RESUBMIT_201_APPLICATION", "CHANGE_PASSWORD"):
+        if citizen.status != "ACTIVE_RESIDENT" and request.POST.get("action") not in ("UNLOCK_STAGING_EDIT", "RESUBMIT_201_APPLICATION", "CHANGE_PASSWORD"):
             return redirect("/citizen-home/")
         act = request.POST.get("action")
-        if act == "RESUBMIT_201_APPLICATION" and citizen.status != "ACTIVE_RESIDENT":
-            for fld in ("last_name", "first_name", "middle_name", "suffix", "sex", "civil_status", "purok", "address_line", "current_address", "mobile_number", "email_address", "occupation"):
-                val = request.POST.get(fld, "").strip()
-                if val or fld in ("middle_name", "suffix", "current_address", "occupation"):
-                    setattr(citizen, fld, val)
-            if request.POST.get("birth_date"):
-                citizen.birth_date = date.fromisoformat(request.POST.get("birth_date"))
-            if request.POST.get("clear_photo") == "1":
-                citizen.photo_data_uri = ""
-                if citizen.photo:
-                    citizen.photo.delete(save=False)
-            if request.POST.get("clear_supporting_doc") == "1":
-                citizen.supporting_doc_data_uri = ""
-                if citizen.supporting_document:
-                    citizen.supporting_document.delete(save=False)
-                citizen.repository_docs.all().delete()
-            citizen.status = "PENDING_APPROVAL"
-            citizen.rejection_remarks = ""
-            citizen.save()
-            save_standardized_citizen_files(citizen, photo_file=request.FILES.get("photo"), doc_files=request.FILES.getlist("supporting_document"), source_channel="PORTAL_RESUBMIT", uploaded_by=citizen.full_name)
-            notice = "Application updated and resubmitted to the Barangay Secretary verification queue!"
+        if act == "UNLOCK_STAGING_EDIT" and citizen.status == "REJECTED_RETURNED":
+            from django.contrib.auth.hashers import check_password
+            if check_password(request.POST.get("verify_password", ""), citizen.portal_password_hash):
+                request.session[f"stg_unlocked_{citizen.id}"] = True
+                notice = "Security verified! Your 201 revision fields and attachments are now unlocked for editing."
+            else:
+                error = "Incorrect password. Please re-enter your portal password to unlock editing."
+        elif act == "RESUBMIT_201_APPLICATION" and citizen.status == "REJECTED_RETURNED":
+            from django.core.mail import send_mail
+            from django.conf import settings as dj_settings
+            if not request.session.get(f"stg_unlocked_{citizen.id}"):
+                error = "Security lock active: Click 'Edit My Profile' and verify your password first."
+            elif request.POST.get("privacy_agree") != "1":
+                error = "Please check the Data Privacy Agreement (RA 10173) box before submitting."
+            else:
+                for fld in ("last_name", "first_name", "middle_name", "suffix", "sex", "civil_status", "purok", "address_line", "current_address", "mobile_number", "email_address", "occupation"):
+                    val = request.POST.get(fld, "").strip()
+                    if val or fld in ("middle_name", "suffix", "current_address", "occupation"):
+                        setattr(citizen, fld, val)
+                if request.POST.get("birth_date"):
+                    citizen.birth_date = date.fromisoformat(request.POST.get("birth_date"))
+                if request.POST.get("clear_photo") == "1":
+                    citizen.photo_data_uri = ""
+                    if citizen.photo:
+                        citizen.photo.delete(save=False)
+                if request.POST.get("clear_supporting_doc") == "1":
+                    citizen.supporting_doc_data_uri = ""
+                    if citizen.supporting_document:
+                        citizen.supporting_document.delete(save=False)
+                    citizen.repository_docs.all().delete()
+                citizen.status = "PENDING_APPROVAL"
+                citizen.rejection_remarks = ""
+                citizen.save()
+                save_standardized_citizen_files(citizen, photo_file=request.FILES.get("photo"), doc_files=request.FILES.getlist("supporting_document"), source_channel="PORTAL_RESUBMIT", uploaded_by=citizen.full_name)
+                request.session.pop(f"stg_unlocked_{citizen.id}", None)
+                if citizen.email_address:
+                    try:
+                        send_mail(subject=f"[{citizen.barangay.name}] Revised 201 Application Resubmitted ? Ref: {citizen.citizen_qr_id}", message=f"Mabuhay {citizen.full_name}!\n\nYour revised 201 registration ({citizen.citizen_qr_id}) has been resubmitted and is now WAITING FOR OFFICIAL BARANGAY APPROVAL.\n\nYou will be notified once verified.\n? {citizen.barangay.name}", from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", "noreply@bioas.gov.ph"), recipient_list=[citizen.email_address], fail_silently=True)
+                    except Exception:
+                        pass
+                notice = f"Application ({citizen.citizen_qr_id}) resubmitted! Confirmation email sent. Your account is now locked in Waiting for Approval mode until verified by the Barangay Secretary."
         if act == "UPDATE_201_PROFILE":
             citizen.birth_place = request.POST.get("birth_place", citizen.birth_place).strip()
             citizen.religion = request.POST.get("religion", citizen.religion).strip()
@@ -593,7 +613,7 @@ def citizen_home(request):
     resp = HttpResponse(tpl.render({
         "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
         "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
-        "recent_certs": recent_certs, "recent_reports": recent_reports, "my_summons": list(citizen.received_summons.select_related("blotter_case").all()[:15]) if citizen else [], "my_reservations": list(citizen.facility_reservations.all()[:15]) if citizen else [], "active_sk_seat": __import__("sk_youth.models", fromlist=["SKOfficialSeat"]).SKOfficialSeat.objects.filter(citizen=citizen, term_status="ACTIVE").first() if citizen else None, "social_assistance_records": next((list(m.objects.filter(citizen=citizen).order_by("-id")[:15]) for m in __import__("django.apps", fromlist=["apps"]).apps.get_models() if "Social" in m.__name__ or "Aid" in m.__name__ or "Welfare" in m.__name__), []) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
+        "recent_certs": recent_certs, "recent_reports": recent_reports, "staging_unlocked": bool(request.session.get(f"stg_unlocked_{citizen.id}")) if citizen else False, "my_summons": list(citizen.received_summons.select_related("blotter_case").all()[:15]) if citizen else [], "my_reservations": list(citizen.facility_reservations.all()[:15]) if citizen else [], "active_sk_seat": __import__("sk_youth.models", fromlist=["SKOfficialSeat"]).SKOfficialSeat.objects.filter(citizen=citizen, term_status="ACTIVE").first() if citizen else None, "social_assistance_records": next((list(m.objects.filter(citizen=citizen).order_by("-id")[:15]) for m in __import__("django.apps", fromlist=["apps"]).apps.get_models() if "Social" in m.__name__ or "Aid" in m.__name__ or "Welfare" in m.__name__), []) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
     }, request))
     resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp["Pragma"] = "no-cache"
