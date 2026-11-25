@@ -128,6 +128,35 @@ def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source
                 uploaded_by=uploaded_by or cit.full_name,
             )
 
+def save_shared_201_fields(citizen, post_data):
+    str_fields = (
+        "relationship_to_head", "alias_nickname", "gender_identity", "civil_status", "birth_place",
+        "citizenship", "religion", "blood_type", "height_cm", "weight_kg", "complexion",
+        "house_lot_no", "street_name", "address_line", "current_address", "purok", "residency_status",
+        "mobile_number", "email_address", "emergency_contact_name", "emergency_contact_phone", "emergency_contact_relationship",
+        "father_name", "mother_maiden_name", "spouse_name", "education_level", "school_or_course", "grade_year_level",
+        "employment_status", "occupation", "secondary_livelihood", "employer_or_business", "employer_address", "monthly_income",
+        "philsys_id", "precinct_number", "philhealth_number", "sss_gsis_number", "tin_number", "pagibig_number",
+        "osca_id_number", "pwd_id_number", "pwd_disability_type", "solo_parent_id_number", "four_ps_household_id",
+        "ofw_country", "ip_group_tribe",
+    )
+    for f in str_fields:
+        if f in post_data:
+            setattr(citizen, f, post_data.get(f, "").strip())
+    if "years_in_barangay" in post_data:
+        try:
+            citizen.years_in_barangay = max(0, int(post_data.get("years_in_barangay") or 0))
+        except ValueError:
+            pass
+    bool_fields = (
+        "currently_attending_school", "is_registered_voter", "is_senior_citizen", "is_pwd",
+        "is_solo_parent", "is_4ps_beneficiary", "is_first_time_jobseeker", "is_ofw", "is_osy_osc",
+        "is_indigenous_people", "is_pregnant",
+    )
+    for bf in bool_fields:
+        setattr(citizen, bf, post_data.get(bf) in ("1", "on", "true", "True"))
+
+
 def citizen_portal(request):
     import random, re
     from django.http import JsonResponse
@@ -455,6 +484,11 @@ def citizen_home(request):
                         pass
                 notice = f"Application ({citizen.citizen_qr_id}) resubmitted! Confirmation email sent. Your account is now locked in Waiting for Approval mode until verified by the Barangay Secretary."
         if act == "UPDATE_201_PROFILE":
+            save_shared_201_fields(citizen, request.POST)
+            citizen.save()
+            save_standardized_citizen_files(citizen, photo_file=request.FILES.get("photo"), doc_files=request.FILES.getlist("supporting_document"), source_channel="PORTAL_SIGNUP", uploaded_by=citizen.full_name)
+            notice = "201 Master File Updated! All changes have been saved and synchronized with the Barangay Registry."
+        elif act == "LEGACY_UPDATE_201_PROFILE":
             citizen.birth_place = request.POST.get("birth_place", citizen.birth_place).strip()
             citizen.religion = request.POST.get("religion", citizen.religion).strip()
             citizen.blood_type = request.POST.get("blood_type", citizen.blood_type).strip()
