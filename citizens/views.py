@@ -297,7 +297,7 @@ def citizen_portal(request):
                     pass
             icn_val = (request.POST.get("icn_code") or request.session.pop("bioas_walkin_icn", "")).strip().upper()
             if icn_val:
-                from governance.models import WalkInIncidentTicket; from documents.models import SystemAuditLog
+                from governance.models import WalkInIncidentTicket; from audit_analytics.models import SystemAuditLog
                 tkt = WalkInIncidentTicket.objects.filter(icn_code=icn_val, status="OPEN").first()
                 if tkt:
                     tkt.linked_citizen_qr = submitted_citizen.citizen_qr_id
@@ -307,7 +307,7 @@ def citizen_portal(request):
                     SystemAuditLog.objects.create(barangay=target_brgy, action_type="PORTAL_SYNC_APPROVED", actor_name=tkt.created_by_name, actor_role=tkt.created_by_role or "OFFICIAL", reference_code=submitted_citizen.citizen_qr_id, details=f"Walk-In registration completed under {icn_val} for {submitted_citizen.full_name}.")
             icn_val = (request.POST.get("icn_code") or request.session.pop("bioas_walkin_icn", "")).strip().upper()
             if icn_val:
-                from governance.models import WalkInIncidentTicket; from documents.models import SystemAuditLog
+                from governance.models import WalkInIncidentTicket; from audit_analytics.models import SystemAuditLog
                 tkt = WalkInIncidentTicket.objects.filter(icn_code=icn_val, status="OPEN").first()
                 if tkt:
                     tkt.linked_citizen_qr = submitted_citizen.citizen_qr_id
