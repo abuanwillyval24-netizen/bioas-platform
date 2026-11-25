@@ -568,3 +568,25 @@ class ServiceEventQRFeedback(models.Model):
     rating = models.CharField(max_length=10, choices=RATINGS)
     comment = models.CharField(max_length=240, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CommitteeModuleEntry(models.Model):
+    MODULE_CHOICES = [
+        ("BADAC", "17. BADAC Anti-Drug Abuse Council"),
+        ("BCPC", "18. BCPC Child Protection (CICL / CAR)"),
+        ("BARC", "19. BARC Agrarian Reform & Tenancy"),
+        ("NUTRITION", "20. BNS Nutrition & Operation Timbang"),
+        ("DAYCARE", "21. Day Care / Child Development Center"),
+    ]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="committee_entries")
+    module_code = models.CharField(max_length=20, choices=MODULE_CHOICES, db_index=True)
+    reference_code = models.CharField(max_length=40, unique=True)
+    subject_or_beneficiary = models.CharField(max_length=160)
+    category_or_metric = models.CharField(max_length=120, blank=True)
+    details = models.TextField()
+    status = models.CharField(max_length=60, default="ACTIVE_MONITORED")
+    recorded_by = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]

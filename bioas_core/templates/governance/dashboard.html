@@ -133,6 +133,11 @@
       {% if "TURNOVER" in visible_modules %}<a href="?tier=BARANGAY&module=TURNOVER" class="{% if module == 'TURNOVER' %}active{% endif %}"><span>13. Governance Turnover</span><span class="pill">{{ total_pending_turnover }}</span></a>{% endif %}
       {% if "POLICY" in visible_modules %}<a href="?tier=BARANGAY&module=POLICY" class="{% if module == 'POLICY' %}active{% endif %}"><span>14. Policy &amp; Glossary</span><span class="pill">SOP</span></a>{% endif %}
       {% if "VAWC" in visible_modules %}<a href="?tier=BARANGAY&module=VAWC" class="{% if module == 'VAWC' %}active{% endif %}">16. VAWC Desk (RA 9262)</a>{% endif %}
+      {% if "BADAC" in visible_modules %}<a href="?tier=BARANGAY&module=BADAC" class="{% if module == 'BADAC' %}active{% endif %}">17. BADAC Anti-Drug</a>{% endif %}
+      {% if "BCPC" in visible_modules %}<a href="?tier=BARANGAY&module=BCPC" class="{% if module == 'BCPC' %}active{% endif %}">18. BCPC Child Protection</a>{% endif %}
+      {% if "BARC" in visible_modules %}<a href="?tier=BARANGAY&module=BARC" class="{% if module == 'BARC' %}active{% endif %}">19. BARC Agrarian</a>{% endif %}
+      {% if "NUTRITION" in visible_modules %}<a href="?tier=BARANGAY&module=NUTRITION" class="{% if module == 'NUTRITION' %}active{% endif %}">20. BNS Nutrition</a>{% endif %}
+      {% if "DAYCARE" in visible_modules %}<a href="?tier=BARANGAY&module=DAYCARE" class="{% if module == 'DAYCARE' %}active{% endif %}">21. Day Care / Child Dev</a>{% endif %}
       {% if "TEMPLATES" in visible_modules %}<a href="?tier=BARANGAY&module=TEMPLATES" class="{% if module == 'TEMPLATES' %}active{% endif %}"><span>15. Official Forms &amp; Templates</span><span class="pill">{{ form_templates|length }}</span></a>{% endif %}
     </aside>
     {% endif %}
@@ -1109,6 +1114,18 @@
             </form>
           </div>
           <table><thead><tr><th>Case Code</th><th>Complainant</th><th>Respondent</th><th>Location</th><th>Stage</th></tr></thead><tbody>{% for v in vawc_cases %}<tr><td><strong>{{ v.case_number }}</strong></td><td>{{ v.complainant_name }}</td><td>{{ v.respondent_name }}</td><td>{{ v.incident_location }}</td><td><span class="badge">{{ v.get_stage_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No confidential VAWC records logged.</td></tr>{% endfor %}</tbody></table>
+        {% elif module in "BADAC,BCPC,BARC,NUTRITION,DAYCARE" and module in visible_modules %}
+          <div class="section-title"><span>{{ module }} Committee &amp; BBI Operations Desk</span></div>
+          <div class="card" style="border-top:4px solid #0f766e;margin-bottom:16px;">
+            <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:end;">{% csrf_token %}<input type="hidden" name="action" value="SAVE_COMMITTEE_ENTRY"><input type="hidden" name="module_code" value="{{ module }}">
+              <div><label style="font-size:.73rem;font-weight:700;">Subject / Beneficiary / Party *</label><input name="subject_or_beneficiary" required></div>
+              <div><label style="font-size:.73rem;font-weight:700;">Category / Metric (e.g., OPT Weight / CICL / Lot No.)</label><input name="category_or_metric"></div>
+              <div><label style="font-size:.73rem;font-weight:700;">Action / Case / Program Details *</label><input name="details" required></div>
+              <div><label style="font-size:.73rem;font-weight:700;">Status</label><input name="status" value="ACTIVE_MONITORED"></div>
+              <button type="submit" style="background:#0f766e;color:#fff;border:0;padding:9px 14px;border-radius:7px;font-weight:800;cursor:pointer;">+ Save {{ module }} Record</button>
+            </form>
+          </div>
+          <table><thead><tr><th>Ref Code</th><th>Subject / Beneficiary</th><th>Category / Metric</th><th>Details</th><th>Status</th></tr></thead><tbody>{% for ce in committee_entries %}{% if ce.module_code == module %}<tr><td><strong>{{ ce.reference_code }}</strong></td><td>{{ ce.subject_or_beneficiary }}</td><td>{{ ce.category_or_metric|default:"-" }}</td><td>{{ ce.details }}</td><td><span class="badge">{{ ce.status }}</span></td></tr>{% endif %}{% endfor %}</tbody></table>
         {% elif module == "TEMPLATES" %}
           <div class="section-title"><span>15. Official Barangay Forms &amp; Operational Templates ({{ form_templates|length }})</span><a href="/?download_201_template=1" style="background:#0f766e;color:#fff;padding:7px 13px;border-radius:7px;font-size:.78rem;font-weight:800;text-decoration:none;">&#128229; Download Multi-Sheet 201 Bulk Excel Template (.xlsx)</a></div>
           <div class="card" style="border-top:4px solid var(--primary);margin-bottom:18px;">

@@ -342,6 +342,22 @@ def command_dashboard(request):
                 ar.official_response = request.POST.get("official_response", "").strip()[:240]
                 ar.save(update_fields=["status", "official_response"])
                 action_notice = f"Updated Anonymous Report {ar.tracking_code}."
+        elif act == "SAVE_COMMITTEE_ENTRY" and active_barangay:
+            import secrets
+            from .models import CommitteeModuleEntry
+            m_code = request.POST.get("module_code", "").strip().upper()
+            if m_code in ("BADAC", "BCPC", "BARC", "NUTRITION", "DAYCARE") and (m_code in visible_modules):
+                ref = f"{m_code}-{timezone.now().year}-{secrets.randbelow(90000)+10000}-{secrets.token_hex(2).upper()}"
+                CommitteeModuleEntry.objects.create(
+                    barangay=active_barangay, module_code=m_code, reference_code=ref,
+                    subject_or_beneficiary=request.POST.get("subject_or_beneficiary", "").strip(),
+                    category_or_metric=request.POST.get("category_or_metric", "").strip(),
+                    details=request.POST.get("details", "").strip(),
+                    status=request.POST.get("status", "ACTIVE_MONITORED").strip(),
+                    recorded_by=actor_name,
+                )
+                SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=ref, details=f"Recorded {m_code} entry {ref}.")
+                action_notice = f"Saved {m_code} record ({ref})."
         elif act == "SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
@@ -1232,6 +1248,7 @@ def command_dashboard(request):
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
         "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "households": households, "citizen_reports": citizen_reports,
         "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
+        "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
         "vawc_cases": list(__import__("blotter.models", fromlist=["BlotterCase"]).BlotterCase.objects.filter(barangay=active_barangay, is_vawc_confidential=True)[:25]) if (active_barangay and "VAWC" in visible_modules) else [],
         "anon_reports": list(__import__("governance.models", fromlist=["AnonymousCommunityReport"]).AnonymousCommunityReport.objects.filter(barangay=active_barangay).exclude(**({} if is_exec else {"report_type": "OFFICIAL_COMPLAINT"}))[:25]) if active_barangay else [],
         "qr_feedbacks": list(__import__("governance.models", fromlist=["ServiceEventQRFeedback"]).ServiceEventQRFeedback.objects.filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [], "lupon_summons": list(__import__("blotter.models", fromlist=["LuponSummonNotice"]).LuponSummonNotice.objects.select_related("blotter_case", "recipient_citizen").filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [],
