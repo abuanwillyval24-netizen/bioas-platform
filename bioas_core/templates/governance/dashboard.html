@@ -874,7 +874,7 @@
   <div id="chcExtra" style="margin-top:3px;font-size:.73rem;color:#64748b;"></div>
 </div>
 <script>(function(){var t=null,c=document.getElementById('citHoverCard');if(!c)return;document.querySelectorAll('#pendQueueTable tbody tr').forEach(function(r){r.addEventListener('mouseenter',function(e){clearTimeout(t);var x=e.clientX+18,y=e.clientY+14;t=setTimeout(function(){document.getElementById('chcName').textContent=r.dataset.name||'';document.getElementById('chcQr').textContent=r.dataset.qr||'';document.getElementById('chcPurok').textContent=r.dataset.purok||'';document.getElementById('chcMeta').innerHTML=r.dataset.meta||'';document.getElementById('chcExtra').textContent=r.dataset.extra||'';var img=document.getElementById('chcPhoto'),av=document.getElementById('chcAvatar');if(r.dataset.photo){img.src=r.dataset.photo;img.style.display='block';av.style.display='none';}else{img.style.display='none';av.style.display='flex';av.textContent=(r.dataset.name||'C').slice(0,2).toUpperCase();}c.style.left=Math.min(x,window.innerWidth-315)+'px';c.style.top=Math.min(y,window.innerHeight-165)+'px';c.style.display='block';},2000);});r.addEventListener('mouseleave',function(){clearTimeout(t);c.style.display='none';});});})();</script>
-{% include "governance/_icn_modals.html" %}</body></html>');
+</body></html>');
               w.document.close();w.focus();w.print();
             }
           </script>
@@ -1719,5 +1719,6 @@ function checkWkUserAvail(val) {
   }, 250);
 }
 </script>
+{% include "governance/_icn_modals.html" %}
 </body>
 </html>
