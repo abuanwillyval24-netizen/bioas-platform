@@ -1,87 +1,158 @@
-<div class="grid-3">
-  <div><label>Relationship to Household Head</label><select name="relationship_to_head"><option value="HEAD" {% if c.relationship_to_head == 'HEAD' %}selected{% endif %}>Head of Family</option><option value="SPOUSE" {% if c.relationship_to_head == 'SPOUSE' %}selected{% endif %}>Spouse</option><option value="CHILD" {% if c.relationship_to_head == 'CHILD' %}selected{% endif %}>Child</option><option value="PARENT" {% if c.relationship_to_head == 'PARENT' %}selected{% endif %}>Parent</option><option value="SIBLING" {% if c.relationship_to_head == 'SIBLING' %}selected{% endif %}>Sibling</option><option value="GRANDCHILD" {% if c.relationship_to_head == 'GRANDCHILD' %}selected{% endif %}>Grandchild</option><option value="IN_LAW" {% if c.relationship_to_head == 'IN_LAW' %}selected{% endif %}>Son / Daughter-in-Law</option><option value="OTHER" {% if c.relationship_to_head == 'OTHER' %}selected{% endif %}>Other Member</option></select></div>
-  <div><label>Alias / Palayaw</label><input name="alias_nickname" value="{{ c.alias_nickname }}"></div>
-  <div><label>Gender Identity / LGBTQ+ Tag</label>Male</option>Female</option>Non-Binary</option>Transgender</option>Prefer not to say</option></select></div>
-</div>
-<div class="grid-3" style="margin-top:8px;">
-  <div><label>Civil Status</label><select name="civil_status"><option value="SINGLE" {% if c.civil_status == 'SINGLE' %}selected{% endif %}>Single</option><option value="MARRIED" {% if c.civil_status == 'MARRIED' %}selected{% endif %}>Married</option><option value="WIDOWED" {% if c.civil_status == 'WIDOWED' %}selected{% endif %}>Widowed</option><option value="SEPARATED" {% if c.civil_status == 'SEPARATED' %}selected{% endif %}>Separated</option></select></div>
-  <div><label>Place of Birth</label><input name="birth_place" value="{{ c.birth_place }}"></div>
-  <div><label>Citizenship</label><input name="citizenship" value="{{ c.citizenship|default:'Filipino' }}"></div>
-</div>
-<div class="grid-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:8px;">
-  <div><label>Religion</label><input name="religion" value="{{ c.religion }}"></div>
-  <div><label>Blood Type</label><input name="blood_type" value="{{ c.blood_type }}" placeholder="e.g., O+, A+"></div>
-  <div><label>Height (cm)</label><input name="height_cm" value="{{ c.height_cm }}" placeholder="e.g., 165 cm"></div>
-  <div><label>Weight (kg)</label><input name="weight_kg" value="{{ c.weight_kg }}" placeholder="e.g., 60 kg"></div>
-  <div><label>Complexion</label><input name="complexion" value="{{ c.complexion }}"></div>
-</div>
-<div class="grid-3" style="margin-top:8px;">
-  <div><label>House / Lot No.</label><input name="house_lot_no" value="{{ c.house_lot_no }}"></div>
-  <div><label>Street Name</label><input name="street_name" value="{{ c.street_name }}"></div>
-  <div><label>Purok / Zone</label><input name="purok" value="{{ c.purok }}"></div>
-</div>
-<div class="grid-2" style="margin-top:8px;">
-  <div><label>Permanent Barangay Address</label><input name="address_line" value="{{ c.address_line }}"></div>
-  <div><label>Current Address (Outside Barangay if any)</label><input name="current_address" value="{{ c.current_address }}"></div>
-</div>
-<div class="grid-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px;">
-  <div><label>Residency Status</label><select name="residency_status"><option value="PERMANENT" {% if c.residency_status == 'PERMANENT' %}selected{% endif %}>Permanent / Homeowner</option><option value="RENTER" {% if c.residency_status == 'RENTER' %}selected{% endif %}>Renter / Boarder</option><option value="SHARER" {% if c.residency_status == 'SHARER' %}selected{% endif %}>Sharer</option><option value="TRANSIENT" {% if c.residency_status == 'TRANSIENT' %}selected{% endif %}>Transient</option></select></div>
-  <div><label>Years in Barangay</label><input type="number" min="0" name="years_in_barangay" value="{{ c.years_in_barangay }}"></div>
-  <div><label>Mobile Number (Synced)</label><input name="mobile_number" value="{{ c.mobile_number }}"></div>
-  <div><label>Email Address (Synced)</label><input type="email" name="email_address" value="{{ c.email_address }}"></div>
-</div>
-<div class="grid-3" style="margin-top:8px;">
-  <div><label>Emergency Contact Person</label><input name="emergency_contact_name" value="{{ c.emergency_contact_name }}"></div>
-  <div><label>Emergency Contact Phone</label><input name="emergency_contact_phone" value="{{ c.emergency_contact_phone }}"></div>
-  <div><label>Emergency Relationship</label><input name="emergency_contact_relationship" value="{{ c.emergency_contact_relationship }}"></div>
-</div>
-<div class="grid-3" style="margin-top:8px;">
-  <div><label>Father's Full Name</label><input name="father_name" value="{{ c.father_name }}"></div>
-  <div><label>Mother's Maiden Name</label><input name="mother_maiden_name" value="{{ c.mother_maiden_name }}"></div>
-  <div><label>Spouse's Full Name</label><input name="spouse_name" value="{{ c.spouse_name }}"></div>
-</div>
-<div class="grid-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px;">
-  <div><label>Highest Education</label><select name="education_level"><option value="">-- Select --</option><option value="NO_FORMAL" {% if c.education_level == 'NO_FORMAL' %}selected{% endif %}>No Formal Education</option><option value="ELEMENTARY_LEVEL" {% if c.education_level == 'ELEMENTARY_LEVEL' %}selected{% endif %}>Elementary Level</option><option value="ELEMENTARY_GRAD" {% if c.education_level == 'ELEMENTARY_GRAD' %}selected{% endif %}>Elementary Grad</option><option value="HIGHSCHOOL_LEVEL" {% if c.education_level == 'HIGHSCHOOL_LEVEL' %}selected{% endif %}>High School Level</option><option value="HIGHSCHOOL_GRAD" {% if c.education_level == 'HIGHSCHOOL_GRAD' %}selected{% endif %}>High School Grad</option><option value="VOCATIONAL" {% if c.education_level == 'VOCATIONAL' %}selected{% endif %}>Vocational / TESDA</option><option value="COLLEGE_LEVEL" {% if c.education_level == 'COLLEGE_LEVEL' %}selected{% endif %}>College Level</option><option value="COLLEGE_GRAD" {% if c.education_level == 'COLLEGE_GRAD' %}selected{% endif %}>College Graduate</option><option value="POST_GRAD" {% if c.education_level == 'POST_GRAD' %}selected{% endif %}>Post-Graduate</option></select></div>
-  <div><label>School / Course</label><input name="school_or_course" value="{{ c.school_or_course }}"></div>
-  <div><label>Grade / Year Level</label><input name="grade_year_level" value="{{ c.grade_year_level }}"></div>
-  <div style="display:flex;align-items:end;padding-bottom:6px;"><label style="display:flex;gap:6px;align-items:center;margin:0;cursor:pointer;"><input type="checkbox" name="currently_attending_school" value="1" {% if c.currently_attending_school %}checked{% endif %} style="width:auto;"> Currently Studying</label></div>
-</div>
-<div class="grid-3" style="margin-top:8px;">
-  <div><label>Employment Status</label><input name="employment_status" value="{{ c.employment_status }}" placeholder="Employed, Self-Employed, Student..."></div>
-  <div><label>Primary Occupation</label><input name="occupation" value="{{ c.occupation }}"></div>
-  <div><label>Secondary Livelihood</label><input name="secondary_livelihood" value="{{ c.secondary_livelihood }}"></div>
-</div>
-<div class="grid-3" style="margin-top:8px;">
-  <div><label>Employer / Business Name</label><input name="employer_or_business" value="{{ c.employer_or_business }}"></div>
-  <div><label>Employer / Business Address</label><input name="employer_address" value="{{ c.employer_address }}"></div>
-  <div><label>Est. Monthly Income</label><input name="monthly_income" value="{{ c.monthly_income }}"></div>
-</div>
-<div class="grid-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:8px;">
-  <div><label>PhilSys PCN</label><input name="philsys_id" value="{{ c.philsys_id }}"></div>
-  <div><label>Precinct No.</label><input name="precinct_number" value="{{ c.precinct_number }}"></div>
-  <div><label>PhilHealth No.</label><input name="philhealth_number" value="{{ c.philhealth_number }}"></div>
-  <div><label>SSS / GSIS No.</label><input name="sss_gsis_number" value="{{ c.sss_gsis_number }}"></div>
-  <div><label>TIN No.</label><input name="tin_number" value="{{ c.tin_number }}"></div>
-  <div><label>Pag-IBIG No.</label><input name="pagibig_number" value="{{ c.pagibig_number }}"></div>
-</div>
-<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;padding:10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:9px;font-size:.8rem;">
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_registered_voter" value="1" {% if c.is_registered_voter %}checked{% endif %} style="width:auto;"> Registered Voter</label>
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_senior_citizen" value="1" {% if c.is_senior_citizen %}checked{% endif %} style="width:auto;"> Senior Citizen</label>
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_pwd" value="1" {% if c.is_pwd %}checked{% endif %} style="width:auto;"> PWD</label>
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_solo_parent" value="1" {% if c.is_solo_parent %}checked{% endif %} style="width:auto;"> Solo Parent</label>
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_4ps_beneficiary" value="1" {% if c.is_4ps_beneficiary %}checked{% endif %} style="width:auto;"> 4Ps Beneficiary</label>
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_first_time_jobseeker" value="1" {% if c.is_first_time_jobseeker %}checked{% endif %} style="width:auto;"> First-Time Jobseeker</label>
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_ofw" value="1" {% if c.is_ofw %}checked{% endif %} style="width:auto;"> OFW</label>
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_osy_osc" value="1" {% if c.is_osy_osc %}checked{% endif %} style="width:auto;"> OSY / OSC</label>
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_indigenous_people" value="1" {% if c.is_indigenous_people %}checked{% endif %} style="width:auto;"> Indigenous People</label>
-  <label style="display:flex;gap:5px;align-items:center;margin:0;"><input type="checkbox" name="is_pregnant" value="1" {% if c.is_pregnant %}checked{% endif %} style="width:auto;"> Pregnant / Lactating</label>
-</div>
-<div class="grid-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:8px;">
-  <div><label>OSCA ID No.</label><input name="osca_id_number" value="{{ c.osca_id_number }}"></div>
-  <div><label>PWD ID No.</label><input name="pwd_id_number" value="{{ c.pwd_id_number }}"></div>
-  <div><label>PWD Disability Type</label><input name="pwd_disability_type" value="{{ c.pwd_disability_type }}"></div>
-  <div><label>Solo Parent ID</label><input name="solo_parent_id_number" value="{{ c.solo_parent_id_number }}"></div>
-  <div><label>4Ps Household ID</label><input name="four_ps_household_id" value="{{ c.four_ps_household_id }}"></div>
-  <div><label>OFW Country</label><input name="ofw_country" value="{{ c.ofw_country }}"></div>
-  <div><label>IP Group / Tribe</label><input name="ip_group_tribe" value="{{ c.ip_group_tribe }}"></div>
-</div>
+ 
+ 
+<
+d
+i
+v
+>
+<
+l
+a
+b
+e
+l
+>
+G
+e
+n
+d
+e
+r
+ 
+I
+d
+e
+n
+t
+i
+t
+y
+ 
+/
+ 
+L
+G
+B
+T
+Q
++
+ 
+T
+a
+g
+<
+/
+l
+a
+b
+e
+l
+>
+M
+a
+l
+e
+<
+/
+o
+p
+t
+i
+o
+n
+>
+F
+e
+m
+a
+l
+e
+<
+/
+o
+p
+t
+i
+o
+n
+>
+N
+o
+n
+-
+B
+i
+n
+a
+r
+y
+<
+/
+o
+p
+t
+i
+o
+n
+>
+T
+r
+a
+n
+s
+g
+e
+n
+d
+e
+r
+<
+/
+o
+p
+t
+i
+o
+n
+>
+P
+r
+e
+f
+e
+r
+ 
+n
+o
+t
+ 
+t
+o
+ 
+s
+a
+y
+<
+/
+o
+p
+t
+i
+o
+n
+>
+<
+/
+s
+e
+l
+e
+c
+t
+>
+<
+/
+d
+i
+v
+>
