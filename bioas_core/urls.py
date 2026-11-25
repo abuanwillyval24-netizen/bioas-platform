@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, re_path
+from bioas_core.hybrid_sync import hybrid_sync_pull
 from django.conf import settings
 from django.views.static import serve
 from governance.views import command_dashboard, theme_settings, staff_login, staff_logout
@@ -30,5 +31,6 @@ urlpatterns = [
     path("certificate/<str:control_number>/", print_certificate, name="print_certificate"),
     path("treasury-export/", export_treasury_excel, name="export_treasury_excel"),
     path("issue-or/<int:cert_id>/", issue_or_and_unlock, name="issue_or_and_unlock"),
+    path("api/hybrid-sync/pull/", hybrid_sync_pull, name="hybrid_sync_pull"),
     re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
 ]

@@ -183,6 +183,15 @@ class CitizenProfile(models.Model):
     portal_password_hash = models.CharField(max_length=128, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_archived = models.BooleanField(default=False, db_index=True)
+    archived_by = models.CharField(max_length=120, blank=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+
+    def delete(self, *args, **kwargs):
+        from django.utils import timezone
+        self.is_archived = True
+        self.archived_at = timezone.now()
+        self.save(update_fields=["is_archived", "archived_at"])
 
     @property
     def full_name(self):

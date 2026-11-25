@@ -48,11 +48,28 @@ def generate_national_citizen_id(barangay):
         citizen_qr_id__startswith=prefix,
     ).values_list("citizen_qr_id", flat=True)
     max_seq = 0
+    import secrets
     for cid in existing_ids:
-        tail = cid.replace(prefix, "").strip()
+        tail = cid.replace(prefix, "").strip().split("-")[0]
         if tail.isdigit():
             max_seq = max(max_seq, int(tail))
-    return f"{prefix}{max_seq + 1:05d}"
+    chk = secrets.token_hex(2).upper()
+    return f"{prefix}{max_seq + 1:05d}-{chk}"
+
+
+def _compress_under_300kb(raw_bytes, max_bytes=295000):
+    if not raw_bytes or len(raw_bytes) <= max_bytes:
+        return raw_bytes, None
+    im = Image.open(BytesIO(raw_bytes)).convert("RGB")
+    im.thumbnail((1280, 1280))
+    out = raw_bytes
+    for q in (82, 70, 58, 45, 35):
+        buf = BytesIO()
+        im.save(buf, format="JPEG", quality=q, optimize=True)
+        out = buf.getvalue()
+        if len(out) <= max_bytes:
+            return out, ".jpg"
+    return out, ".jpg"
 
 
 def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source_channel="SELF_PORTAL", uploaded_by=""):
@@ -62,7 +79,9 @@ def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source
         if ext not in (".png", ".jpg", ".jpeg", ".webp"):
             ext = ".png"
         mime = "image/jpeg" if ext in (".jpg", ".jpeg") else ("image/webp" if ext == ".webp" else "image/png")
-        photo_bytes = photo_file.read()
+        photo_bytes, forced_ext = _compress_under_300kb(photo_file.read())
+        if forced_ext:
+            ext, mime = ".jpg", "image/jpeg"
         if photo_bytes:
             photo_name = f"{cid}_2x2{ext}"
             cit.photo.save(photo_name, ContentFile(photo_bytes), save=False)
@@ -83,7 +102,8 @@ def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source
                 break
             else:
                 try:
-                    im = Image.open(BytesIO(raw)).convert("RGB")
+                    c_raw, _ = _compress_under_300kb(raw)
+                    im = Image.open(BytesIO(c_raw)).convert("RGB")
                     img_pages.append(im)
                 except Exception:
                     continue
@@ -215,6 +235,9 @@ def citizen_portal(request):
                 ack_notice = "Email verified successfully! Please upload your 2x2 Official Photo and Supporting Document to finish."
         elif w_act == "STEP2B_COMPLETE_SIGNUP" and draft and draft.get("otp_verified"):
             target_brgy = barangays.filter(id=draft.get("barangay_id")).first() or active_barangay
+            if CitizenProfile.objects.filter(barangay=target_brgy, status="PENDING_APPROVAL", is_archived=False).count() >= 150:
+                error = "The Barangay online verification queue is temporarily full (150 pending applications). Please visit the Barangay Hall Walk-In Desk."
+                return render(request, "governance/citizen_portal.html", {"barangays": barangays, "active_barangay": active_barangay, "wizard_step": "STEP2", "draft": draft, "error": error})
             raw_sex = draft.get("sex", "MALE").upper()
             norm_sex = "FEMALE" if ("FEMALE" in raw_sex or raw_sex.startswith("F")) else "MALE"
             g_id = raw_sex if raw_sex in ("LGBTQ_MALE", "LGBTQ_FEMALE") else norm_sex
@@ -329,9 +352,7 @@ def citizen_home(request):
             return redirect("/login/?role=CITIZEN")
         auth_cid = request.session.get("citizen_auth_id")
         if auth_cid:
-            citizen = CitizenProfile.objects.select_related("barangay", "household").filter(id=auth_cid).first()
-        elif qr_id and request.user.is_authenticated:
-            citizen = CitizenProfile.objects.select_related("barangay", "household").filter(citizen_qr_id=qr_id).first()
+            citizen = CitizenProfile.objects.select_related("barangay", "household").filter(id=auth_cid, is_archived=False).first()
 
     if not citizen and not otp_stage and request.method == "GET" and request.GET.get("recover") != "1":
         return redirect("/login/?role=CITIZEN")
@@ -478,7 +499,7 @@ def citizen_home(request):
             cert = CertificateRequest.objects.create(
                 barangay=citizen.barangay,
                 citizen=citizen,
-                control_number=f"CERT-{uuid.uuid4().hex[:6].upper()}",
+                control_number=f"CERT-{uuid.uuid4().hex[:6].upper()}-{__import__('secrets').token_hex(2).upper()}",
                 cert_type=ctype,
                 purpose=request.POST["purpose"].strip(),
                 is_fee_exempt=exempt,
@@ -522,11 +543,15 @@ def update_report_status(request, report_id, new_status):
         report.status = new_status
         report.save(update_fields=["status"])
     return redirect("/?tier=BARANGAY&module=CITIZENS")
-@login_required(login_url="/login/")
 def citizen_docs_repository(request, qr_id):
+    from django.http import HttpResponseForbidden
     from .models import CitizenSupportingDocument
 
     citizen = get_object_or_404(CitizenProfile, citizen_qr_id=qr_id.strip().upper())
+    is_official = bool(request.user.is_authenticated)
+    is_owner = (request.session.get("citizen_auth_id") == citizen.id)
+    if not is_official and not is_owner:
+        return HttpResponseForbidden("403 Forbidden: Unauthorized access to another resident's 201 documents.")
     if citizen.supporting_document and citizen.supporting_document.name:
         if not CitizenSupportingDocument.objects.filter(citizen=citizen, file=citizen.supporting_document.name).exists():
             CitizenSupportingDocument.objects.create(
