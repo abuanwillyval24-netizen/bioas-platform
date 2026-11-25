@@ -494,7 +494,6 @@ def citizen_home(request):
                 BarangayAdvisoryComment.objects.create(advisory=adv, citizen=citizen, comment_text=c_txt)
                 notice = "Your question / comment has been posted to the Barangay Office!"
         elif act == "SUBMIT_CERT_DISPUTE":
-            from documents.models import CertificateRequest
             c_obj = CertificateRequest.objects.filter(id=request.POST.get("cert_id"), citizen=citizen).first()
             d_note = request.POST.get("dispute_note", "").strip()
             if c_obj and d_note:
