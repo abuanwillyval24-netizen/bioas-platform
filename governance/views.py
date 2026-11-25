@@ -279,7 +279,6 @@ def command_dashboard(request):
                 )
                 action_notice = f"Updated Livelihood & Socioeconomic record for {target.full_name} ({target.get_socioeconomic_tier_display() or 'Unclassified'} — {target.get_livelihood_verification_status_display()})."
         elif act == "SET_CERT_HOLD_OR_DISPUTE_REPLY" and active_barangay:
-            from documents.models import CertificateRequest
             c_obj = CertificateRequest.objects.filter(barangay=active_barangay, control_number=request.POST.get("control_number", "").strip().upper()).first()
             if c_obj:
                 mode = request.POST.get("resolution_mode", "HOLD")
