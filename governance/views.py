@@ -305,6 +305,21 @@ def command_dashboard(request):
                 rv.save()
                 SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=rv.booking_code, details=f"Reservation {rv.booking_code} marked {st}.")
                 action_notice = f"Reservation {rv.booking_code} updated to {rv.get_status_display()}."
+        elif act == "ISSUE_LUPON_ESUMMON" and active_barangay:
+            import secrets
+            from blotter.models import BlotterCase, LuponSummonNotice
+            bc = BlotterCase.objects.filter(barangay=active_barangay, case_number=request.POST.get("case_number", "").strip().upper()).first()
+            rc = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=request.POST.get("recipient_qr", "").strip().upper(), is_archived=False).first()
+            if not (bc and rc):
+                action_notice = "Blocked: Valid Case Number and Resident Reference ID are required."
+            else:
+                try:
+                    scode = f"SUM-{timezone.now().year}-{secrets.randbelow(90000)+10000}-{secrets.token_hex(2).upper()}"
+                    LuponSummonNotice.objects.create(barangay=active_barangay, blotter_case=bc, recipient_citizen=rc, summon_code=scode, party_role=request.POST.get("party_role", "RESPONDENT"), hearing_date=request.POST.get("hearing_date"), hearing_time=request.POST.get("hearing_time"), venue=request.POST.get("venue", "Barangay Lupon Session Hall").strip(), issued_by=actor_name)
+                    SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=scode, details=f"Issued e-Summon {scode} to {rc.full_name} for {bc.case_number}.")
+                    action_notice = f"Issued Verified e-Summon {scode} to {rc.full_name} ({rc.citizen_qr_id})."
+                except Exception as sm_err:
+                    action_notice = f"Blocked: {sm_err}"
         elif act == "SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
@@ -1194,7 +1209,7 @@ def command_dashboard(request):
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
         "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "households": households, "citizen_reports": citizen_reports,
-        "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
+        "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases, "lupon_summons": list(__import__("blotter.models", fromlist=["LuponSummonNotice"]).LuponSummonNotice.objects.select_related("blotter_case", "recipient_citizen").filter(barangay=active_barangay).order_by("-created_at")[:20]) if active_barangay else [],
         "receipts": receipts, "abuloy_sheets": abuloy_sheets, "total_collections": total_collections,
         "health_records": health_records, "medicines": medicines, "social_aids": social_aids, "rejected_citizens": list(citizens.filter(status="REJECTED_RETURNED").order_by("updated_at")), "associations": associations,
         "socio_counts": {

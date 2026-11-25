@@ -122,6 +122,7 @@
             <button type="button" class="tab-btn" onclick="openCitTab('tabReports',this)"><span>&#9888; Report Concerns</span><span class="badge">{{ recent_reports|length }}</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabSocial',this)"><span>&#129309; My Social Assistance &amp; Programs</span><span class="badge">&bull;</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabReserve',this)"><span>&#127963; Reserve Facility &amp; Gear</span><span class="badge">{{ my_reservations|length }}</span></button>
+            <button type="button" class="tab-btn" onclick="openCitTab('tabSummons',this)"><span>&#9878; Verified e-Summon Inbox</span><span class="badge">{{ my_summons|length }}</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabProfile',this)"><span>&#129706; My 201 Profile &amp; Docs</span><span class="badge">&rarr;</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabSettings',this)"><span>&#9881; Account &amp; Theme Settings</span><span class="badge">&bull;</span></button>
           </nav>
@@ -252,6 +253,14 @@
               </form>
             </div>
             <div class="card"><h4 style="margin-top:0;">My Facility &amp; Equipment Bookings</h4><table><thead><tr><th>Booking Code</th><th>Asset</th><th>Date &amp; Time</th><th>Status</th></tr></thead><tbody>{% for rv in my_reservations %}<tr><td><strong>{{ rv.booking_code }}</strong></td><td>{{ rv.get_facility_or_item_display }}</td><td>{{ rv.reservation_date }} ({{ rv.start_time|time:"H:i" }}-{{ rv.end_time|time:"H:i" }})</td><td><span class="badge">{{ rv.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="4">No reservations yet.</td></tr>{% endfor %}</tbody></table></div>
+          </div>
+          <div id="tabSummons" class="panel">
+            <div class="card" style="border-top:4px solid #b45309;"><h3 style="margin-top:0;color:#92400e;font-size:1rem;">&#9878; Verified Katarungang Pambarangay e-Summon (Patawag) Inbox</h3>
+              <p style="font-size:.8rem;color:#475569;margin-top:0;">Official mediation/conciliation notices issued by the Punong Barangay or Lupong Tagapamayapa.</p>
+              <table><thead><tr><th>Summon Code</th><th>Case No. &amp; Role</th><th>Hearing Schedule &amp; Venue</th><th>Status</th><th>Acknowledge Receipt</th></tr></thead><tbody>
+                {% for s in my_summons %}<tr><td><strong>{{ s.summon_code }}</strong></td><td>{{ s.blotter_case.case_number }} ({{ s.get_party_role_display }})</td><td>{{ s.hearing_date }} at {{ s.hearing_time|time:"H:i" }}<div style="font-size:.73rem;color:#64748b;">{{ s.venue }}</div></td><td><span class="badge">{{ s.get_status_display }}</span></td><td>{% if s.status == "ISSUED_UNREAD" %}<form method="post" style="display:flex;gap:4px;">{% csrf_token %}<input type="hidden" name="action" value="ACKNOWLEDGE_SUMMON"><input type="hidden" name="summon_id" value="{{ s.id }}"><input name="citizen_note" placeholder="Optional note..." style="padding:4px 7px;font-size:.74rem;"><button type="submit" class="btn" style="padding:4px 9px;font-size:.74rem;background:#b45309;">Acknowledge</button></form>{% else %}<small style="color:#166534;font-weight:700;">&#10003; Received {{ s.acknowledged_at|date:"M d, H:i" }}</small>{% endif %}</td></tr>{% empty %}<tr><td colspan="5">No e-Summons or Patawag notices on record.</td></tr>{% endfor %}
+              </tbody></table>
+            </div>
           </div>
           <div id="tabSettings" class="panel">
             <div class="card" style="border-top:4px solid var(--cit-accent);">

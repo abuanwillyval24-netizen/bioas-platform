@@ -517,6 +517,15 @@ def citizen_home(request):
                 notice = f"Reservation {b_code} submitted and time-slot locked! Pending Property Custodian approval."
             except Exception as res_err:
                 error = str(res_err)
+        elif act == "ACKNOWLEDGE_SUMMON":
+            from blotter.models import LuponSummonNotice
+            sm = LuponSummonNotice.objects.filter(id=request.POST.get("summon_id"), recipient_citizen=citizen).first()
+            if sm:
+                sm.status = "ACKNOWLEDGED"
+                sm.acknowledged_at = timezone.now()
+                sm.citizen_note = request.POST.get("citizen_note", "").strip()[:200]
+                sm.save(update_fields=["status", "acknowledged_at", "citizen_note"])
+                notice = f"e-Summon {sm.summon_code} digitally acknowledged. Please appear on {sm.hearing_date} at {sm.hearing_time.strftime('%H:%M')}."
         elif act == "REQUEST_CERT":
             ctype = request.POST["cert_type"]
             exempt = ctype in ("INDIGENCY", "FIRST_TIME_JOBSEEKER")
@@ -542,7 +551,7 @@ def citizen_home(request):
     resp = HttpResponse(tpl.render({
         "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
         "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
-        "recent_certs": recent_certs, "recent_reports": recent_reports, "my_reservations": list(citizen.facility_reservations.all()[:15]) if citizen else [], "active_sk_seat": __import__("sk_youth.models", fromlist=["SKOfficialSeat"]).SKOfficialSeat.objects.filter(citizen=citizen, term_status="ACTIVE").first() if citizen else None, "social_assistance_records": next((list(m.objects.filter(citizen=citizen).order_by("-id")[:15]) for m in __import__("django.apps", fromlist=["apps"]).apps.get_models() if "Social" in m.__name__ or "Aid" in m.__name__ or "Welfare" in m.__name__), []) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
+        "recent_certs": recent_certs, "recent_reports": recent_reports, "my_summons": list(citizen.received_summons.select_related("blotter_case").all()[:15]) if citizen else [], "my_reservations": list(citizen.facility_reservations.all()[:15]) if citizen else [], "active_sk_seat": __import__("sk_youth.models", fromlist=["SKOfficialSeat"]).SKOfficialSeat.objects.filter(citizen=citizen, term_status="ACTIVE").first() if citizen else None, "social_assistance_records": next((list(m.objects.filter(citizen=citizen).order_by("-id")[:15]) for m in __import__("django.apps", fromlist=["apps"]).apps.get_models() if "Social" in m.__name__ or "Aid" in m.__name__ or "Welfare" in m.__name__), []) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
     }, request))
     resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp["Pragma"] = "no-cache"

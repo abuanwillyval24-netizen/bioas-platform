@@ -894,6 +894,18 @@
           <table><thead><tr><th>Case No.</th><th>Parties (VAWC Masked)</th><th>Stage</th><th>Clearance</th></tr></thead><tbody>
             {% for b in blotter_cases %}<tr><td><strong>{{ b.case_number }}</strong></td><td>{{ b.masked_title }}</td><td><span class="badge">{{ b.get_stage_display }}</span></td><td>{% if b.blocks_clearance %}<span class="badge badge-warn">Blocked</span>{% else %}<span class="badge">Cleared</span>{% endif %}</td></tr>{% endfor %}
           </tbody></table>
+          <div class="card" style="margin-top:14px;border-top:4px solid #b45309;">
+            <div style="font-weight:800;color:#92400e;margin-bottom:8px;">04B. Issue Verified Katarungang Pambarangay e-Summon (Patawag) &mdash; RA 9262 VAWC Protected</div>
+            <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;align-items:end;">{% csrf_token %}<input type="hidden" name="action" value="ISSUE_LUPON_ESUMMON">
+              <div><label style="font-size:.72rem;font-weight:700;">Case No. *</label><input name="case_number" placeholder="KP-2026-001" required></div>
+              <div><label style="font-size:.72rem;font-weight:700;">Resident Ref ID *</label><input name="recipient_qr" placeholder="NUE-CAB-LAG-..." required></div>
+              <div><label style="font-size:.72rem;font-weight:700;">Party Role</label><select name="party_role"><option value="RESPONDENT">Respondent</option><option value="COMPLAINANT">Complainant</option></select></div>
+              <div><label style="font-size:.72rem;font-weight:700;">Hearing Date *</label><input type="date" name="hearing_date" required></div>
+              <div><label style="font-size:.72rem;font-weight:700;">Time *</label><input type="time" name="hearing_time" required></div>
+              <button type="submit" style="background:#b45309;color:#fff;border:0;padding:9px 12px;border-radius:7px;font-weight:800;cursor:pointer;">Issue e-Summon</button>
+            </form>
+            <table style="margin-top:10px;"><thead><tr><th>Summon Code</th><th>Case</th><th>Recipient</th><th>Schedule</th><th>Receipt Status</th></tr></thead><tbody>{% for s in lupon_summons %}<tr><td><strong>{{ s.summon_code }}</strong></td><td>{{ s.blotter_case.case_number }}</td><td>{{ s.recipient_citizen.full_name }}</td><td>{{ s.hearing_date }} {{ s.hearing_time|time:"H:i" }}</td><td><span class="badge">{{ s.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No e-Summons issued yet.</td></tr>{% endfor %}</tbody></table>
+          </div>
         {% elif module == "TREASURY" %}
           <div class="section-title"><span>05A. Pending Official Receipt (OR) Clearance Unlock Queue</span></div>
           <table><thead><tr><th>Control No.</th><th>Citizen</th><th>Document</th><th>Fee</th><th>Action</th></tr></thead><tbody>

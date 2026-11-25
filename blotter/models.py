@@ -71,3 +71,29 @@ class BlotterCase(models.Model):
 
     def __str__(self):
         return self.masked_title
+
+
+class LuponSummonNotice(models.Model):
+    STATUS_CHOICES = [("ISSUED_UNREAD", "Issued (Pending Citizen Receipt)"), ("ACKNOWLEDGED", "Digitally Acknowledged by Citizen"), ("ATTENDED", "Appeared at Lupon Session")]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="lupon_summons")
+    blotter_case = models.ForeignKey(BlotterCase, on_delete=models.CASCADE, related_name="summons")
+    recipient_citizen = models.ForeignKey(CitizenProfile, on_delete=models.CASCADE, related_name="received_summons")
+    summon_code = models.CharField(max_length=36, unique=True)
+    party_role = models.CharField(max_length=20, choices=[("COMPLAINANT", "Complainant"), ("RESPONDENT", "Respondent")], default="RESPONDENT")
+    hearing_date = models.DateField()
+    hearing_time = models.TimeField()
+    venue = models.CharField(max_length=150, default="Barangay Lupon Session Hall")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="ISSUED_UNREAD")
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    citizen_note = models.CharField(max_length=200, blank=True)
+    issued_by = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.blotter_case and self.blotter_case.is_vawc_confidential:
+            raise ValidationError("RA 9262 Prohibition: Lupon mediation/Patawag summons cannot be issued on confidential VAWC or Child Protection cases.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
