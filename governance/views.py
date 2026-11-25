@@ -306,7 +306,7 @@ def command_dashboard(request):
                 action_notice = f"Reservation {rv.booking_code} updated to {rv.get_status_display()}."
         elif act == "ISSUE_LUPON_ESUMMON" and active_barangay:
             import secrets
-            from blotter.models import BlotterCase, LuponSummonNotice
+            from blotter.models import LuponSummonNotice
             bc = BlotterCase.objects.filter(barangay=active_barangay, case_number=request.POST.get("case_number", "").strip().upper()).first()
             rc = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=request.POST.get("recipient_qr", "").strip().upper(), is_archived=False).first()
             if not (bc and rc):
@@ -321,7 +321,6 @@ def command_dashboard(request):
                     action_notice = f"Blocked: {sm_err}"
         elif act == "CREATE_VAWC_BPO" and active_barangay and ("VAWC" in visible_modules):
             import secrets
-            from blotter.models import BlotterCase
             v_code = f"VAWC-{timezone.now().year}-{secrets.randbelow(9000)+1000}-{secrets.token_hex(2).upper()}"
             BlotterCase.objects.create(
                 barangay=active_barangay, case_number=v_code, category="VAWC_RA9262", is_vawc_confidential=True,
