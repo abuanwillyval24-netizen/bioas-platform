@@ -369,6 +369,8 @@ def citizen_home(request):
 
 
     if request.method == "POST" and citizen:
+        if citizen.status != "ACTIVE_RESIDENT" and request.POST.get("action") not in ("UPDATE_CITIZEN_201", "CHANGE_PASSWORD"):
+            return redirect("/citizen-home/")
         act = request.POST.get("action")
         if act == "UPDATE_201_PROFILE":
             citizen.birth_place = request.POST.get("birth_place", citizen.birth_place).strip()

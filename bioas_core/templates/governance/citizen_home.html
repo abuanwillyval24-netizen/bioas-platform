@@ -86,6 +86,88 @@
           <button type="submit" class="btn" style="width:100%;margin-top:14px;">Reset Password &amp; Sign In &rarr;</button>
         </form>
       </div>
+    {% elif citizen and citizen.status != "ACTIVE_RESIDENT" %}
+      <div style="max-width:860px;margin:10px auto;overflow-y:auto;padding-bottom:30px;">
+        <div class="card" style="border-left:6px solid {% if citizen.status == 'REJECTED_RETURNED' %}#dc2626{% else %}#d97706{% endif %};background:{% if citizen.status == 'REJECTED_RETURNED' %}#fef2f2{% else %}#fffbeb{% endif %};margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <strong style="font-size:1rem;color:{% if citizen.status == 'REJECTED_RETURNED' %}#991b1b{% else %}#92400e{% endif %};">{% if citizen.status == 'REJECTED_RETURNED' %}&#9888; Application Returned for Revision{% else %}&#9203; Application Pending Official Verification{% endif %}</strong>
+            <span class="badge" style="background:{% if citizen.status == 'REJECTED_RETURNED' %}#fee2e2;color:#991b1b{% else %}#fef3c7;color:#92400e{% endif %};">{{ citizen.get_status_display }}</span>
+          </div>
+          <div style="font-size:.82rem;color:#334155;margin-top:6px;">Ref ID: <strong>{{ citizen.citizen_qr_id }}</strong> &bull; Username: <strong>{{ citizen.portal_username }}</strong></div>
+          {% if citizen.rejection_remarks %}<div style="margin-top:8px;padding:10px 12px;background:#fff;border:1px solid #fecaca;border-radius:8px;font-size:.85rem;color:#991b1b;"><strong>Official Remarks:</strong> {{ citizen.rejection_remarks }}</div>{% else %}<div style="margin-top:6px;font-size:.83rem;color:#475569;">Your 201 registration is currently awaiting verification by the Barangay Secretary. Full citizen services, Digital ID, and certificate requests will unlock once approved.</div>{% endif %}
+        </div>
+                    <div class="card" style="border-top:4px solid #1e3a8a;"><h3 style="margin-top:0;color:#1e3a8a;font-size:1rem;">&#128220; Request Barangay Certificate / Clearance / Permit</h3>
+              <form method="post" onsubmit="return confirm('Submit this official request to the Barangay Secretary & Treasury?')">{% csrf_token %}<input type="hidden" name="action" value="REQUEST_CERT">
+                <div class="grid-2"><div><label>Document Type *</label><select name="cert_type"><option value="CLEARANCE">Barangay Clearance</option><option value="RESIDENCY">Certificate of Residency</option><option value="INDIGENCY">Certificate of Indigency (Fee-Exempt)</option><option value="GOOD_MORAL">Certificate of Good Moral Character</option><option value="FIRST_TIME_JOBSEEKER">First-Time Jobseeker Certificate (RA 11261 Free)</option><option value="BUSINESS_PERMIT">Barangay Business Permit / Clearance</option></select></div><div><label>Purpose *</label><input name="purpose" placeholder="e.g., Employment, Scholarship, Business Renewal" required></div></div>
+                <button type="submit" class="btn" style="margin-top:12px;">Submit Request &rarr;</button>
+              </form>
+            </div>
+            <div class="card"><h4 style="margin-top:0;">My Certificate &amp; Permit Requests</h4><table><thead><tr><th>Control No.</th><th>Document</th><th>Purpose</th><th>Status &amp; Office Notes</th><th>Action</th></tr></thead><tbody>{% for r in recent_certs %}<tr><td><strong>{{ r.control_number }}</strong></td><td>{{ r.get_cert_type_display }}<div style="font-size:.72rem;color:#64748b;">Fee: &#8369;{{ r.fee_amount }}</div></td><td>{{ r.purpose }}</td><td><span class="badge">{{ r.get_status_display }}</span>{% if r.hold_or_delay_reason %}<div style="font-size:.74rem;color:#b91c1c;margin-top:3px;"><strong>Hold Reason:</strong> {{ r.hold_or_delay_reason }}</div>{% endif %}{% if r.dispute_status != "NONE" %}<div style="font-size:.73rem;color:#1e3a8a;margin-top:3px;"><strong>{{ r.get_dispute_status_display }}</strong>{% if r.office_dispute_reply %}: {{ r.office_dispute_reply }}{% endif %}</div>{% endif %}</td><td><form method="post" style="display:flex;gap:4px;">{% csrf_token %}<input type="hidden" name="action" value="SUBMIT_CERT_DISPUTE"><input type="hidden" name="cert_id" value="{{ r.id }}"><input name="dispute_note" placeholder="Report typo / ask hold..." required style="padding:5px 8px;font-size:.75rem;min-width:140px;"><button type="submit" class="btn" style="padding:5px 9px;font-size:.73rem;">Send</button></form></td></tr>{% empty %}<tr><td colspan="5">No requests yet.</td></tr>{% endfor %}</tbody></table></div>
+          </div>
+
+          <div id="tabReports" class="panel">
+            <div class="card" style="border-top:4px solid #0f766e;"><h3 style="margin-top:0;color:#0f766e;font-size:1rem;">&#9888; Report Community Concern / Infrastructure Need</h3>
+              <form method="post" onsubmit="return confirm('Submit this report to the Barangay Operations Desk?')">{% csrf_token %}<input type="hidden" name="action" value="SUBMIT_REPORT">
+                <div class="grid-2"><div><label>Category *</label><select name="category"><option value="PEACE_ORDER">Peace &amp; Order / Noise / Disturbance</option><option value="INFRASTRUCTURE">Streetlight / Road / Drainage Need</option><option value="SANITATION">Garbage / Sanitation / Dengue Risk</option><option value="DRRM_HAZARD">Flooding / Fallen Tree / Hazard</option><option value="OTHER">Other Community Concern</option></select></div><div><label>Exact Location / Landmark *</label><input name="location_landmark" placeholder="e.g., Purok IV Main Road" required></div></div>
+                <div style="margin-top:10px;"><label>Detailed Description *</label><textarea name="description" rows="3" placeholder="Describe the issue clearly..." required></textarea></div>
+                <button type="submit" class="btn" style="margin-top:12px;background:#0f766e;">Submit Report &amp; Get Tracking Code &rarr;</button>
+              </form>
+            </div>
+            <div class="card"><h4 style="margin-top:0;">My Submitted Reports</h4><table><thead><tr><th>Tracking Code</th><th>Category</th><th>Landmark</th><th>Status</th><th>Barangay Action Notes</th></tr></thead><tbody>{% for rep in recent_reports %}<tr><td><strong>{{ rep.tracking_code }}</strong></td><td>{{ rep.get_category_display }}</td><td>{{ rep.location_landmark }}</td><td><span class="badge">{{ rep.get_status_display }}</span></td><td>{{ rep.official_action_notes|default:"Under review" }}</td></tr>{% empty %}<tr><td colspan="5">No reports submitted yet.</td></tr>{% endfor %}</tbody></table></div>
+          </div>
+
+          <div id="tabSocial" class="panel">
+            <div class="card" style="border-top:4px solid #d97706;"><h3 style="margin-top:0;color:#92400e;font-size:1rem;">&#129309; My Social Assistance &amp; Welfare Programs</h3>
+              <table><thead><tr><th>Program Name</th><th>Benefit / Amount</th><th>Date Distributed</th><th>Status</th></tr></thead><tbody>{% for sa in social_assistance_records %}<tr><td><strong>{{ sa.program_name|default:"Barangay Social Welfare Program" }}</strong></td><td>&#8369;{{ sa.amount|default:"0.00" }}</td><td>{{ sa.distributed_at|date:"M d, Y"|default:"Scheduled" }}</td><td><span class="badge" style="background:#dcfce7;color:#166534;">Verified Beneficiary</span></td></tr>{% empty %}<tr><td colspan="4" style="color:#64748b;">No individual payout records posted yet. Check the <strong>Social Assistance &amp; Welfare</strong> feed tab for upcoming Barangay schedules.</td></tr>{% endfor %}</tbody></table>
+            </div>
+          </div>
+
+          <div id="tabProfile" class="panel">
+            <div class="card" style="border-top:4px solid #1e3a8a;">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                <div><h3 style="margin:0;color:#1e3a8a;font-size:1.02rem;">&#129706; My 201 Master Profile &amp; Synchronized Shared Record</h3><div style="font-size:.77rem;color:#475569;">Directly synchronized with <strong>02E. Shared Citizen Profiles Gallery</strong>. Verified identity fields marked &#128274; are permanently locked.</div></div>
+                <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" class="badge" style="text-decoration:none;padding:6px 11px;">Open Shared 02E View &nearr;</a>
+              </div>
+              <form method="post" enctype="multipart/form-data" onsubmit="return confirm('Save and synchronize all updates to your Official 201 Master Profile?')">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_201_PROFILE">
+                <div class="grid-3">
+                  <div><label>&#128274; Full Legal Name</label><input value="{{ citizen.full_name }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+                  <div><label>&#128274; Birthdate &amp; Age</label><input value="{{ citizen.birth_date|date:'M d, Y' }} ({{ citizen.age }} yrs)" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+                  <div><label>&#128274; Legal Sex (PSA / Law)</label><input value="{{ citizen.get_sex_display }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Gender Identity / LGBTQ+ Tag</label><select name="gender_identity"><option value="MALE" {% if citizen.gender_identity == "MALE" %}selected{% endif %}>Male</option><option value="FEMALE" {% if citizen.gender_identity == "FEMALE" %}selected{% endif %}>Female</option><option value="LGBTQ_MALE" {% if citizen.gender_identity == "LGBTQ_MALE" %}selected{% endif %}>LGBTQ+ (Male-Aligned)</option><option value="LGBTQ_FEMALE" {% if citizen.gender_identity == "LGBTQ_FEMALE" %}selected{% endif %}>LGBTQ+ (Female-Aligned)</option><option value="NON_BINARY" {% if citizen.gender_identity == "NON_BINARY" %}selected{% endif %}>Non-Binary / Prefer Not to Say</option></select></div>
+                  <div><label>Civil Status</label><select name="civil_status"><option value="SINGLE" {% if citizen.civil_status == "SINGLE" %}selected{% endif %}>Single</option><option value="MARRIED" {% if citizen.civil_status == "MARRIED" %}selected{% endif %}>Married</option><option value="WIDOWED" {% if citizen.civil_status == "WIDOWED" %}selected{% endif %}>Widowed</option><option value="SEPARATED" {% if citizen.civil_status == "SEPARATED" %}selected{% endif %}>Separated</option></select></div>
+                  <div><label>Place of Birth</label><input name="birth_place" value="{{ citizen.birth_place }}"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Height</label><input name="height" value="{{ citizen.height }}" placeholder="e.g., 170 cm"></div>
+                  <div><label>Weight</label><input name="weight" value="{{ citizen.weight }}" placeholder="e.g., 65 kg"></div>
+                  <div><label>Complexion</label><input name="complexion" value="{{ citizen.complexion }}" placeholder="e.g., Fair, Kayumanggi"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Religion</label><input name="religion" value="{{ citizen.religion }}"></div>
+                  <div><label>Blood Type</label><input name="blood_type" value="{{ citizen.blood_type }}"></div>
+                  <div><label>PhilSys Card Number (PCN)</label><input name="philsys_id" value="{{ citizen.philsys_id }}"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Purok / Zone</label><input name="purok" value="{{ citizen.purok }}"></div>
+                  <div><label>Permanent Barangay Address</label><input id="p201Perm" name="address_line" value="{{ citizen.address_line }}"></div>
+                  <div><label>Current Address</label><input id="p201Cur" name="current_address" value="{{ citizen.current_address }}"></div>
+                </div>
+                <div class="grid-3" style="margin-top:8px;">
+                  <div><label>Email Address (Synced)</label><input type="email" name="email_address" value="{{ citizen.email_address }}"></div>
+                  <div><label>Mobile Number (Synced)</label><input name="mobile_number" value="{{ citizen.mobile_number }}"></div>
+                  <div><label>Occupation</label><input name="occupation" value="{{ citizen.occupation }}"></div>
+                </div>
+                <div class="grid-2" style="margin-top:10px;">
+                  <div><label>Upgrade / Replace 2x2 ID Photo</label><input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp"></div>
+                  <div><label>Upload Supporting Docs (Auto-Converted to PDF)</label><input type="file" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple></div>
+                </div>
+                <button type="submit" class="btn" style="margin-top:14px;background:#16a34a;">&#10003; Save &amp; Sync All 201 Profile Updates &rarr;</button>
+              </form>
+            </div>
+
+      </div>
     {% elif citizen %}
       <div class="dash-shell">
         <aside class="navy-sidebar">
