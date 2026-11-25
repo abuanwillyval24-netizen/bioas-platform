@@ -271,6 +271,26 @@ def citizen_portal(request):
                 source_channel="PORTAL_SIGNUP",
                 uploaded_by=submitted_citizen.full_name,
             )
+            if submitted_email:
+                try:
+                    send_mail(
+                        subject=f"[{target_brgy.name}] BIOAS Registration Received ? Ref ID: {submitted_citizen.citizen_qr_id}",
+                        message=(
+                            f"Mabuhay {submitted_citizen.full_name}!\n\n"
+                            f"Your Citizen 201 Registration for {target_brgy.name} has been received and is currently PENDING OFFICIAL BARANGAY VERIFICATION.\n\n"
+                            f"Please save your permanent Citizen Reference Number for future sign-ins and Barangay transactions:\n"
+                            f"? Reference ID: {submitted_citizen.citizen_qr_id}\n"
+                            f"? Portal Username: {submitted_citizen.portal_username}\n"
+                            f"? Status: Pending Official Barangay Verification\n\n"
+                            f"You can sign in anytime at the BIOAS Portal using your Reference ID, Username, and Password to check your verification status or update your documents.\n\n"
+                            f"? {target_brgy.name} Digital Governance Desk"
+                        ),
+                        from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", "noreply@bioas.gov.ph"),
+                        recipient_list=[submitted_email],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
             request.session.pop("bioas_signup_draft", None)
             wizard_step = "STEP2C"
             ack_notice = f"Registration submitted! Your Reference Citizen ID ({submitted_citizen.citizen_qr_id}) is now staged for Barangay 201 Verification."
