@@ -1720,5 +1720,29 @@ function checkWkUserAvail(val) {
 }
 </script>
 {% include "governance/_icn_modals.html" %}
+<script>(function(){
+  async function liveSyncDash(){
+    if(document.hidden) return;
+    var ae=document.activeElement;
+    if(ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')) return;
+    if(document.querySelectorAll('.pend-chk:checked').length>0) return;
+    var openModals=[].slice.call(document.querySelectorAll('[id$="Modal"]')).some(function(m){return m.style.display==='flex'||m.style.display==='block';});
+    if(openModals) return;
+    try{
+      var res=await fetch(window.location.href,{headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!res.ok) return;
+      var doc=new DOMParser().parseFromString(await res.text(),'text/html');
+      var curMain=document.querySelector('main.main'), newMain=doc.querySelector('main.main');
+      if(curMain && newMain && curMain.innerHTML!==newMain.innerHTML){
+        var st=curMain.scrollTop; curMain.innerHTML=newMain.innerHTML; curMain.scrollTop=st;
+        if(window.renderPendPage) window.renderPendPage();
+      }
+      var curTop=document.querySelector('.topbar'), newTop=doc.querySelector('.topbar');
+      if(curTop && newTop && curTop.innerHTML!==newTop.innerHTML) curTop.innerHTML=newTop.innerHTML;
+    }catch(e){}
+  }
+  setInterval(liveSyncDash,6000);
+  window.addEventListener('focus',liveSyncDash);
+})();</script>
 </body>
 </html>

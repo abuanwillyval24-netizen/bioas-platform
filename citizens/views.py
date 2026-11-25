@@ -245,79 +245,76 @@ def citizen_portal(request):
             raw_sex = draft.get("sex", "MALE").upper()
             norm_sex = "FEMALE" if ("FEMALE" in raw_sex or raw_sex.startswith("F")) else "MALE"
             g_id = raw_sex if raw_sex in ("LGBTQ_MALE", "LGBTQ_FEMALE") else norm_sex
+            from django.db import transaction
             submitted_email = draft.get("email_address", "")
-            submitted_citizen = CitizenProfile.objects.create(
-                barangay=target_brgy,
-                citizen_qr_id=generate_national_citizen_id(target_brgy),
-                last_name=draft["last_name"],
-                first_name=draft["first_name"],
-                middle_name=draft.get("middle_name", ""),
-                suffix=draft.get("suffix", ""),
-                alias_nickname=draft.get("alias_nickname", ""),
-                sex=norm_sex,
-                gender_identity=g_id,
-                birth_date=date.fromisoformat(draft["birth_date"]),
-                civil_status=draft.get("civil_status", "SINGLE"),
-                address_line=draft["address_line"], current_address=draft.get("current_address", "") or draft["address_line"],
-                purok=draft["purok"],
-                mobile_number=draft["mobile_number"],
-                email_address=submitted_email,
-                data_privacy_consent=True,
-                portal_username=draft["portal_username"],
-                portal_password_hash=draft["password_hash"],
-                encoded_by="Citizen Self-Registration Portal",
-                status="PENDING_APPROVAL",
-            )
-            save_standardized_citizen_files(
-                submitted_citizen,
-                photo_file=request.FILES.get("photo"),
-                doc_files=request.FILES.getlist("supporting_document"),
-                source_channel="PORTAL_SIGNUP",
-                uploaded_by=submitted_citizen.full_name,
-            )
-            if submitted_email:
-                try:
-                    send_mail(
-                        subject=f"[{target_brgy.name}] BIOAS Registration Received ? Ref ID: {submitted_citizen.citizen_qr_id}",
-                        message=(
-                            f"Mabuhay {submitted_citizen.full_name}!\n\n"
-                            f"Your Citizen 201 Registration for {target_brgy.name} has been received and is currently PENDING OFFICIAL BARANGAY VERIFICATION.\n\n"
-                            f"Please save your permanent Citizen Reference Number for future sign-ins and Barangay transactions:\n"
-                            f"? Reference ID: {submitted_citizen.citizen_qr_id}\n"
-                            f"? Portal Username: {submitted_citizen.portal_username}\n"
-                            f"? Status: Pending Official Barangay Verification\n\n"
-                            f"You can sign in anytime at the BIOAS Portal using your Reference ID, Username, and Password to check your verification status or update your documents.\n\n"
-                            f"? {target_brgy.name} Digital Governance Desk"
-                        ),
-                        from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", "noreply@bioas.gov.ph"),
-                        recipient_list=[submitted_email],
-                        fail_silently=True,
+            dup_exists = CitizenProfile.objects.filter(barangay=target_brgy, first_name__iexact=draft["first_name"].strip(), last_name__iexact=draft["last_name"].strip(), birth_date=date.fromisoformat(draft["birth_date"])).exists() or CitizenProfile.objects.filter(portal_username__iexact=draft["portal_username"].strip()).exists()
+            if dup_exists:
+                error = "Duplicate registration blocked: A citizen profile with the same Full Name & Birthdate or Username already exists in the registry."
+                wizard_step = "STEP2B"
+            else:
+              with transaction.atomic():
+                    submitted_citizen = CitizenProfile.objects.create(
+                        barangay=target_brgy,
+                        citizen_qr_id=generate_national_citizen_id(target_brgy),
+                        last_name=draft["last_name"],
+                        first_name=draft["first_name"],
+                        middle_name=draft.get("middle_name", ""),
+                        suffix=draft.get("suffix", ""),
+                        alias_nickname=draft.get("alias_nickname", ""),
+                        sex=norm_sex,
+                        gender_identity=g_id,
+                        birth_date=date.fromisoformat(draft["birth_date"]),
+                        civil_status=draft.get("civil_status", "SINGLE"),
+                        address_line=draft["address_line"], current_address=draft.get("current_address", "") or draft["address_line"],
+                        purok=draft["purok"],
+                        mobile_number=draft["mobile_number"],
+                        email_address=submitted_email,
+                        data_privacy_consent=True,
+                        portal_username=draft["portal_username"],
+                        portal_password_hash=draft["password_hash"],
+                        encoded_by="Citizen Self-Registration Portal",
+                        status="PENDING_APPROVAL",
                     )
-                except Exception:
-                    pass
-            icn_val = (request.POST.get("icn_code") or request.session.pop("bioas_walkin_icn", "")).strip().upper()
-            if icn_val:
-                from governance.models import WalkInIncidentTicket; from audit_analytics.models import SystemAuditLog
-                tkt = WalkInIncidentTicket.objects.filter(icn_code=icn_val, status="OPEN").first()
-                if tkt:
-                    tkt.linked_citizen_qr = submitted_citizen.citizen_qr_id
-                    tkt.save(update_fields=["linked_citizen_qr"])
-                    submitted_citizen.encoded_by = f"Walk-In Desk (ICN: {icn_val}) ? Facilitated by {tkt.created_by_name}"
-                    submitted_citizen.save(update_fields=["encoded_by"])
-                    SystemAuditLog.objects.create(barangay=target_brgy, action_type="PORTAL_SYNC_APPROVED", actor_name=tkt.created_by_name, actor_role=tkt.created_by_role or "OFFICIAL", reference_code=submitted_citizen.citizen_qr_id, details=f"Walk-In registration completed under {icn_val} for {submitted_citizen.full_name}.")
-            icn_val = (request.POST.get("icn_code") or request.session.pop("bioas_walkin_icn", "")).strip().upper()
-            if icn_val:
-                from governance.models import WalkInIncidentTicket; from audit_analytics.models import SystemAuditLog
-                tkt = WalkInIncidentTicket.objects.filter(icn_code=icn_val, status="OPEN").first()
-                if tkt:
-                    tkt.linked_citizen_qr = submitted_citizen.citizen_qr_id
-                    tkt.save(update_fields=["linked_citizen_qr"])
-                    submitted_citizen.encoded_by = f"Walk-In Desk (ICN: {icn_val}) ? Facilitated by {tkt.created_by_name}"
-                    submitted_citizen.save(update_fields=["encoded_by"])
-                    SystemAuditLog.objects.create(barangay=target_brgy, action_type="PORTAL_SYNC_APPROVED", actor_name=tkt.created_by_name, actor_role=tkt.created_by_role or "OFFICIAL", reference_code=submitted_citizen.citizen_qr_id, details=f"Walk-In registration completed under {icn_val} for {submitted_citizen.full_name}.")
-            request.session.pop("bioas_signup_draft", None)
-            wizard_step = "STEP2C"
-            ack_notice = f"Registration submitted! Your Reference Citizen ID ({submitted_citizen.citizen_qr_id}) is now staged for Barangay 201 Verification."
+                    save_standardized_citizen_files(
+                        submitted_citizen,
+                        photo_file=request.FILES.get("photo"),
+                        doc_files=request.FILES.getlist("supporting_document"),
+                        source_channel="PORTAL_SIGNUP",
+                        uploaded_by=submitted_citizen.full_name,
+                    )
+                    if submitted_email:
+                        try:
+                            send_mail(
+                                subject=f"[{target_brgy.name}] BIOAS Registration Received ? Ref ID: {submitted_citizen.citizen_qr_id}",
+                                message=(
+                                    f"Mabuhay {submitted_citizen.full_name}!\n\n"
+                                    f"Your Citizen 201 Registration for {target_brgy.name} has been received and is currently PENDING OFFICIAL BARANGAY VERIFICATION.\n\n"
+                                    f"Please save your permanent Citizen Reference Number for future sign-ins and Barangay transactions:\n"
+                                    f"? Reference ID: {submitted_citizen.citizen_qr_id}\n"
+                                    f"? Portal Username: {submitted_citizen.portal_username}\n"
+                                    f"? Status: Pending Official Barangay Verification\n\n"
+                                    f"You can sign in anytime at the BIOAS Portal using your Reference ID, Username, and Password to check your verification status or update your documents.\n\n"
+                                    f"? {target_brgy.name} Digital Governance Desk"
+                                ),
+                                from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", "noreply@bioas.gov.ph"),
+                                recipient_list=[submitted_email],
+                                fail_silently=True,
+                            )
+                        except Exception:
+                            pass
+                    icn_val = (request.POST.get("icn_code") or request.session.pop("bioas_walkin_icn", "")).strip().upper()
+                    if icn_val:
+                        from governance.models import WalkInIncidentTicket; from audit_analytics.models import SystemAuditLog
+                        tkt = WalkInIncidentTicket.objects.filter(icn_code=icn_val, status="OPEN").first()
+                        if tkt:
+                            tkt.linked_citizen_qr = submitted_citizen.citizen_qr_id
+                            tkt.save(update_fields=["linked_citizen_qr"])
+                            submitted_citizen.encoded_by = f"Walk-In Desk (ICN: {icn_val}) ? Facilitated by {tkt.created_by_name}"
+                            submitted_citizen.save(update_fields=["encoded_by"])
+                            SystemAuditLog.objects.create(barangay=target_brgy, action_type="PORTAL_SYNC_APPROVED", actor_name=tkt.created_by_name, actor_role=tkt.created_by_role or "OFFICIAL", reference_code=submitted_citizen.citizen_qr_id, details=f"Walk-In registration completed under {icn_val} for {submitted_citizen.full_name}.")
+                    request.session.pop("bioas_signup_draft", None)
+                    wizard_step = "STEP2C"
+                    ack_notice = f"Registration submitted! Your Reference Citizen ID ({submitted_citizen.citizen_qr_id}) is now staged for Barangay 201 Verification."
 
     html_path = Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "portal.html"
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
