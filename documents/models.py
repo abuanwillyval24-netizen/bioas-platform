@@ -45,6 +45,10 @@ class CertificateRequest(models.Model):
     issued_date = models.DateField(default=timezone.localdate)
     valid_until = models.DateField(blank=True, null=True)
     issued_by = models.CharField(max_length=120, blank=True)
+    hold_or_delay_reason = models.CharField(max_length=240, blank=True)
+    citizen_dispute_note = models.TextField(blank=True)
+    dispute_status = models.CharField(max_length=25, choices=[("NONE", "None"), ("DISPUTE_OPEN", "Post-Release Error / Hold Inquiry Open"), ("REISSUED_RESOLVED", "Resolved / Re-Issued")], default="NONE")
+    office_dispute_reply = models.CharField(max_length=240, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

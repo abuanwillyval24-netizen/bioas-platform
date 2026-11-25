@@ -493,6 +493,15 @@ def citizen_home(request):
             if adv and c_txt:
                 BarangayAdvisoryComment.objects.create(advisory=adv, citizen=citizen, comment_text=c_txt)
                 notice = "Your question / comment has been posted to the Barangay Office!"
+        elif act == "SUBMIT_CERT_DISPUTE":
+            from documents.models import CertificateRequest
+            c_obj = CertificateRequest.objects.filter(id=request.POST.get("cert_id"), citizen=citizen).first()
+            d_note = request.POST.get("dispute_note", "").strip()
+            if c_obj and d_note:
+                c_obj.citizen_dispute_note = d_note
+                c_obj.dispute_status = "DISPUTE_OPEN"
+                c_obj.save(update_fields=["citizen_dispute_note", "dispute_status"])
+                notice = f"Dispute / Hold inquiry logged for {c_obj.control_number}. The Barangay Secretary has been notified."
         elif act == "REQUEST_CERT":
             ctype = request.POST["cert_type"]
             exempt = ctype in ("INDIGENCY", "FIRST_TIME_JOBSEEKER")

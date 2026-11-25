@@ -278,6 +278,23 @@ def command_dashboard(request):
                     details=f"Field-validated Livelihood & Socioeconomic Tier for {target.full_name} ({target.citizen_qr_id}) -> {target.get_socioeconomic_tier_display() or 'Unclassified'} [{target.get_livelihood_verification_status_display()}]. Note: {v_reason}",
                 )
                 action_notice = f"Updated Livelihood & Socioeconomic record for {target.full_name} ({target.get_socioeconomic_tier_display() or 'Unclassified'} — {target.get_livelihood_verification_status_display()})."
+        elif act == "SET_CERT_HOLD_OR_DISPUTE_REPLY" and active_barangay:
+            from documents.models import CertificateRequest
+            c_obj = CertificateRequest.objects.filter(barangay=active_barangay, control_number=request.POST.get("control_number", "").strip().upper()).first()
+            if c_obj:
+                mode = request.POST.get("resolution_mode", "HOLD")
+                msg = request.POST.get("office_note", "").strip()
+                if mode == "HOLD":
+                    c_obj.status = "REJECTED_HOLD"
+                    c_obj.hold_or_delay_reason = msg or "Additional verification required at Barangay Hall."
+                else:
+                    c_obj.dispute_status = "REISSUED_RESOLVED"
+                    c_obj.office_dispute_reply = msg or "Verified & corrected for re-issuance."
+                    if c_obj.status == "REJECTED_HOLD":
+                        c_obj.status = "READY_TO_PRINT"
+                c_obj.save()
+                SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code=c_obj.control_number, details=f"Certificate {c_obj.control_number} updated ({mode}): {msg}")
+                action_notice = f"Updated certificate {c_obj.control_number} ({mode})."
         elif act == "SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
