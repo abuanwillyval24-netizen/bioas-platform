@@ -372,6 +372,28 @@ def command_dashboard(request):
             c_cnt = stale_qs.delete()
             SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code="PURGE-BULK-201", details=f"Hard-purged {c_cnt} incomplete/bulk sample citizens and {d_cnt} supporting documents.")
             action_notice = f"Hard-purged {c_cnt} incomplete/bulk sample citizens and {d_cnt} supporting documents from database."
+        elif act == "CONSOLIDATE_DUPLICATE_STAGING" and active_barangay:
+            seen, wiped = {}, 0
+            for c in CitizenProfile.objects.filter(barangay=active_barangay, status="PENDING_APPROVAL").order_by("id"):
+                k = (c.first_name.strip().lower(), c.last_name.strip().lower(), c.birth_date)
+                if k not in seen:
+                    seen[k] = c
+                else:
+                    prim = seen[k]
+                    c.photo_data_uri = ""
+                    c.supporting_doc_data_uri = ""
+                    if c.photo: c.photo.delete(save=False)
+                    if c.supporting_document: c.supporting_document.delete(save=False)
+                    for rd in c.repository_docs.all():
+                        rd.file_data_uri = ""
+                        if rd.file: rd.file.delete(save=False)
+                        rd.save(update_fields=["file", "file_data_uri"])
+                    c.status = "REJECTED_RETURNED"
+                    c.rejection_remarks = f"[ZERO-DELETION AUDIT ARCHIVE] Duplicate submission consolidated into primary record {prim.citizen_qr_id}; all duplicate attachments wiped."
+                    c.save()
+                    wiped += 1
+            SystemAuditLog.objects.create(barangay=active_barangay, action_type="PORTAL_SYNC_APPROVED", actor_name=actor_name, actor_role=actor_role, reference_code="DEDUP-WIPE", details=f"Consolidated {wiped} duplicate pending record(s) with zero row deletion and wiped duplicate attachments.")
+            action_notice = f"Zero-Deletion Cleanup Complete: Retained primary record(s) and wiped attachments on {wiped} duplicate audit stub(s)."
         elif act == "CREATE_WALKIN_ICN" and active_barangay:
             import secrets
             from .models import WalkInIncidentTicket
