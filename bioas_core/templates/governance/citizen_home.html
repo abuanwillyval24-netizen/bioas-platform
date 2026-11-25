@@ -43,7 +43,8 @@
     label{display:block;font-size:.76rem;font-weight:700;color:#334155;margin-bottom:4px}
     input,select,textarea{width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:9px;font-size:.86rem;background:#f8fafc}
     .btn{background:var(--cit-accent);color:#fff;border:0;padding:9px 16px;border-radius:9px;font-size:.85rem;font-weight:800;cursor:pointer;transition:all .18s ease}
-    .btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+    .btn,a.badge,button,input[type="file"]{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease;}
+    .btn:hover,a.badge:hover,button:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(15,23,42,.16);filter:brightness(1.06);}
     .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.71rem;font-weight:800;background:#dbeafe;color:#1e40af}
     table{width:100%;border-collapse:collapse;font-size:.82rem}
     th,td{padding:9px 10px;border-bottom:1px solid #e2e8f0;text-align:left}
@@ -124,14 +125,16 @@
             </div>
             <div style="margin-top:12px;padding:12px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;">
               <div style="font-weight:800;font-size:.82rem;color:#0f172a;margin-bottom:8px;">Previously Uploaded Attachments &amp; Replacement Upload</div>
+              <input type="hidden" id="clrPhotoInp" name="clear_photo" value="0"><input type="hidden" id="clrDocInp" name="clear_supporting_doc" value="0">
               <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-                {% if citizen.photo_data_uri or citizen.photo %}<img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;border:2px solid #1e3a8a;">{% endif %}
-                <div>{% if citizen.supporting_doc_data_uri or citizen.supporting_document %}<a href="/citizen-proof/{{ citizen.id }}/" target="_blank" class="badge" style="background:#dbeafe;color:#1e40af;text-decoration:none;">&#128196; View Uploaded Supporting Proof &nearr;</a>{% else %}<span class="badge" style="background:#fee2e2;color:#991b1b;">No Supporting Proof Attached Yet</span>{% endif %}</div>
+                {% if citizen.photo_data_uri or citizen.photo %}<div id="stgPhotoWrap" style="display:inline-flex;align-items:center;gap:6px;"><img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" onclick="document.getElementById('stgZoomImg').src=this.src;document.getElementById('stgPhotoModal').style.display='flex';" title="Click to inspect 2x2 photo" style="width:64px;height:64px;border-radius:8px;object-fit:cover;border:2px solid #1e3a8a;cursor:zoom-in;"><button type="button" onclick="document.getElementById('clrPhotoInp').value='1';document.getElementById('stgPhotoWrap').style.display='none';" style="background:#fee2e2;color:#991b1b;border:0;border-radius:6px;padding:4px 7px;font-size:.72rem;font-weight:800;cursor:pointer;">&#10005; Remove</button></div>{% endif %}
+                <div id="stgDocWrap">{% if citizen.supporting_doc_data_uri or citizen.supporting_document %}<a href="/citizen-proof/{{ citizen.id }}/" target="_blank" class="badge" style="background:#dbeafe;color:#1e40af;text-decoration:none;">&#128196; View Uploaded Supporting Proof &nearr;</a> <button type="button" onclick="document.getElementById('clrDocInp').value='1';document.getElementById('stgDocWrap').innerHTML='<span class=badge style=background:#fee2e2;color:#991b1b>Marked for removal on save</span>';" style="background:#fee2e2;color:#991b1b;border:0;border-radius:6px;padding:4px 7px;font-size:.72rem;font-weight:800;cursor:pointer;">&#10005; Remove</button>{% else %}<span class="badge" style="background:#fee2e2;color:#991b1b;">No Supporting Proof Attached Yet</span>{% endif %}</div>
               </div>
               <div class="grid-2">
-                <div><label>Replace / Upload 2x2 ID Photo</label><input type="file" name="photo" accept="image/*"></div>
-                <div><label>Replace / Upload Supporting ID or Proof</label><input type="file" name="supporting_document" multiple accept="image/*,.pdf"></div>
+                <div><label>Replace / Upload 2x2 ID Photo</label><div style="display:flex;gap:6px;align-items:center;"><input id="stgPhotoFile" type="file" name="photo" accept="image/*"><button type="button" onclick="document.getElementById('stgPhotoFile').value='';" style="background:#fee2e2;color:#991b1b;border:0;border-radius:7px;padding:8px 10px;font-weight:800;cursor:pointer;">&#10005;</button></div></div>
+                <div><label>Replace / Upload Supporting ID or Proof</label><div style="display:flex;gap:6px;align-items:center;"><input id="stgDocFile" type="file" name="supporting_document" multiple accept="image/*,.pdf"><button type="button" onclick="document.getElementById('stgDocFile').value='';" style="background:#fee2e2;color:#991b1b;border:0;border-radius:7px;padding:8px 10px;font-weight:800;cursor:pointer;">&#10005;</button></div></div>
               </div>
+              <div id="stgPhotoModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.7);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;padding:16px;border-radius:14px;max-width:420px;width:100%;text-align:center;"><img id="stgZoomImg" src="" style="width:100%;max-height:360px;object-fit:contain;border-radius:8px;"><button type="button" onclick="document.getElementById('stgPhotoModal').style.display='none'" class="btn" style="margin-top:10px;width:100%;">Close Preview</button></div></div>
             </div>
             <button type="submit" class="btn" style="margin-top:14px;background:#16a34a;">&#10003; Save &amp; Resubmit Application for Verification</button>
           </form>
@@ -377,5 +380,5 @@
       if(window.innerWidth<=768){const b=document.getElementById('citDevBadge');if(b)b.textContent='Mobile Device Detected';}
     })();
   </script>
-</body>
+<script>(function(){var isMob=window.innerWidth<=860||/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);var b=document.getElementById('citDevBadge'),btn=document.getElementById('citViewBtn');if(isMob){document.body.classList.add('mobile-sim');if(b)b.textContent='Mobile Detected';if(btn)btn.textContent='Desktop View';}else{if(b)b.textContent='Desktop Detected';if(btn)btn.textContent='Mobile View';}})();</script></body>
 </html>

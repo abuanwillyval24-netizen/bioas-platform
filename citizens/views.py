@@ -399,6 +399,15 @@ def citizen_home(request):
                     setattr(citizen, fld, val)
             if request.POST.get("birth_date"):
                 citizen.birth_date = date.fromisoformat(request.POST.get("birth_date"))
+            if request.POST.get("clear_photo") == "1":
+                citizen.photo_data_uri = ""
+                if citizen.photo:
+                    citizen.photo.delete(save=False)
+            if request.POST.get("clear_supporting_doc") == "1":
+                citizen.supporting_doc_data_uri = ""
+                if citizen.supporting_document:
+                    citizen.supporting_document.delete(save=False)
+                citizen.repository_docs.all().delete()
             citizen.status = "PENDING_APPROVAL"
             citizen.rejection_remarks = ""
             citizen.save()
