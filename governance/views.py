@@ -411,6 +411,8 @@ def command_dashboard(request):
                 tkt.save(update_fields=["status", "closed_at", "resolution_note"])
                 action_notice = f"Incident {tkt.icn_code} closed and archived."
         elif act == "SAVE_CITIZEN_201":
+            action_error = "Data Sovereignty Lock: Citizen 201 Master Files are owned and edited exclusively by the Citizen via their Citizen Portal."
+        elif act == "DISABLED_SAVE_CITIZEN_201":
             edit_qr = request.POST.get("edit_qr_id", "").strip().upper()
             cit = CitizenProfile.objects.filter(barangay=active_barangay, citizen_qr_id=edit_qr).first() if edit_qr else None
             is_new = cit is None

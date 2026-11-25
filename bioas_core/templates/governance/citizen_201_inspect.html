@@ -337,9 +337,11 @@
       </div>
     </div>
 
+    {% include "governance/_citizen_201_section8_sync.html" %}
     <div class="sys-footer">
       SYSTEM GENERATED &bull; BIOAS Official Digital 201 Registry &bull; Generated {{ now_ts|date:"Y-m-d H:i" }} &bull; Default Paper: Long Bond (8.5&quot; &times; 13&quot;)
     </div>
   </div>
+<script class="no-print">setInterval(async function(){if(document.hidden)return;try{var r=await fetch(location.href);if(!r.ok)return;var d=new DOMParser().parseFromString(await r.text(),'text/html');var cw=document.querySelector('.wrap'),nw=d.querySelector('.wrap');if(cw&&nw&&cw.innerHTML!==nw.innerHTML&&!document.querySelector('#walkinRecoveryDrawer[style*=block]'))cw.innerHTML=nw.innerHTML;}catch(e){}},5000);</script>
 </body>
 </html>
