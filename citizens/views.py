@@ -142,6 +142,8 @@ def citizen_portal(request):
         taken = CitizenProfile.objects.filter(portal_username__iexact=u_q).exists()
         return JsonResponse({"available": not taken, "message": "Username is already taken." if taken else "Username is available!"})
 
+    if request.GET.get("icn"):
+        request.session["bioas_walkin_icn"] = request.GET.get("icn", "").strip().upper()
     barangays = BarangayTenant.objects.select_related("city_municipality__province").all()
     active_barangay = barangays.first()
     submitted_citizen = None
@@ -291,6 +293,16 @@ def citizen_portal(request):
                     )
                 except Exception:
                     pass
+            icn_val = (request.POST.get("icn_code") or request.session.pop("bioas_walkin_icn", "")).strip().upper()
+            if icn_val:
+                from governance.models import WalkInIncidentTicket, SystemAuditLog
+                tkt = WalkInIncidentTicket.objects.filter(icn_code=icn_val, status="OPEN").first()
+                if tkt:
+                    tkt.linked_citizen_qr = submitted_citizen.citizen_qr_id
+                    tkt.save(update_fields=["linked_citizen_qr"])
+                    submitted_citizen.encoded_by = f"Walk-In Desk (ICN: {icn_val}) ? Facilitated by {tkt.created_by_name}"
+                    submitted_citizen.save(update_fields=["encoded_by"])
+                    SystemAuditLog.objects.create(barangay=target_brgy, action_type="PORTAL_SYNC_APPROVED", actor_name=tkt.created_by_name, actor_role=tkt.created_by_role or "OFFICIAL", reference_code=submitted_citizen.citizen_qr_id, details=f"Walk-In registration completed under {icn_val} for {submitted_citizen.full_name}.")
             request.session.pop("bioas_signup_draft", None)
             wizard_step = "STEP2C"
             ack_notice = f"Registration submitted! Your Reference Citizen ID ({submitted_citizen.citizen_qr_id}) is now staged for Barangay 201 Verification."
