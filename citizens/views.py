@@ -389,9 +389,21 @@ def citizen_home(request):
 
 
     if request.method == "POST" and citizen:
-        if citizen.status != "ACTIVE_RESIDENT" and request.POST.get("action") not in ("UPDATE_CITIZEN_201", "CHANGE_PASSWORD"):
+        if citizen.status != "ACTIVE_RESIDENT" and request.POST.get("action") not in ("RESUBMIT_201_APPLICATION", "CHANGE_PASSWORD"):
             return redirect("/citizen-home/")
         act = request.POST.get("action")
+        if act == "RESUBMIT_201_APPLICATION" and citizen.status != "ACTIVE_RESIDENT":
+            for fld in ("last_name", "first_name", "middle_name", "suffix", "sex", "civil_status", "purok", "address_line", "current_address", "mobile_number", "email_address", "occupation"):
+                val = request.POST.get(fld, "").strip()
+                if val or fld in ("middle_name", "suffix", "current_address", "occupation"):
+                    setattr(citizen, fld, val)
+            if request.POST.get("birth_date"):
+                citizen.birth_date = date.fromisoformat(request.POST.get("birth_date"))
+            citizen.status = "PENDING_APPROVAL"
+            citizen.rejection_remarks = ""
+            citizen.save()
+            save_standardized_citizen_files(citizen, photo_file=request.FILES.get("photo"), doc_files=request.FILES.getlist("supporting_document"), source_channel="PORTAL_RESUBMIT", uploaded_by=citizen.full_name)
+            notice = "Application updated and resubmitted to the Barangay Secretary verification queue!"
         if act == "UPDATE_201_PROFILE":
             citizen.birth_place = request.POST.get("birth_place", citizen.birth_place).strip()
             citizen.religion = request.POST.get("religion", citizen.religion).strip()
