@@ -207,7 +207,7 @@
                 <div><h3 style="margin:0;color:#1e3a8a;font-size:1.02rem;">&#129706; My 201 Master Profile &amp; Synchronized Shared Record</h3><div style="font-size:.77rem;color:#475569;">Directly synchronized with <strong>02E. Shared Citizen Profiles Gallery</strong>. Verified identity fields marked &#128274; are permanently locked.</div></div>
                 <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" class="badge" style="text-decoration:none;padding:6px 11px;">Open Shared 02E View &nearr;</a>
               </div>
-              <form method="post" enctype="multipart/form-data" onsubmit="return confirm('Save and synchronize all updates to your Official 201 Master Profile?')">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_201_PROFILE">
+              <form id="cit201Form" method="post" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_201_PROFILE">
                 <div class="grid-3">
                   <div><label>&#128274; Full Legal Name</label><input value="{{ citizen.full_name }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
                   <div><label>&#128274; Birthdate &amp; Age</label><input value="{{ citizen.birth_date|date:'M d, Y' }} ({{ citizen.age }} yrs)" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
