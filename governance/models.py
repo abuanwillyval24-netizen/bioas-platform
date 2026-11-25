@@ -537,3 +537,34 @@ class BarangayAdvisoryComment(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+
+
+class AnonymousCommunityReport(models.Model):
+    REPORT_TYPES = [
+        ("NOISE_DISTURBANCE", "Late-Night Videoke / Noise Disturbance"),
+        ("PUBLIC_HAZARD", "Public Safety / Hazard / Streetlight"),
+        ("ILLEGAL_ACTIVITY", "Suspected Illegal Activity / Tip"),
+        ("OFFICIAL_COMPLAINT", "Confidential Heads-Up / Complaint Against Staff"),
+    ]
+    STATUS_CHOICES = [("RECEIVED", "Received by Watch Desk"), ("DISPATCHED", "Dispatched / Under Action"), ("RESOLVED", "Action Completed")]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="anonymous_reports")
+    tracking_code = models.CharField(max_length=32, unique=True, db_index=True)
+    report_type = models.CharField(max_length=25, choices=REPORT_TYPES)
+    location_landmark = models.CharField(max_length=160)
+    details = models.TextField()
+    against_official_name = models.CharField(max_length=120, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="RECEIVED")
+    official_response = models.CharField(max_length=240, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class ServiceEventQRFeedback(models.Model):
+    RATINGS = [("GOOD", "Good"), ("FAIR", "Fair"), ("BAD", "Bad")]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name="qr_feedbacks")
+    event_or_service = models.CharField(max_length=140, default="Barangay Front-Desk / Community Event")
+    rating = models.CharField(max_length=10, choices=RATINGS)
+    comment = models.CharField(max_length=240, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)

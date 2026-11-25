@@ -1522,3 +1522,48 @@ function sc(a,b){document.getElementById('p').value=a;document.getElementById('s
 
         "module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "role_presets_json": json.dumps(BarangayStaffProfile.ROLE_DEFAULT_MODULES),
     }, request))
+
+
+def public_anonymous_report(request):
+    import secrets
+    from .models import BarangayTenant, AnonymousCommunityReport, ServiceEventQRFeedback
+    barangays = BarangayTenant.objects.filter(status__in=["TRIAL_ACTIVE", "FULL_ACTIVE"]).order_by("name")
+    active_brgy = barangays.first()
+    created_code, lookup_rep, fb_notice, error = "", None, "", ""
+    event_label = request.GET.get("event", "").strip() or "Barangay Service / Community Event"
+
+    if request.method == "POST":
+        act = request.POST.get("action", "")
+        b_id = request.POST.get("barangay_id")
+        target_brgy = barangays.filter(id=b_id).first() or active_brgy
+        if act == "SUBMIT_ANON_REPORT":
+            rtype = request.POST.get("report_type", "PUBLIC_HAZARD")
+            loc = request.POST.get("location_landmark", "").strip()
+            det = request.POST.get("details", "").strip()
+            against = request.POST.get("against_official_name", "").strip()
+            if not (target_brgy and loc and det):
+                error = "Barangay, location landmark, and details are required."
+            else:
+                code = f"ACR-{timezone.now().year}-{secrets.randbelow(90000)+10000}-{secrets.token_hex(2).upper()}"
+                AnonymousCommunityReport.objects.create(
+                    barangay=target_brgy, tracking_code=code, report_type=rtype,
+                    location_landmark=loc, details=det, against_official_name=against,
+                )
+                created_code = code
+        elif act == "CHECK_ANON_STATUS":
+            q_code = request.POST.get("lookup_code", "").strip().upper()
+            lookup_rep = AnonymousCommunityReport.objects.filter(tracking_code=q_code).first()
+            if not lookup_rep:
+                error = f"Tracking code '{q_code}' was not found."
+        elif act == "SUBMIT_QR_FEEDBACK":
+            rat = request.POST.get("rating", "GOOD")
+            ev = request.POST.get("event_or_service", event_label).strip() or event_label
+            cm = request.POST.get("comment", "").strip()[:240]
+            if target_brgy and rat in ("GOOD", "FAIR", "BAD"):
+                ServiceEventQRFeedback.objects.create(barangay=target_brgy, event_or_service=ev, rating=rat, comment=cm)
+                fb_notice = "Thank you! Your anonymous service/event rating has been recorded."
+
+    return render(request, "governance/anonymous_report.html", {
+        "barangays": barangays, "active_brgy": active_brgy, "event_label": event_label,
+        "created_code": created_code, "lookup_rep": lookup_rep, "fb_notice": fb_notice, "error": error,
+    })

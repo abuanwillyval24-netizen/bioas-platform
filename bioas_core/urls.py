@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, re_path
 from bioas_core.hybrid_sync import hybrid_sync_pull
 from sk_youth.views import sk_portal
+from governance.views import public_anonymous_report
 from django.conf import settings
 from django.views.static import serve
 from governance.views import command_dashboard, theme_settings, staff_login, staff_logout
@@ -22,6 +23,7 @@ urlpatterns = [
     path("staff-roster/approve/<int:profile_id>/<str:new_status>/", approve_staff_account, name="approve_staff"),
     path("staff-roster/archive/<int:archive_id>/", download_term_archive, name="download_term_archive"),
     path("portal/", citizen_portal, name="citizen_portal"),
+    path("anonymous-report/", public_anonymous_report, name="public_anonymous_report"),
     path("citizen-home/", citizen_home, name="citizen_home"),
     path("sk-portal/", sk_portal, name="sk_portal"),
     path("citizen-docs/<str:qr_id>/", citizen_docs_repository, name="citizen_docs_repository"),
