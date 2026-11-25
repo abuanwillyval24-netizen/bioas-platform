@@ -83,7 +83,7 @@
     <a href="/?tier=PROVINCE&module={{ module }}" class="{% if tier == 'PROVINCE' %}active{% endif %}">Tier 4: Provincial Governor</a>
     </div>
     <div class="btn-group">
-      <a href="javascript:void(0)" onclick="document.getElementById('icnDeskModal').style.display='flex'" style="background:#b45309;color:#fff;font-weight:800;">&#127915; Incident Desk (ICN: {{ open_icns|length }})</a>
+      <button type="button" onclick="document.getElementById('icnDeskModal').style.display='flex'" style="background:#b45309;color:#fff;border:0;padding:5px 11px;border-radius:6px;font-size:.8rem;font-weight:800;cursor:pointer;">&#127915; Incident Desk (ICN: {{ open_icns|length }})</button>
       <a href="/citizen-home/">Citizen Login / Report</a>
       <a href="/admin/">+ Admin Control Panel</a><a href="/logout/" style="background:#991b1b;">Logout</a>
   </nav>
