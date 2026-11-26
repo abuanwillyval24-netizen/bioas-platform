@@ -19,11 +19,11 @@
     {% else %}
     <div style="display:flex;align-items:center;gap:6px;">
       <input type="file" id="cit2x2Inp" name="photo" accept=".png,.jpg,.jpeg,.webp" onchange="previewCit2x2(this)" style="padding:5px;flex:1;">
-      <button type="button" id="cit2x2ClearBtn" onclick="clearCit2x2()" title="Remove / Replace Photo" style="display:none;width:28px;height:28px;border-radius:999px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:900;cursor:pointer;">&times;</button>
+      <button type="button" id="cit2x2ClearBtn" class="cit-x-btn" onclick="clearCit2x2()" title="Remove / Replace Photo" style="display:none;width:28px;height:28px;border-radius:999px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:900;cursor:pointer;">&times;</button>
     </div>
     <div id="cit2x2GuideWrap" style="display:none;margin-top:8px;text-align:center;">
       <div style="position:relative;width:136px;height:136px;margin:0 auto;border-radius:10px;overflow:hidden;border:2px solid #1e3a8a;">
-        <img id="cit2x2PrevImg" style="width:100%;height:100%;object-fit:cover;object-position:center 22%;">
+        <img id="cit2x2PrevImg" style="width:100%;height:100%;object-fit:cover;object-position:center 22%;"><button type="button" class="cit-x-btn" onclick="clearCit2x2(true)" title="Remove wrong photo" style="position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:999px;background:#fee2e2;color:#b91c1c;border:1.5px solid #fca5a5;font-weight:900;font-size:.78rem;line-height:1;cursor:pointer;z-index:5;padding:0;">&times;</button>
         <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"><ellipse cx="50" cy="36" rx="20" ry="25" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M18 96 C20 72, 80 72, 82 96" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>
       </div>
       <div id="cit2x2FaceMsg" style="font-size:.71rem;color:#166534;font-weight:700;margin-top:4px;">2&times;2 Head-and-Shoulders Guide Aligned (600&times;600px Auto-Crop)</div>
@@ -39,7 +39,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <input type="file" id="citVaultInp" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple onchange="previewCitVault(this)" style="padding:5px;flex:1;">
-      <button type="button" id="citVaultClearBtn" onclick="clearCitVault()" title="Remove / Replace File" style="display:none;width:28px;height:28px;border-radius:999px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:900;cursor:pointer;">&times;</button>
+      <button type="button" id="citVaultClearBtn" class="cit-x-btn" onclick="clearCitVault()" title="Remove / Replace File" style="display:none;width:28px;height:28px;border-radius:999px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:900;cursor:pointer;">&times;</button>
     </div>
     <div id="citVaultPrevCard" style="display:none;margin-top:7px;background:#fff;border:1px solid #93c5fd;border-radius:8px;padding:6px 9px;font-size:.74rem;color:#1e3a8a;font-weight:700;"></div>
   </div>
@@ -51,10 +51,10 @@
     <p style="margin:0;font-size:.82rem;color:#475569;">Please wait while your 201 profile, 2&times;2 ID photo, and supporting documents are synchronized.</p>
   </div>
 </div>
-<style>@keyframes hgSpin{0%{transform:rotate(0deg)}50%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}</style>
+<style>.cit-x-btn{transition:all .16s ease}.cit-x-btn:hover{background:#dc2626!important;color:#fff!important;transform:scale(1.14);box-shadow:0 3px 8px rgba(220,38,38,.35)}@keyframes hgSpin{0%{transform:rotate(0deg)}50%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}</style>
 <script>
 async function previewCit2x2(inp){var w=document.getElementById('cit2x2GuideWrap'),b=document.getElementById('cit2x2ClearBtn'),img=document.getElementById('cit2x2PrevImg'),msg=document.getElementById('cit2x2FaceMsg');if(!inp.files||!inp.files[0]){w.style.display='none';b.style.display='none';return;}var url=URL.createObjectURL(inp.files[0]);img.src=url;w.style.display='block';b.style.display='inline-block';if('FaceDetector' in window){try{var bmp=await createImageBitmap(inp.files[0]);var faces=await new FaceDetector().detect(bmp);if(!faces.length){alert('No clear front-facing face detected. Please upload a formal head-and-shoulders photo.');clearCit2x2();return;}msg.textContent='Face Detected & Centered in 2x2 Frame (600x600px Ready)';}catch(e){}}}
-function clearCit2x2(){var inp=document.getElementById('cit2x2Inp');if(inp)inp.value='';document.getElementById('cit2x2GuideWrap').style.display='none';document.getElementById('cit2x2ClearBtn').style.display='none';}
+function clearCit2x2(ask){if(ask&&!confirm('Remove this selected photo so you can choose another one?'))return;var inp=document.getElementById('cit2x2Inp');if(inp)inp.value='';document.getElementById('cit2x2GuideWrap').style.display='none';document.getElementById('cit2x2ClearBtn').style.display='none';}
 function previewCitVault(inp){var c=document.getElementById('citVaultPrevCard'),b=document.getElementById('citVaultClearBtn');if(!inp.files||!inp.files.length){c.style.display='none';b.style.display='none';return;}var names=Array.from(inp.files).map(function(f){return f.name;}).join(', ');c.textContent='Selected for Vault: '+names;c.style.display='block';b.style.display='inline-block';}
 function clearCitVault(){var inp=document.getElementById('citVaultInp');if(inp)inp.value='';document.getElementById('citVaultPrevCard').style.display='none';document.getElementById('citVaultClearBtn').style.display='none';}
 function openCit201Confirm(){var vInp=document.getElementById('citVaultInp'),vLbl=document.getElementById('citVaultLbl');if(vInp&&vInp.value&&(!vLbl||!vLbl.value.trim())){alert('Please enter a Document Label / Description before submitting your supporting document.');vLbl.focus();return;}var m=document.getElementById('confirm201Modal');var p=m.querySelector('p');if(p&&vInp&&vInp.value){p.textContent='Are you sure you want to submit this document and sync your 201 updates to your official Barangay Vault?';}m.style.display='flex';}
