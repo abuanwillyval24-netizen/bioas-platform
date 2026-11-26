@@ -163,7 +163,7 @@ def command_dashboard(request):
     else:
         visible_modules = list(all_mod_codes)
     if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or request.user.is_superuser:
-        for extra_sub in ("CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "DOCS_REPO", "CITIZEN_REPORTS", "PHOTO_REVIEW"):
+        for extra_sub in ("CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "DOCS_REPO", "CITIZEN_REPORTS", "PHOTO_REVIEW", "REGISTRY_SERVICE"):
             if extra_sub not in visible_modules:
                 visible_modules.append(extra_sub)
 
