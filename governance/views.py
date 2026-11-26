@@ -1112,8 +1112,8 @@ def command_dashboard(request):
     }
 
     from citizens.models import CitizenSupportingDocument
-    citizens = CitizenProfile.objects.select_related("household").filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
-    all_repo_docs = CitizenSupportingDocument.objects.select_related("citizen").filter(citizen__barangay=active_barangay) if active_barangay else CitizenSupportingDocument.objects.none()
+    citizens = CitizenProfile.objects.select_related("household").defer("supporting_doc_data_uri", "pending_photo_data_uri").filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
+    all_repo_docs = CitizenSupportingDocument.objects.select_related("citizen").defer("file_data_uri", "citizen__supporting_doc_data_uri", "citizen__pending_photo_data_uri").filter(citizen__barangay=active_barangay) if active_barangay else CitizenSupportingDocument.objects.none()
     households = Household.objects.prefetch_related("members").filter(barangay=active_barangay) if active_barangay else Household.objects.none()
     citizen_reports = CitizenCommunityReport.objects.filter(barangay=active_barangay) if active_barangay else CitizenCommunityReport.objects.none()
     certificates = CertificateRequest.objects.filter(barangay=active_barangay) if active_barangay else CertificateRequest.objects.none()

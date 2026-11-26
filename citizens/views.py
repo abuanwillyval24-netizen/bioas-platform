@@ -116,7 +116,7 @@ def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source
             out_buf = BytesIO()
             first_im = img_pages.__getitem__(0)
             rest_ims = img_pages.__getitem__(slice(1, None))
-            first_im.save(out_buf, format="PDF", resolution=150.0, save_all=True, append_images=rest_ims)
+            first_im.save(out_buf, format="PDF", resolution=96.0, save_all=True, append_images=rest_ims)
             pdf_bytes = out_buf.getvalue()
         if pdf_bytes:
             std_pdf_name = f"{cid}_supporting_doc.pdf"
@@ -128,7 +128,7 @@ def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source
                 citizen=cit,
                 document_title=f"Standardized Supporting Proof ({std_pdf_name})",
                 file=ContentFile(pdf_bytes, name=std_pdf_name),
-                file_data_uri=pdf_uri,
+                file_data_uri="",
                 source_channel=source_channel,
                 uploaded_by=uploaded_by or cit.full_name,
             )
@@ -875,7 +875,7 @@ def append_to_citizen_master_pdf(cit, doc_title, uploaded_file, uploader="", sou
         drw.rectangle([0, 0, w, bh - 4], fill="#1e3a8a")
         drw.text((18, 10), f"PAGE {start_pg}  |  {doc_title}", fill="#ffffff", font=fs_lg)
         drw.text((18, fs_lg.size + 18), f"Uploaded: {ts_str}  |  By: {uploader or cit.full_name}  |  ID: {cid}", fill="#fde68a", font=fs_sm)
-        nb = BytesIO(); canvas.save(nb, format="PDF", resolution=150.0)
+        nb = BytesIO(); canvas.save(nb, format="PDF", resolution=96.0)
         for pg in PdfReader(BytesIO(nb.getvalue())).pages: writer.add_page(pg)
     out = BytesIO(); writer.write(out); merged_bytes = out.getvalue()
     merged_uri = "data:application/pdf;base64," + base64.b64encode(merged_bytes).decode("ascii")
@@ -885,8 +885,8 @@ def append_to_citizen_master_pdf(cit, doc_title, uploaded_file, uploader="", sou
         pass
     cit.supporting_doc_data_uri = merged_uri
     cit.save(update_fields=["supporting_document", "supporting_doc_data_uri"])
-    CitizenSupportingDocument.objects.filter(citizen=cit).update(file_data_uri=merged_uri)
-    CitizenSupportingDocument.objects.create(citizen=cit, document_title=f"Page {start_pg}: {doc_title} ({ts_str})", file=ContentFile(merged_bytes, name=std_name), file_data_uri=merged_uri, source_channel=source_channel, uploaded_by=uploader or cit.full_name)
+    CitizenSupportingDocument.objects.filter(citizen=cit).update(file_data_uri="")
+    CitizenSupportingDocument.objects.create(citizen=cit, document_title=f"Page {start_pg}: {doc_title} ({ts_str})", file_data_uri="", source_channel=source_channel, uploaded_by=uploader or cit.full_name)
     return start_pg, len(writer.pages)
 
 
