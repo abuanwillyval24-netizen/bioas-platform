@@ -1,4 +1,4 @@
-from django.utils import timezone
+﻿from django.utils import timezone
 import json
 from pathlib import Path
 from django.http import HttpResponse
@@ -437,7 +437,6 @@ def command_dashboard(request):
                 action_notice = f"Updated module access for {sp.full_name} ({sp.get_role_display()})."
         elif act == "ISSUE_WALKIN_CERT" and active_barangay:
             import secrets
-            from documents.models import CertificateRequest
             q_ref = request.POST.get("citizen_ref", "").strip()
             cit = CitizenProfile.objects.filter(barangay=active_barangay).filter(Q(citizen_qr_id__iexact=q_ref) | Q(full_name__icontains=q_ref)).first()
             if not cit:
@@ -461,7 +460,6 @@ def command_dashboard(request):
                     )
                     action_notice = f"Certificate {c_new.control_number} created for {cit.full_name} ({c_new.get_status_display()})."
         elif act == "MARK_CERT_ISSUED" and active_barangay:
-            from documents.models import CertificateRequest
             c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
             if c_obj:
                 c_obj.status = "ISSUED_PRINTED"
