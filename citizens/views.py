@@ -210,6 +210,22 @@ def citizen_portal(request):
             pw1 = request.POST.get("portal_password", "")
             pw2 = request.POST.get("confirm_password", "")
             em = request.POST.get("email_address", "").strip()
+            mob_raw = request.POST.get("mobile_number", "").strip()
+            mob_d = "".join(c for c in mob_raw if c.isdigit())
+            if mob_d.startswith("63") and len(mob_d)==12: mob_d = "0" + mob_d[2:]
+            elif len(mob_d)==10 and mob_d.startswith("9"): mob_d = "0" + mob_d
+            from django.utils import timezone as _tz
+            from datetime import timedelta as _td
+            is_walkin = bool(request.session.get("bioas_walkin_icn") or request.POST.get("icn_code"))
+            em_cnt = CitizenProfile.objects.filter(email_address__iexact=em).count() if em else 0
+            mob_cnt = CitizenProfile.objects.filter(mobile_number__icontains=mob_d[-9:]).count() if len(mob_d)>=9 else 0
+            day_cnt = CitizenProfile.objects.filter(created_at__gte=_tz.now()-_td(hours=24), email_address__iexact=em).count() if em else 0
+            if not is_walkin and (em_cnt >= 5 or mob_cnt >= 5):
+                error = "Shared Household Contact Limit (Max 5 family members per email/mobile) reached. For additional household members, please visit the Barangay Hall Walk-In Desk."
+            elif not is_walkin and (day_cnt >= 2 or len([x for x in request.session.get("bioas_24h_signups", []) if x > _tz.now().timestamp() - 86400]) >= 2):
+                error = "Anti-Spam Security Limit: Maximum of 2 online self-registrations allowed per contact/device within 24 hours. Please try again tomorrow or visit the Barangay Hall."
+            if error:
+                return render(request, "governance/citizen_portal.html", {"barangays": barangays, "active_barangay": target_brgy, "error": error, "wizard_step": "STEP1", "draft": request.POST})
             draft = {
                 "barangay_id": target_brgy.id,
                 "last_name": request.POST.get("last_name", "").strip(),
