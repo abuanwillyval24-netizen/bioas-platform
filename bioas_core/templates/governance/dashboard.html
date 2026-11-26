@@ -704,10 +704,10 @@
             #xl201Table th[data-col="0"], #xl201Table td[data-col="0"] { min-width: 195px !important; left: 0 !important; }
             #xl201Table th[data-col="1"], #xl201Table td[data-col="1"] { left: 195px !important; }
           </style>
-          <style>#xl201Table thead th{position:sticky;top:0;z-index:20;background:#0f172a!important;color:#fff!important}#xl201Table thead th[data-col="0"],#xl201Table thead th[data-col="1"]{z-index:22!important}.xl-mode-btn{border:1px solid #cbd5e1;background:#fff;color:#334155;padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;white-space:nowrap}.xl-mode-btn.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a}</style>
+          <style>#xl201Table thead,#xl201Table thead th{position:sticky;top:0;z-index:25;background:#0f172a!important;color:#fff!important}#xl201Table thead th[data-col="0"],#xl201Table thead th[data-col="1"]{z-index:22!important}.xl-mode-btn{border:1px solid #cbd5e1;background:#fff;color:#334155;padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:800;cursor:pointer;white-space:nowrap}.xl-mode-btn.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a}</style>
           <div style="position:sticky;top:-18px;z-index:30;background:#f1f5f9;padding:8px 0 4px;">
           <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:nowrap;margin:0 0 8px;">
-            <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;"><span style="font-size:.96rem;">02C. Master 201 Approved Resident Ledger (Full-Screen Excel Grid &mdash; <span id="xlCount">{{ pop_stats.total_residents }}</span> Rows)</span><div style="display:inline-flex;gap:4px;"><button type="button" id="btnShow20" class="xl-mode-btn" onclick="set201DisplayMode('20')">Show 20</button><button type="button" id="btnShowAll" class="xl-mode-btn" onclick="set201DisplayMode('ALL')">Show All</button></div></div>
+            <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;"><span style="font-size:.96rem;">02C. Master 201 Approved Resident Ledger (Full-Screen Excel Grid &mdash; <span id="xlCount">{{ pop_stats.total_residents }}</span> Rows)</span></div>
             <div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;flex-shrink:0;">
               <button type="button" onclick="toggleColMenu()" style="background:#334155;color:#fff;border:0;padding:5px 9px;border-radius:6px;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap;">Customize Columns &#9662;</button>
               <button type="button" onclick="resetColPrefs()" style="background:#475569;color:#fff;border:0;padding:5px 9px;border-radius:6px;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap;">Show All Columns</button>
@@ -717,31 +717,31 @@
           </div>
           <div class="card" style="padding:10px 12px;margin-bottom:8px;">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;align-items:center;">
-              <input id="xlSearch" oninput="filter201Table()" placeholder="Search Name, QR, Address, Job..." style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
-              <select id="xlPurok" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <input id="xlSearch" onkeydown="if(event.key==='Enter'){event.preventDefault();filter201Table();}" placeholder="Search Name, QR, Address, Job..." style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlPurok"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Puroks</option>
                 <option value="Purok I">Purok I</option><option value="Purok II">Purok II</option><option value="Purok III">Purok III</option>
                 <option value="Purok IV">Purok IV</option><option value="Purok V">Purok V</option><option value="Purok VI">Purok VI</option><option value="Purok VII">Purok VII</option>
               </select>
-              <select id="xlSex" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlSex"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Sexes</option><option value="Male">Male</option><option value="Female">Female</option>
               </select>
-              <select id="xlVoter" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlVoter"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Voter Status</option><option value="Voter">Registered Voter</option><option value="Non-Voter">Non-Voter</option>
               </select>
-              <select id="xlClass" onchange="filter201Table()" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlClass"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Classifications</option>
                 <option value="Senior">Senior Citizen</option><option value="PWD">PWD</option><option value="Solo Parent">Solo Parent</option>
                 <option value="4Ps">4Ps Beneficiary</option><option value="Pregnant">Pregnant</option><option value="OFW">OFW</option>
               </select>
-              <button type="button" onclick="reset201Filters()" style="background:#e2e8f0;color:#0f172a;border:0;padding:7px 10px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Reset Filters</button>
+              <div style="display:flex;gap:6px;"><button type="button" onclick="filter201Table()" style="flex:1;background:#1e3a8a;color:#fff;border:0;padding:7px 12px;border-radius:6px;font-size:.8rem;font-weight:800;cursor:pointer;white-space:nowrap;">Apply Filter</button><button type="button" onclick="reset201Filters()" style="background:#e2e8f0;color:#0f172a;border:0;padding:7px 10px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;">Reset Filters</button></div>
             </div>
             <div id="xlColMenu" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;flex-wrap:wrap;gap:8px;font-size:.75rem;font-weight:700;"></div>
           </div>
           </div>
 
           <div id="xlPrintArea" style="max-height:66vh;overflow:auto;position:relative;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:18px;border:1px solid #cbd5e1;">
-            <table id="xl201Table" style="margin:0;min-width:2200px;border-collapse:collapse;">
+            <table id="xl201Table" style="margin:0;min-width:2200px;border-collapse:separate;border-spacing:0;">
               <thead>
                 <tr style="background:#0f172a;color:#fff;">
                   <th data-col="0" style="background:#0f172a;color:#fff;position:sticky;left:0;z-index:3;">QR ID</th>
@@ -804,6 +804,18 @@
               </tbody>
             </table>
           </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:10px 14px;margin-top:-10px;margin-bottom:18px;">
+            <span style="font-size:.78rem;color:#475569;font-weight:700;">Showing <strong id="xlFootCount" style="color:#0f172a;">20</strong> resident records</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <label for="xlPageSize" style="margin:0;font-size:.78rem;font-weight:800;color:#334155;white-space:nowrap;">Rows to Display:</label>
+              <select id="xlPageSize" onchange="set201DisplayMode(this.value)" style="width:auto;padding:5px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.78rem;font-weight:800;color:#0f172a;background:#f8fafc;cursor:pointer;">
+                <option value="20">20 (Default)</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="ALL">Show All</option>
+              </select>
+            </div>
+          </div>
           <script>
             const XL_PREF_KEY='bioas_201_hidden_cols';
             function getHiddenCols(){try{return JSON.parse(localStorage.getItem(XL_PREF_KEY)||'[]');}catch(e){return[];}}
@@ -842,9 +854,8 @@
             function set201DisplayMode(m){try{localStorage.setItem(XL_MODE_KEY,m);}catch(e){}filter201Table();}
             function filter201Table(){
               const mode=get201DisplayMode();
-              const b20=document.getElementById('btnShow20'),bAll=document.getElementById('btnShowAll');
-              if(b20)b20.classList.toggle('active',mode==='20');
-              if(bAll)bAll.classList.toggle('active',mode==='ALL');
+              const sel=document.getElementById('xlPageSize');if(sel)sel.value=mode;
+              const lim=(mode==='ALL')?999999:(parseInt(mode,10)||20);
               const q=document.getElementById('xlSearch').value.toLowerCase();
               const pk=document.getElementById('xlPurok').value;
               const sx=document.getElementById('xlSex').value;
@@ -855,9 +866,11 @@
                 const ok=(!q||tr.innerText.toLowerCase().includes(q))&&(!pk||tr.dataset.purok===pk)&&(!sx||tr.dataset.sex===sx)&&(!vt||tr.dataset.voter===vt)&&(!cl||tr.dataset.class.includes(cl));
                 if(!ok){tr.style.display='none';return;}
                 matched++;
-                if(mode==='20'&&shown>=20){tr.style.display='none';}else{tr.style.display='';shown++;}
+                if(shown>=lim){tr.style.display='none';}else{tr.style.display='';shown++;}
               });
-              document.getElementById('xlCount').innerText=(mode==='20'&&matched>20)?(shown+' of '+matched):matched;
+              const lbl=(mode!=='ALL'&&matched>lim)?(shown+' of '+matched):matched;
+              document.getElementById('xlCount').innerText=lbl;
+              const fc=document.getElementById('xlFootCount');if(fc)fc.innerText=lbl;
             }
             function reset201Filters(){
               ['xlSearch','xlPurok','xlSex','xlVoter','xlClass'].forEach(id=>document.getElementById(id).value='');filter201Table();
@@ -878,7 +891,7 @@
             }
             function print201Ledger(){
               const w=window.open('','','width=1200,height=800');
-              w.document.write('<html><head><title>Barangay 201 Master Ledger</title><style>body{font-family:Arial,sans-serif;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:5px;text-align:left}th{background:#0f172a;color:#fff}</style></head><body><h2>Barangay 201 Master Resident Ledger</h2>'+document.getElementById('xlPrintArea').innerHTML+'<style>details.side-grp>summary.side-group span:last-child{transition:transform .18s ease;color:#fbbf24}details.side-grp[open]>summary.side-group span:last-child{transform:rotate(180deg)}</style><script>(function(){var sb=document.getElementById('bioasOffSidebar');if(!sb)return;var K='bioas_sb_grps_v2',st={};try{st=JSON.parse(localStorage.getItem(K)||'{}');}catch(e){}sb.querySelectorAll('details.side-grp').forEach(function(d){var g=d.dataset.gid,hasAct=!!d.querySelector('a.active');if(st[g]===true){d.open=true;}else if(st[g]===false){d.open=false;}else if(hasAct){d.open=true;st[g]=true;}d.querySelector('summary.side-group').addEventListener('click',function(){setTimeout(function(){var cur={};try{cur=JSON.parse(localStorage.getItem(K)||'{}');}catch(e){}cur[g]=d.open;localStorage.setItem(K,JSON.stringify(cur));},0);});d.querySelectorAll('a').forEach(function(lnk){lnk.addEventListener('click',function(){var cur={};try{cur=JSON.parse(localStorage.getItem(K)||'{}');}catch(e){}cur[g]=true;localStorage.setItem(K,JSON.stringify(cur));});});});try{localStorage.setItem(K,JSON.stringify(st));}catch(e){}var y=sessionStorage.getItem('bioas_sb_y');if(y)sb.scrollTop=parseInt(y,10);sb.addEventListener('scroll',function(){sessionStorage.setItem('bioas_sb_y',sb.scrollTop);});})();</script><div id="citHoverCard" style="display:none;position:fixed;z-index:9999;width:295px;background:#fff;border:1px solid #cbd5e1;border-top:4px solid #1e3a8a;border-radius:12px;padding:12px;box-shadow:0 16px 36px rgba(15,23,42,.22);pointer-events:none;transition:opacity .18s ease;">
+              w.document.write('<html><head><title>Barangay 201 Master Ledger</title><style>body{font-family:Arial,sans-serif;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:5px;text-align:left}th{background:#0f172a;color:#fff}</style></head><body><h2>Barangay 201 Master Resident Ledger</h2>'+document.getElementById('xlPrintArea').innerHTML+'<div id="citHoverCard" style="display:none;position:fixed;z-index:9999;width:295px;background:#fff;border:1px solid #cbd5e1;border-top:4px solid #1e3a8a;border-radius:12px;padding:12px;box-shadow:0 16px 36px rgba(15,23,42,.22);pointer-events:none;transition:opacity .18s ease;">
   <div style="display:flex;gap:10px;align-items:center;">
     <img id="chcPhoto" src="" style="width:58px;height:58px;border-radius:10px;object-fit:cover;border:2px solid #1e3a8a;display:none;">
     <div id="chcAvatar" style="width:58px;height:58px;border-radius:10px;background:#1e3a8a;color:#fff;font-weight:900;font-size:1.2rem;display:flex;align-items:center;justify-content:center;">201</div>
