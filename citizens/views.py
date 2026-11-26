@@ -168,6 +168,17 @@ def save_shared_201_fields(citizen, post_data):
         if digs.startswith("63") and len(digs)==12: digs = "0" + digs[2:]
         elif len(digs)==10 and digs.startswith("9"): digs = "0" + digs
         if len(digs)==11: setattr(citizen, mf, f"{digs[:4]}-{digs[4:7]}-{digs[7:11]}")
+    if not citizen.household:
+        from citizens.models import Household
+        hh = None
+        if citizen.household_head_name:
+            hh = Household.objects.filter(barangay=citizen.barangay, head_of_family__icontains=citizen.household_head_name.strip()).first()
+        if not hh and citizen.shared_contact_matches:
+            for m in citizen.shared_contact_matches:
+                if m.household:
+                    hh = m.household; break
+        if hh:
+            citizen.household = hh
     if citizen.sex == "MALE": citizen.is_pregnant = False
     for bf in bool_fields:
         setattr(citizen, bf, post_data.get(bf) in ("1", "on", "true", "True"))
