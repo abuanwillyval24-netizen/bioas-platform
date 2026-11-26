@@ -773,8 +773,9 @@ def append_to_citizen_master_pdf(cit, doc_title, uploaded_file, uploader="", sou
             drw.text((22, 38), f"Uploaded: {ts_str}  |  By: {uploader or cit.full_name}  |  ID: {cid}", fill="#fde68a")
             b_buf = BytesIO(); banner_im.save(b_buf, format="PDF")
             b_pg = PdfReader(BytesIO(b_buf.getvalue())).pages.__getitem__(0)
-            pg.merge_transformed_page(b_pg, (1, 0, 0, 1, 0, float(pg.mediabox.height) - 42))
             writer.add_page(pg)
+            ap = writer.pages.__getitem__(-1)
+            ap.merge_transformed_page(b_pg, (1, 0, 0, 1, 0, float(ap.mediabox.height) - 42))
     else:
         c_raw, _ = _compress_under_300kb(raw)
         im = Image.open(BytesIO(c_raw)).convert("RGB")
