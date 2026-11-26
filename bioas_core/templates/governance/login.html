@@ -31,7 +31,7 @@
       {% else %}
       <form method="post" onsubmit="var o=document.getElementById('loginSpinnerOverlay');if(o)o.style.display='flex';">{% csrf_token %}<input type="hidden" name="login_step" value="CREDENTIALS">
         <label>Login as *</label>
-        <select name="role_type" id="roleSelector" onchange="syncRoleFields()" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.88rem;background:#f8fafc;">
+        <select name="role_type" id="roleSelector" onchange="syncRoleFields();checkMobOfficial()" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.88rem;background:#f8fafc;">
           <option value="CITIZEN" {% if role_type == "CITIZEN" %}selected{% endif %}>Citizen (Resident Self-Service)</option>
           <option value="OFFICIAL" {% if role_type == "OFFICIAL" %}selected{% endif %}>Barangay Official (Elected / Appointed)</option>
         </select>
@@ -128,4 +128,5 @@
   </div>
 </footer>
 <div style="text-align:center;padding:10px;font-size:.8rem;"><a href="/anonymous-report/" style="color:#1e3a8a;font-weight:800;text-decoration:none;">&#128737; Anonymous Community Reporting &amp; QR Event Feedback &rarr;</a></div>
+<script>function checkMobOfficial(){var r=document.getElementById('roleSelector'),b=document.getElementById('mobOffWarn');if(!r||!b)return;var isMob=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);b.style.display=(isMob&&r.value==='OFFICIAL')?'block':'none';}document.addEventListener('DOMContentLoaded',checkMobOfficial);</script>
 </body></html>

@@ -97,6 +97,8 @@ def staff_login(request):
                 d_code = request.session.get("bioas_2fa_pending", {}).get("code", "")
                 has_smtp = bool(getattr(__import__("django.conf", fromlist=["settings"]).settings, "EMAIL_HOST_USER", "").strip()) and bool(cand.email_address)
                 otp_pending, notice = True, (f"New device detected. A 6-digit verification OTP has been sent to {otp_masked_email}." if has_smtp else f"New device detected. Enter your 6-digit verification code ({d_code}) below to trust this device.")
+        elif any(m in ua_str.lower() for m in ("mobile", "android", "iphone", "ipad", "ipod", "windows phone")):
+            error = "Security Policy: Barangay Official sign-in is blocked on mobile phones/tablets and restricted to authorized Barangay Office Desktop/Laptop workstations only. Select Login as: Citizen on mobile."
         else:
             user = authenticate(request, username=username_in, password=request.POST.get("password", ""))
             if user is None:
