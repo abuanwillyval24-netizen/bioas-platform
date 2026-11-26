@@ -158,7 +158,7 @@ def command_dashboard(request):
     else:
         visible_modules = list(all_mod_codes)
     if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or request.user.is_superuser:
-        for extra_sub in ("CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "DOCS_REPO", "CITIZEN_REPORTS"):
+        for extra_sub in ("CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "DOCS_REPO", "CITIZEN_REPORTS", "PHOTO_REVIEW"):
             if extra_sub not in visible_modules:
                 visible_modules.append(extra_sub)
 
@@ -1113,6 +1113,7 @@ def command_dashboard(request):
 
     from citizens.models import CitizenSupportingDocument
     citizens = CitizenProfile.objects.select_related("household").defer("supporting_doc_data_uri").filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
+    pending_photo_citizens = [c for c in citizens if c.photo_review_status == "PENDING" and c.pending_photo_data_uri]
     all_repo_docs = CitizenSupportingDocument.objects.select_related("citizen").defer("file_data_uri", "citizen__supporting_doc_data_uri", "citizen__pending_photo_data_uri").filter(citizen__barangay=active_barangay) if active_barangay else CitizenSupportingDocument.objects.none()
     households = Household.objects.prefetch_related("members").filter(barangay=active_barangay) if active_barangay else Household.objects.none()
     citizen_reports = CitizenCommunityReport.objects.filter(barangay=active_barangay) if active_barangay else CitizenCommunityReport.objects.none()
@@ -1300,7 +1301,7 @@ def command_dashboard(request):
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
-        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "households": households, "citizen_reports": citizen_reports,
+        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports,
         "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
         "open_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="OPEN")[:30]) if active_barangay else [],

@@ -100,7 +100,7 @@
       <a href="?tier=BARANGAY&module=OVERVIEW" class="{% if module == 'OVERVIEW' %}active{% endif %}"><span>Command Overview</span><span class="pill">{{ visible_modules|length }}</span></a>
       </details><details class="side-grp" data-gid="grp_FrontlineServices" style="margin:4px 0;"><summary class="side-group" style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,.04);"><span>Frontline Services</span><span>&#9662;</span></summary>
       {% if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or "DOCS_REPO" in visible_modules %}
-      <details {% if module == 'CITIZENS' or module == 'CITIZENS_INTAKE' or module == 'LEDGER_201' or module == 'HOUSEHOLDS' or module == 'SHARED_GALLERY' or module == 'DOCS_REPO' or module == 'CITIZEN_REPORTS' %}open{% endif %} style="margin:2px 0;">
+      <details {% if module == 'CITIZENS' or module == 'CITIZENS_INTAKE' or module == 'LEDGER_201' or module == 'HOUSEHOLDS' or module == 'SHARED_GALLERY' or module == 'DOCS_REPO' or module == 'CITIZEN_REPORTS' or module == 'PHOTO_REVIEW' %}open{% endif %} style="margin:2px 0;">
         <summary style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:8px;color:#e2e8f0;font-size:.82rem;font-weight:700;background:{% if module == 'CITIZENS' or module == 'CITIZENS_INTAKE' or module == 'LEDGER_201' or module == 'HOUSEHOLDS' or module == 'SHARED_GALLERY' or module == 'DOCS_REPO' or module == 'CITIZEN_REPORTS' %}rgba(255,255,255,.08){% else %}transparent{% endif %};">
           <span>02. Citizen &amp; 201 Suite</span>
           <span style="font-size:.72rem;color:#94a3b8;">&#9662;</span>
@@ -113,6 +113,7 @@
           {% if "SHARED_GALLERY" in visible_modules %}<a href="?tier=BARANGAY&module=SHARED_GALLERY" class="{% if module == 'SHARED_GALLERY' %}active{% endif %}"><span>02E. Shared Citizen Profiles</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
           {% if "DOCS_REPO" in visible_modules %}<a href="?tier=BARANGAY&module=DOCS_REPO" class="{% if module == 'DOCS_REPO' %}active{% endif %}"><span>02F. Supporting Docs Vault</span><span class="pill">{{ all_repo_docs|length }}</span></a>{% endif %}
           {% if "CITIZEN_REPORTS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZEN_REPORTS" class="{% if module == 'CITIZEN_REPORTS' %}active{% endif %}"><span>02G. Citizen Portal Reports</span><span class="pill">{{ citizen_reports|length }}</span></a>{% endif %}
+          {% if "PHOTO_REVIEW" in visible_modules %}<a href="?tier=BARANGAY&module=PHOTO_REVIEW" class="{% if module == 'PHOTO_REVIEW' %}active{% endif %}"><span>02H. 2&times;2 ID Photo Review</span><span class="pill">{{ pending_photo_citizens|length }}</span></a>{% endif %}
         </div>
       </details>
       {% endif %}
@@ -1337,6 +1338,11 @@
               {% empty %}<tr><td colspan="6">No system audit events recorded yet.</td></tr>{% endfor %}
             </tbody></table>
           </div>
+        {% elif module == "PHOTO_REVIEW" %}
+          <div class="section-title"><span>02H. Official 2&times;2 ID Photo Verification &amp; Quarterly Lock Queue ({{ pending_photo_citizens|length }} Pending)</span><a href="?tier=BARANGAY&module=DOCS_REPO">Supporting Docs Vault &rarr;</a></div>
+          {% include "governance/_pending_2x2_queue.html" %}
+          {% if not pending_photo_citizens %}<div class="card" style="color:#64748b;text-align:center;padding:24px;">No pending 2&times;2 ID photo submissions awaiting Barangay Secretary review.</div>{% endif %}
+          <table style="margin-top:14px;"><thead><tr><th>Citizen &amp; QR ID</th><th>Current ID Photo</th><th>Review Status</th><th>90-Day Quarterly Lock / Notes</th><th>201 Record</th></tr></thead><tbody>{% for c in citizens %}{% if c.photo_review_status != "NONE" %}<tr><td><strong>{{ c.full_name }}</strong><br><code>{{ c.citizen_qr_id }}</code></td><td>{% if c.photo_data_uri %}<img src="{{ c.photo_data_uri }}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;">{% else %}&mdash;{% endif %}</td><td><span class="badge">{{ c.get_photo_review_status_display }}</span></td><td>{% if c.next_allowed_photo_change %}Locked until {{ c.next_allowed_photo_change|date:"M d, Y" }}{% elif c.photo_rejection_reason %}{{ c.photo_rejection_reason }}{% else %}Awaiting Secretary Decision{% endif %}</td><td><a href="/citizen-inspect/{{ c.id }}/" target="_blank" class="badge">Inspect 201 &nearr;</a></td></tr>{% endif %}{% endfor %}</tbody></table>
         {% elif module == "DOCS_REPO" %}
           {% include "governance/_pending_2x2_queue.html" %}
           <div class="section-title">
