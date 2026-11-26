@@ -134,7 +134,7 @@ def save_shared_201_fields(citizen, post_data):
         "citizenship", "religion", "blood_type", "height_cm", "weight_kg", "complexion",
         "house_lot_no", "street_name", "address_line", "current_address", "purok", "residency_status",
         "mobile_number", "email_address", "emergency_contact_name", "emergency_contact_phone", "emergency_contact_relationship",
-        "father_name", "mother_maiden_name", "spouse_name", "education_level", "school_or_course", "grade_year_level",
+        "inhabitant_type", "household_head_name", "father_name", "mother_maiden_name", "spouse_name", "education_level", "school_or_course", "grade_year_level",
         "employment_status", "occupation", "secondary_livelihood", "employer_or_business", "employer_address", "monthly_income",
         "philsys_id", "precinct_number", "philhealth_number", "sss_gsis_number", "tin_number", "pagibig_number",
         "osca_id_number", "pwd_id_number", "pwd_disability_type", "solo_parent_id_number", "four_ps_household_id",
@@ -153,6 +153,22 @@ def save_shared_201_fields(citizen, post_data):
         "is_solo_parent", "is_4ps_beneficiary", "is_first_time_jobseeker", "is_ofw", "is_osy_osc",
         "is_indigenous_people", "is_pregnant",
     )
+    if "total_household_members" in post_data:
+        try: citizen.total_household_members = max(1, int(post_data.get("total_household_members") or 1))
+        except ValueError: pass
+    if "date_moved_in" in post_data:
+        dmi = post_data.get("date_moved_in", "").strip()
+        try: citizen.date_moved_in = date.fromisoformat(dmi) if dmi else None
+        except ValueError: pass
+    import re as _re
+    if citizen.street_name:
+        citizen.street_name = _re.sub(r",?\s*(Barangay\s+Lagare|Lagare|Cabanatuan\s+City|Nueva\s+Ecija|Philippines|3111).*$", "", citizen.street_name, flags=_re.I).strip(" ,-")
+    for mf in ("mobile_number", "emergency_contact_phone"):
+        digs = "".join(c for c in (getattr(citizen, mf) or "") if c.isdigit())
+        if digs.startswith("63") and len(digs)==12: digs = "0" + digs[2:]
+        elif len(digs)==10 and digs.startswith("9"): digs = "0" + digs
+        if len(digs)==11: setattr(citizen, mf, f"{digs[:4]}-{digs[4:7]}-{digs[7:11]}")
+    if citizen.sex == "MALE": citizen.is_pregnant = False
     for bf in bool_fields:
         setattr(citizen, bf, post_data.get(bf) in ("1", "on", "true", "True"))
 

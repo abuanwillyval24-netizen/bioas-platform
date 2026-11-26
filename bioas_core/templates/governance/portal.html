@@ -112,7 +112,7 @@
             <label style="margin:0;">Suffix</label>
             <label style="margin:0;font-size:.66rem;font-weight:700;color:#475569;display:inline-flex;align-items:center;gap:3px;cursor:pointer;"><input type="checkbox" id="naSufChk" onchange="toggleIdleField('naSufChk','sufNameInp')" style="width:12px;height:12px;margin:0;"> Not applicable</label>
           </div>
-          <input id="sufNameInp" name="suffix" value="{{ draft.suffix }}" placeholder="Jr., Sr., III">
+          <select name="suffix"><option value="">None</option><option value="Jr.">Jr.</option><option value="Sr.">Sr.</option><option value="II">II</option><option value="III">III</option><option value="IV">IV</option><option value="V">V</option><option value="VI">VI</option><option value="VII">VII</option><option value="VIII">VIII</option><option value="IX">IX</option><option value="X">X</option></select>
         </div>
         <div>
           <div style="display:flex;align-items:center;height:20px;margin-bottom:4px;"><label style="margin:0;">Alias / Palayaw</label></div>

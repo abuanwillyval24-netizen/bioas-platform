@@ -35,10 +35,8 @@
 </head>
 <body>
   <div class="top no-print">
-    <div>
-      <strong>Official Citizen 201 Master Record</strong> &mdash; {{ c.barangay.name }}
-      <span style="background:rgba(255,255,255,.2);padding:2px 9px;border-radius:999px;font-size:.7rem;margin-left:6px;">Detected: {{ device_label }}</span>
-    </div>
+    <div style="display:flex;align-items:center;gap:10px;"><img src="https://qrserver.com<span style="white-space:nowrap;font-size:.88rem;">{{ c.citizen_qr_id }}</span>" alt="QR" style="width:54px;height:54px;border-radius:6px;background:#fff;padding:2px;"><div><strong>Official Citizen 201 Master Record</strong> &mdash; {{ c.barangay.name }} <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:800;">{{ c.completeness_score }}% Complete</span>
+      <span style="background:rgba(255,255,255,.2);padding:2px 9px;border-radius:999px;font-size:.7rem;margin-left:6px;">Detected: {{ device_label }}</span></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       {% if view_mode == 'mobile' %}
         <a href="?{% if qr_param %}qr={{ qr_param }}&{% endif %}view=sheet" style="background:rgba(255,255,255,.18);color:#fff;padding:7px 12px;border-radius:6px;text-decoration:none;font-size:.78rem;font-weight:700;">&#128196; Print Sheet View</a>
@@ -260,7 +258,7 @@
         <div class="item"><div class="lbl">Permanent Barangay Address</div><div class="val">{{ c.address_line|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Current Address (Outside/Inside Brgy)</div><div class="val">{{ c.current_address|default:c.address_line|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Length of Residency</div><div class="val">{{ c.years_in_barangay }} year(s)</div></div>
-        <div class="item"><div class="lbl">Mobile Number</div><div class="val">{{ c.mobile_number|default:"-" }}</div></div>
+        <div class="item"><div class="lbl">Mobile Number</div><div class="val">{{ c.formatted_mobile }}</div></div>
         <div class="item"><div class="lbl">Email Address</div><div class="val">{{ c.email_address|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Emergency Contact Person</div><div class="val">{{ c.emergency_contact_name|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Emergency Contact Number</div><div class="val">{{ c.emergency_contact_phone|default:"-" }}</div></div>

@@ -183,6 +183,15 @@ class CitizenProfile(models.Model):
     portal_password_hash = models.CharField(max_length=128, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    INHABITANT_CHOICES = [("NON_MIGRANT", "Non-Migrant"), ("MIGRANT", "Migrant"), ("TRANSIENT", "Transient")]
+    inhabitant_type = models.CharField(max_length=20, choices=INHABITANT_CHOICES, default="NON_MIGRANT")
+    household_head_name = models.CharField(max_length=140, blank=True)
+    total_household_members = models.PositiveIntegerField(default=1)
+    date_moved_in = models.DateField(null=True, blank=True)
+    psgc_region_code = models.CharField(max_length=15, default="030000000")
+    psgc_province_code = models.CharField(max_length=15, default="034900000")
+    psgc_city_muni_code = models.CharField(max_length=15, default="034903000")
+    psgc_barangay_code = models.CharField(max_length=15, default="034903040")
     is_archived = models.BooleanField(default=False, db_index=True)
     archived_by = models.CharField(max_length=120, blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
@@ -319,3 +328,36 @@ def archive_citizen_supporting_doc(sender, instance, **kwargs):
                 file=instance.supporting_document.name,
                 uploaded_by="Citizen Portal" if source == "PORTAL_SIGNUP" else "Barangay Staff",
             )
+
+    @property
+    def clean_street_name(self):
+        import re
+        raw = (self.street_name or self.address_line or "").strip()
+        return re.sub(r",?\s*(Barangay\s+Lagare|Lagare|Cabanatuan\s+City|Nueva\s+Ecija|Philippines|3111).*$", "", raw, flags=re.I).strip(" ,-") or raw
+
+    @property
+    def formatted_mobile(self):
+        d = "".join(ch for ch in (self.mobile_number or "") if ch.isdigit())
+        if d.startswith("63") and len(d) == 12: d = "0" + d[2:]
+        elif len(d) == 10 and d.startswith("9"): d = "0" + d
+        return f"{d[:4]}-{d[4:7]}-{d[7:11]}" if len(d) == 11 else (self.mobile_number or "-")
+
+    @property
+    def meets_six_month_residency(self):
+        from django.utils import timezone
+        if self.date_moved_in:
+            return (timezone.now().date() - self.date_moved_in).days >= 180
+        return (self.years_in_barangay or 0) >= 1
+
+    @property
+    def completeness_score(self):
+        req = [self.last_name, self.first_name, self.birth_date, self.sex, self.civil_status, self.birth_place, self.religion, self.blood_type, self.height_cm, self.weight_kg, self.complexion, self.purok, self.address_line, self.mobile_number, self.email_address, self.father_name, self.mother_maiden_name, self.education_level, self.occupation, self.philsys_id]
+        if self.civil_status == "MARRIED": req.append(self.spouse_name)
+        if self.is_senior_citizen: req.append(self.osca_id_number)
+        if self.is_pwd: req.append(self.pwd_id_number)
+        if self.is_solo_parent: req.append(self.solo_parent_id_number)
+        if self.is_4ps_beneficiary: req.append(self.four_ps_household_id)
+        if self.is_ofw: req.append(self.ofw_country)
+        if self.is_indigenous_people: req.append(self.ip_group_tribe)
+        filled = sum(1 for v in req if v not in (None, ""))
+        return int(round((filled / max(1, len(req))) * 100))
