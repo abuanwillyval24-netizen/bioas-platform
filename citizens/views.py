@@ -774,10 +774,11 @@ def normalize_official_2x2_photo(cit, photo_file):
     im = im.crop((left, top, left + side, top + side)).resize((600, 600), Image.Resampling.LANCZOS)
     buf = BytesIO()
     im.save(buf, format="JPEG", quality=88, dpi=(300, 300), optimize=True)
-    cit.pending_photo_data_uri = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    uri_val = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    CitizenProfile.objects.filter(id=cit.id).update(pending_photo_data_uri=uri_val, photo_review_status="PENDING", photo_rejection_reason="")
+    cit.pending_photo_data_uri = uri_val
     cit.photo_review_status = "PENDING"
     cit.photo_rejection_reason = ""
-    cit.save(update_fields=["pending_photo_data_uri", "photo_review_status", "photo_rejection_reason"])
 
 
 @login_required(login_url="/login/")
@@ -795,13 +796,10 @@ def review_citizen_photo(request, citizen_id):
             now_dt = timezone.now()
             cit.photo_approved_at = now_dt
             cit.next_allowed_photo_change = now_dt + timedelta(days=90)
-            cit.save(update_fields=["photo_data_uri", "pending_photo_data_uri", "photo_review_status", "photo_rejection_reason", "photo_approved_at", "next_allowed_photo_change"])
+            CitizenProfile.objects.filter(id=cit.id).update(photo_data_uri=cit.photo_data_uri, pending_photo_data_uri="", photo_review_status="APPROVED", photo_rejection_reason="", photo_approved_at=now_dt, next_allowed_photo_change=now_dt + timedelta(days=90))
         elif dec == "REJECT":
             rsn = request.POST.get("rejection_reason", "").strip() or "Informal selfie, plain background required, or face obscured."
-            cit.pending_photo_data_uri = ""
-            cit.photo_review_status = "REJECTED"
-            cit.photo_rejection_reason = rsn
-            cit.save(update_fields=["pending_photo_data_uri", "photo_review_status", "photo_rejection_reason"])
+            CitizenProfile.objects.filter(id=cit.id).update(pending_photo_data_uri="", photo_review_status="REJECTED", photo_rejection_reason=rsn)
     return redirect(request.POST.get("next") or f"/citizen-inspect/{cit.id}/")
 
 
