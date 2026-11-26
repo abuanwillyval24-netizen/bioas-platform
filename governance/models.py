@@ -608,3 +608,44 @@ class WalkInIncidentTicket(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class CitizenServiceTicket(models.Model):
+    GROUP_CHOICES = [
+        ('REGISTRY_ACCOUNT', '1. 201 Registry, Barangay ID & Account Security'),
+        ('DOCS_CERTIFICATES', '2. Certificates, CTC & Business Services'),
+        ('LUPON_ENGAGEMENT', '3. Lupon, Coffee Talk & Case Engagement'),
+        ('SAFETY_CONFIDENTIAL', '4. Confidential Safety, Personnel & Census Reports'),
+        ('PROJECTS_INFRA', '5. Projects, Infrastructure & Defect Reports'),
+        ('WELFARE_DISASTER', '6. Social Assistance, Representative Claim & Disaster'),
+        ('FACILITY_FEEDBACK', '7. Facilities, Business & Service Feedback'),
+    ]
+    STATUS_CHOICES = [
+        ('SUBMITTED', 'Submitted — Awaiting Office Review'),
+        ('IN_PROGRESS', 'Under Verification / Action'),
+        ('NEEDS_INFO', 'Returned — Lacking Requirements'),
+        ('RESOLVED', 'Approved / Resolved / Issued'),
+        ('CLOSED', 'Closed / Archived'),
+    ]
+    barangay = models.ForeignKey(BarangayTenant, on_delete=models.CASCADE, related_name='citizen_service_tickets')
+    citizen = models.ForeignKey('citizens.CitizenProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='service_tickets')
+    ticket_code = models.CharField(max_length=36, unique=True, db_index=True)
+    service_group = models.CharField(max_length=32, choices=GROUP_CHOICES)
+    ticket_type = models.CharField(max_length=64)
+    subject = models.CharField(max_length=160)
+    details = models.TextField()
+    location_or_ref = models.CharField(max_length=160, blank=True)
+    supporting_file = models.FileField(upload_to='citizen_service_tickets/%Y/%m/', null=True, blank=True)
+    is_anonymous = models.BooleanField(default=False)
+    allow_recognition = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED')
+    office_reply = models.TextField(blank=True)
+    handled_by = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.ticket_code} — {self.subject}'
