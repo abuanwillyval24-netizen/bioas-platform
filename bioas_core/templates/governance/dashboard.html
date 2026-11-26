@@ -113,21 +113,27 @@
           {% if "SHARED_GALLERY" in visible_modules %}<a href="?tier=BARANGAY&module=SHARED_GALLERY" class="{% if module == 'SHARED_GALLERY' %}active{% endif %}"><span>02E. Shared Citizen Profiles</span><span class="pill">{{ pop_stats.total_residents }}</span></a>{% endif %}
           {% if "DOCS_REPO" in visible_modules %}<a href="?tier=BARANGAY&module=DOCS_REPO" class="{% if module == 'DOCS_REPO' %}active{% endif %}"><span>02F. Supporting Docs Vault</span><span class="pill">{{ all_repo_docs|length }}</span></a>{% endif %}
           {% if "CITIZEN_REPORTS" in visible_modules %}<a href="?tier=BARANGAY&module=CITIZEN_REPORTS" class="{% if module == 'CITIZEN_REPORTS' %}active{% endif %}"><span>02G. Citizen Portal Reports</span><span class="pill">{{ citizen_reports|length|add:citizen_service_tickets|length }}</span></a>{% endif %}
+          {% if "INBOUND_SAFETY" in visible_modules %}<a href="?tier=BARANGAY&module=INBOUND_SAFETY" class="{% if module == 'INBOUND_SAFETY' %}active{% endif %}"><span>02I. Confidential Safety &amp; Census</span><span class="pill">&bull;</span></a>{% endif %}
           {% if "PHOTO_REVIEW" in visible_modules %}<a href="?tier=BARANGAY&module=PHOTO_REVIEW" class="{% if module == 'PHOTO_REVIEW' %}active{% endif %}"><span>02H. 2&times;2 ID Photo Review</span><span class="pill">{{ pending_photo_citizens|length }}</span></a>{% endif %}
         </div>
       </details>
       {% endif %}
       {% if "CERTIFICATES" in visible_modules %}<a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>{% endif %}
+      {% if "INBOUND_DOCS" in visible_modules %}<a href="?tier=BARANGAY&module=INBOUND_DOCS" class="{% if module == 'INBOUND_DOCS' %}active{% endif %}"><span>03B. Inbound CTC &amp; Business Docs</span><span class="pill">&bull;</span></a>{% endif %}
       {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Derogatory Record Flag</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
-      {% if "CITIZENS" in visible_modules or "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=REGISTRY_SERVICE" class="{% if module == 'REGISTRY_SERVICE' %}active{% endif %}"><span>05. Citizen ID, Move-Out &amp; Account</span><span class="pill">{{ citizen_service_tickets|length }}</span></a>{% endif %}
+      {% if "INBOUND_LUPON" in visible_modules %}<a href="?tier=BARANGAY&module=INBOUND_LUPON" class="{% if module == 'INBOUND_LUPON' %}active{% endif %}"><span>04B. Inbound Coffee Talk &amp; Case Review</span><span class="pill">&bull;</span></a>{% endif %}
+      {% if "REGISTRY_SERVICE" in visible_modules %}<a href="?tier=BARANGAY&module=REGISTRY_SERVICE" class="{% if module == 'REGISTRY_SERVICE' %}active{% endif %}"><span>05. Citizen ID, Move-Out &amp; Account</span><span class="pill">&bull;</span></a>{% endif %}
       </details><details class="side-grp" data-gid="grp_TreasuryampRevenue" style="margin:4px 0;"><summary class="side-group" style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:8px;background:rgba(255,255,255,.07);border-left:3px solid #fbbf24;font-size:.83rem;font-weight:900;color:#f8fafc;letter-spacing:.09em;text-transform:uppercase;"><span>Treasury &amp; Revenue</span><span>&#9662;</span></summary>
       {% if "TREASURY" in visible_modules %}<a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury &amp; Collections</span><span class="pill">{{ receipts|length }}</span></a>{% endif %}
       </details><details class="side-grp" data-gid="grp_CommunityampCare" style="margin:4px 0;"><summary class="side-group" style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:8px;background:rgba(255,255,255,.07);border-left:3px solid #fbbf24;font-size:.83rem;font-weight:900;color:#f8fafc;letter-spacing:.09em;text-transform:uppercase;"><span>Community &amp; Care</span><span>&#9662;</span></summary>
       {% if "HEALTH" in visible_modules %}<a href="?tier=BARANGAY&module=HEALTH" class="{% if module == 'HEALTH' %}active{% endif %}"><span>06. Health Station</span><span class="pill">{{ health_records|length }}</span></a>{% endif %}
       {% if "WELFARE" in visible_modules %}<a href="?tier=BARANGAY&module=WELFARE" class="{% if module == 'WELFARE' %}active{% endif %}"><span>07. Welfare &amp; Associations</span><span class="pill">{{ associations|length }}</span></a>{% endif %}
+      {% if "INBOUND_WELFARE" in visible_modules %}<a href="?tier=BARANGAY&module=INBOUND_WELFARE" class="{% if module == 'INBOUND_WELFARE' %}active{% endif %}"><span>07B. Inbound Rep Claims &amp; Disaster</span><span class="pill">&bull;</span></a>{% endif %}
       {% if "SK" in visible_modules %}<a href="?tier=BARANGAY&module=SK" class="{% if module == 'SK' %}active{% endif %}"><span>10. SK &amp; Youth</span><span class="pill">{{ kk_youth|length }}</span></a>{% endif %}
       </details><details class="side-grp" data-gid="grp_OperationsampGovernance" style="margin:4px 0;"><summary class="side-group" style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:8px;background:rgba(255,255,255,.07);border-left:3px solid #fbbf24;font-size:.83rem;font-weight:900;color:#f8fafc;letter-spacing:.09em;text-transform:uppercase;"><span>Operations &amp; Governance</span><span>&#9662;</span></summary>
       {% if "FLEET" in visible_modules %}<a href="?tier=BARANGAY&module=FLEET" class="{% if module == 'FLEET' %}active{% endif %}"><span>08. Fleet &amp; Equipment</span><span class="pill">{{ vehicles|length }}</span></a>{% endif %}
+      {% if "INBOUND_PROJECTS" in visible_modules %}<a href="?tier=BARANGAY&module=INBOUND_PROJECTS" class="{% if module == 'INBOUND_PROJECTS' %}active{% endif %}"><span>08B. Inbound Infra &amp; Project Defects</span><span class="pill">&bull;</span></a>{% endif %}
+      {% if "INBOUND_FACILITY" in visible_modules %}<a href="?tier=BARANGAY&module=INBOUND_FACILITY" class="{% if module == 'INBOUND_FACILITY' %}active{% endif %}"><span>09B. Inbound Facility &amp; Service Feedback</span><span class="pill">&bull;</span></a>{% endif %}
       {% if "DRRM" in visible_modules %}<a href="?tier=BARANGAY&module=DRRM" class="{% if module == 'DRRM' %}active{% endif %}"><span>09. BDRRMC &amp; Evac</span><span class="pill">{{ hazards|length }}</span></a>{% endif %}
       {% if "LEGISLATION" in visible_modules %}<a href="?tier=BARANGAY&module=LEGISLATION" class="{% if module == 'LEGISLATION' %}active{% endif %}"><span>11. Ordinances &amp; BDP</span><span class="pill">{{ measures|length }}</span></a>{% endif %}
       {% if "AUDIT" in visible_modules %}<a href="?tier=BARANGAY&module=AUDIT" class="{% if module == 'AUDIT' %}active{% endif %}"><span>12. COA &amp; DILG Audit</span><span class="pill">{{ coa_audits|length }}</span></a>{% endif %}
@@ -1345,6 +1351,52 @@
             </div>
           </div>
           </div>
+
+          {% if is_captain_or_admin %}
+          <div class="section-title" style="margin-top:24px;"><span>13B. Punong Barangay (Captain) Staff &amp; Clerk Module Assignment Matrix</span></div>
+          <div class="card" style="border-top:4px solid #1e3a8a;padding:14px;">
+            <p style="margin:0 0 12px;font-size:.82rem;color:#475569;">Assign exact operational and inbound modules per Barangay Clerk, Secretary, Treasurer, Lupon, or BHW. Each personnel sees only the modules assigned below.</p>
+            {% for sp in barangay_staff_list %}
+            <form method="post" style="border:1px solid #cbd5e1;border-radius:10px;padding:12px;margin-bottom:10px;background:#f8fafc;">{% csrf_token %}<input type="hidden" name="action" value="ASSIGN_STAFF_MODULES"><input type="hidden" name="staff_id" value="{{ sp.id }}">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <div><strong style="color:#0f172a;font-size:.9rem;">{{ sp.full_name }}</strong> <span class="badge">{{ sp.get_role_display }}</span> <span style="font-size:.74rem;color:#64748b;">({{ sp.official_code }})</span></div>
+                <button type="submit" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:7px;font-size:.76rem;font-weight:800;cursor:pointer;">Save Assigned Modules ✓</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:6px;">
+                {% for mcode,mlabel in all_module_choices %}
+                <label style="display:flex;align-items:center;gap:6px;font-size:.76rem;font-weight:700;color:#1e293b;background:#fff;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;">
+                  <input type="checkbox" name="assigned_modules" value="{{ mcode }}" {% if mcode in sp.allowed_modules %}checked{% endif %} style="width:auto;"> {{ mlabel }}
+                </label>
+                {% endfor %}
+              </div>
+            </form>
+            {% empty %}<div style="color:#64748b;font-size:.82rem;">No Barangay staff profiles registered under this tenant yet.</div>{% endfor %}
+          </div>
+          {% endif %}
+
+        {% elif module == "INBOUND_DOCS" %}
+          <div class="section-title"><span>03B. Inbound Citizen Certified True Copy, Missing Docs &amp; Business Requests</span></div>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="DOCS_CERTIFICATES" box_title="Inbound CTC, Missing Requirements & Business Filing Queue" %}
+
+        {% elif module == "INBOUND_LUPON" %}
+          <div class="section-title"><span>04B. Inbound Citizen Coffee Talk Mediation, Archived Case Review &amp; Summons</span></div>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="LUPON_ENGAGEMENT" box_title="Inbound Coffee Talk Mediation & Case Review Queue" %}
+
+        {% elif module == "INBOUND_SAFETY" %}
+          <div class="section-title"><span>02I. Confidential Community Safety, Personnel Misconduct &amp; Census Disputes</span></div>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="SAFETY_CONFIDENTIAL" box_title="Confidential Safety, Personnel Complaint & Census Dispute Queue" %}
+
+        {% elif module == "INBOUND_PROJECTS" %}
+          <div class="section-title"><span>08B. Inbound Citizen Infrastructure Proposals, Project Defects &amp; Waste Reports</span></div>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="PROJECTS_INFRA" box_title="Inbound Infrastructure Proposal, Defect & Waste Queue" %}
+
+        {% elif module == "INBOUND_WELFARE" %}
+          <div class="section-title"><span>07B. Inbound Citizen Representative Ayuda Claims, Disputes &amp; Disaster Reports</span></div>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="WELFARE_DISASTER" box_title="Inbound Representative Claim, Exclusion Dispute & Disaster Queue" %}
+
+        {% elif module == "INBOUND_FACILITY" %}
+          <div class="section-title"><span>09B. Inbound Citizen Facility, Business Closure &amp; Service Quality Feedback</span></div>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="FACILITY_FEEDBACK" box_title="Inbound Facility, Business Closure & Service Feedback Queue" %}
 
         {% elif module == "AUDIT" %}
           <div class="section-title"><span>12A. COA Audit &amp; Liquidation Packages</span><a href="/admin/audit_analytics/coaauditcompliance/add/">+ Log COA Package</a></div>

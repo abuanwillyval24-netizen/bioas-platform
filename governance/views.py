@@ -163,7 +163,7 @@ def command_dashboard(request):
     else:
         visible_modules = list(all_mod_codes)
     if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or request.user.is_superuser:
-        for extra_sub in ("CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "DOCS_REPO", "CITIZEN_REPORTS", "PHOTO_REVIEW", "REGISTRY_SERVICE"):
+        for extra_sub in ("CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "DOCS_REPO", "CITIZEN_REPORTS", "PHOTO_REVIEW", "REGISTRY_SERVICE", "INBOUND_DOCS", "INBOUND_LUPON", "INBOUND_SAFETY", "INBOUND_PROJECTS", "INBOUND_WELFARE", "INBOUND_FACILITY"):
             if extra_sub not in visible_modules:
                 visible_modules.append(extra_sub)
 
@@ -415,6 +415,20 @@ def command_dashboard(request):
                 tkt.resolution_note = request.POST.get("resolution_note", "Resolved & Closed by Officer").strip()[:240]
                 tkt.save(update_fields=["status", "closed_at", "resolution_note"])
                 action_notice = f"Incident {tkt.icn_code} closed and archived."
+        elif act == "ASSIGN_STAFF_MODULES" and active_barangay and (request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN")):
+            sp = BarangayStaffProfile.objects.filter(barangay=active_barangay, id=request.POST.get("staff_id")).first()
+            if sp:
+                picked = request.POST.getlist("assigned_modules")
+                sp.allowed_modules = picked if picked else ["OVERVIEW"]
+                sp.save(update_fields=["allowed_modules"])
+                action_notice = f"Updated module access for {sp.full_name} ({sp.get_role_display()})."
+        elif act == "ASSIGN_STAFF_MODULES" and active_barangay and (request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN")):
+            sp = BarangayStaffProfile.objects.filter(barangay=active_barangay, id=request.POST.get("staff_id")).first()
+            if sp:
+                picked = request.POST.getlist("assigned_modules")
+                sp.allowed_modules = picked if picked else ["OVERVIEW"]
+                sp.save(update_fields=["allowed_modules"])
+                action_notice = f"Updated module access for {sp.full_name} ({sp.get_role_display()})."
         elif act == "UPDATE_SERVICE_TICKET" and active_barangay:
             from .models import CitizenServiceTicket
             stkt = CitizenServiceTicket.objects.filter(barangay=active_barangay, id=request.POST.get("ticket_id")).first()
@@ -1317,7 +1331,7 @@ def command_dashboard(request):
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
-        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
+        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
         "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
         "open_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="OPEN")[:30]) if active_barangay else [],
