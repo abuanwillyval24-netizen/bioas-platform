@@ -361,3 +361,16 @@ def archive_citizen_supporting_doc(sender, instance, **kwargs):
         if self.is_indigenous_people: req.append(self.ip_group_tribe)
         filled = sum(1 for v in req if v not in (None, ""))
         return int(round((filled / max(1, len(req))) * 100))
+
+    @property
+    def shared_contact_matches(self):
+        from django.db.models import Q
+        q = Q()
+        if self.email_address:
+            q |= Q(email_address__iexact=self.email_address.strip())
+        digs = "".join(ch for ch in (self.mobile_number or "") if ch.isdigit())
+        if len(digs) >= 9:
+            q |= Q(mobile_number__icontains=digs[-9:])
+        if not q:
+            return []
+        return list(CitizenProfile.objects.filter(barangay=self.barangay, is_archived=False).filter(q).exclude(id=self.id).order_by("id"))
