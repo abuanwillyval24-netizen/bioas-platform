@@ -1113,7 +1113,7 @@ def command_dashboard(request):
 
     from citizens.models import CitizenSupportingDocument
     citizens = CitizenProfile.objects.select_related("household").defer("supporting_doc_data_uri").filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
-    pending_photo_citizens = [c for c in citizens if c.photo_review_status == "PENDING" and c.pending_photo_data_uri]
+    pending_photo_citizens = list(CitizenProfile.objects.filter(barangay=active_barangay, photo_review_status="PENDING").exclude(pending_photo_data_uri="")) if active_barangay else []
     all_repo_docs = CitizenSupportingDocument.objects.select_related("citizen").defer("file_data_uri", "citizen__supporting_doc_data_uri", "citizen__pending_photo_data_uri").filter(citizen__barangay=active_barangay) if active_barangay else CitizenSupportingDocument.objects.none()
     households = Household.objects.prefetch_related("members").filter(barangay=active_barangay) if active_barangay else Household.objects.none()
     citizen_reports = CitizenCommunityReport.objects.filter(barangay=active_barangay) if active_barangay else CitizenCommunityReport.objects.none()
