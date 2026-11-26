@@ -168,6 +168,14 @@ def save_shared_201_fields(citizen, post_data):
         if digs.startswith("63") and len(digs)==12: digs = "0" + digs[2:]
         elif len(digs)==10 and digs.startswith("9"): digs = "0" + digs
         if len(digs)==11: setattr(citizen, mf, f"{digs[:4]}-{digs[4:7]}-{digs[7:11]}")
+    if "household_code" in post_data:
+        from citizens.models import Household
+        hc = post_data.get("household_code", "").strip().upper()
+        if hc:
+            hh_obj, _ = Household.objects.get_or_create(barangay=citizen.barangay, household_code=hc, defaults={"head_of_family": citizen.household_head_name or citizen.full_name, "purok": citizen.purok or "Purok I", "address_line": citizen.address_line or ""})
+            citizen.household = hh_obj
+        else:
+            citizen.household = None
     if not citizen.household:
         from citizens.models import Household
         hh = None

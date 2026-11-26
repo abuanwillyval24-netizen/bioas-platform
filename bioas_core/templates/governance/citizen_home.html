@@ -212,7 +212,6 @@
                   <div><label>&#128274; Full Legal Name</label><input value="{{ citizen.full_name }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
                   <div><label>&#128274; Birthdate &amp; Age</label><input value="{{ citizen.birth_date|date:'M d, Y' }} ({{ citizen.age }} yrs)" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
                   <div><label>&#128274; Legal Sex (PSA / Law)</label><input value="{{ citizen.get_sex_display }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
-                  <div><label>🔒 Assigned Household Number (RBI)</label><input value="{% if citizen.household %}{{ citizen.household.household_code }} (Head: {{ citizen.household.head_of_family }}){% else %}Unassigned (Pending Barangay HH Link){% endif %}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
                 </div>
                 <div style="margin-top:8px;">{% include "governance/_citizen_201_shared_fields.html" with c=citizen %}</div>
                 <div class="grid-2" style="margin-top:10px;">
