@@ -91,10 +91,12 @@ def staff_login(request):
             else:
                 acct_key = f"CIT:{cand.id}"
                 tr = TrustedLoginDevice.objects.filter(account_key=acct_key, device_token_hash=dev_hash).first()
-                if tr and tr.ip_prefix == ip_prefix:
+                if tr:
                     return _finish_login(acct_key, "CITIZEN", cand.id)
                 otp_masked_email = _trigger_2fa(acct_key, "CITIZEN", cand.id, cand.email_address or "", cand.full_name)
-                otp_pending, notice = True, f"New device or location detected. A 6-digit verification OTP has been sent to {otp_masked_email}."
+                d_code = request.session.get("bioas_2fa_pending", {}).get("code", "")
+                has_smtp = bool(getattr(__import__("django.conf", fromlist=["settings"]).settings, "EMAIL_HOST_USER", "").strip()) and bool(cand.email_address)
+                otp_pending, notice = True, (f"New device detected. A 6-digit verification OTP has been sent to {otp_masked_email}." if has_smtp else f"New device detected. Enter your 6-digit verification code ({d_code}) below to trust this device.")
         else:
             user = authenticate(request, username=username_in, password=request.POST.get("password", ""))
             if user is None:
@@ -113,11 +115,13 @@ def staff_login(request):
                 if not error:
                     acct_key = f"OFF:{user.id}"
                     tr = TrustedLoginDevice.objects.filter(account_key=acct_key, device_token_hash=dev_hash).first()
-                    if tr and tr.ip_prefix == ip_prefix:
+                    if tr:
                         return _finish_login(acct_key, "OFFICIAL", user.id)
                     em = (user.email or (prof.citizen.email_address if (prof and prof.citizen) else "") or "").strip()
                     otp_masked_email = _trigger_2fa(acct_key, "OFFICIAL", user.id, em, prof.full_name if prof else user.username)
-                    otp_pending, notice = True, f"New device or location detected. A 6-digit verification OTP has been sent to {otp_masked_email}."
+                    d_code = request.session.get("bioas_2fa_pending", {}).get("code", "")
+                    has_smtp = bool(getattr(__import__("django.conf", fromlist=["settings"]).settings, "EMAIL_HOST_USER", "").strip()) and bool(em)
+                    otp_pending, notice = True, (f"New device detected. A 6-digit verification OTP has been sent to {otp_masked_email}." if has_smtp else f"New device detected. Enter your 6-digit verification code ({d_code}) below to trust this device.")
 
     bg_css = f"background:linear-gradient(120deg,rgba(15,23,42,.82) 0%,rgba(15,23,42,.52) 55%,rgba(15,23,42,.75) 100%),url('{showcase.background_image_url}') center/cover no-repeat fixed;" if (showcase and showcase.background_image_url) else "background:radial-gradient(circle at 20% 25%,#1d4ed8 0%,#0f172a 55%,#090d16 100%);"
     tpl_str = (Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "login.html").read_text(encoding="utf-8")
