@@ -745,6 +745,37 @@ def citizen_home(request):
                 status="VERIFIED_ELIGIBLE", remarks=f"Citizen Portal Request: {rsn[:210]}"
             )
             notice = f"Social Assistance Application ({cyc}) submitted to Barangay Social Welfare & Ayuda!"
+        elif act == "SUBMIT_SERVICE_TICKET":
+            from governance.models import CitizenServiceTicket
+            is_anon = request.POST.get("is_anonymous") == "1"
+            tkt = CitizenServiceTicket.objects.create(
+                barangay=citizen.barangay,
+                citizen=None if is_anon else citizen,
+                ticket_code=f"TKT-{uuid.uuid4().hex[:6].upper()}",
+                service_group=request.POST.get("service_group", "REGISTRY_ACCOUNT"),
+                ticket_type=request.POST.get("ticket_type", "General Inquiry")[:64],
+                subject=request.POST.get("subject", "").strip()[:160],
+                details=request.POST.get("details", "").strip(),
+                location_or_ref=request.POST.get("location_or_ref", "").strip()[:160],
+                supporting_file=request.FILES.get("supporting_file"),
+                is_anonymous=is_anon,
+                allow_recognition=(not is_anon and request.POST.get("allow_recognition") == "1"),
+            )
+            notice = f"Service Ticket {tkt.ticket_code} logged with {citizen.barangay.name}! Save this code to trace official action."
+        elif act == "REPLY_SERVICE_TICKET":
+            from governance.models import CitizenServiceTicket
+            tkt = CitizenServiceTicket.objects.filter(id=request.POST.get("ticket_id"), citizen=citizen).first()
+            msg = request.POST.get("followup_note", "").strip()
+            up_f = request.FILES.get("followup_file")
+            if tkt and (msg or up_f):
+                if msg:
+                    tkt.details = f"{tkt.details}\n[Citizen Follow-Up {timezone.localdate()}]: {msg}"
+                if up_f:
+                    tkt.supporting_file = up_f
+                if tkt.status == "NEEDS_INFO":
+                    tkt.status = "SUBMITTED"
+                tkt.save()
+                notice = f"Follow-up / requirement attached to {tkt.ticket_code} for Barangay review."
         elif act == "REQUEST_CERT":
             ctype = request.POST["cert_type"]
             exempt = ctype in ("INDIGENCY", "FIRST_TIME_JOBSEEKER")
@@ -775,7 +806,7 @@ def citizen_home(request):
     resp = HttpResponse(tpl.render({
         "citizen": citizen, "qr_id": qr_id, "notice": notice, "error": error,
         "citizen_qr_uri": citizen_qr_uri, "family_members": family_members,
-        "recent_certs": recent_certs, "recent_reports": recent_reports, "staging_unlocked": bool(request.session.get(f"stg_unlocked_{citizen.id}")) if citizen else False, "my_summons": list(citizen.received_summons.select_related("blotter_case").all()[:15]) if citizen else [], "my_reservations": list(citizen.facility_reservations.all()[:15]) if citizen else [], "active_sk_seat": __import__("sk_youth.models", fromlist=["SKOfficialSeat"]).SKOfficialSeat.objects.filter(citizen=citizen, term_status="ACTIVE").first() if citizen else None, "social_assistance_records": next((list(m.objects.filter(citizen=citizen).order_by("-id")[:15]) for m in __import__("django.apps", fromlist=["apps"]).apps.get_models() if "Social" in m.__name__ or "Aid" in m.__name__ or "Welfare" in m.__name__), []) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
+        "recent_certs": recent_certs, "recent_reports": recent_reports, "my_service_tickets": (citizen.service_tickets.all()[:25] if citizen else []), "staging_unlocked": bool(request.session.get(f"stg_unlocked_{citizen.id}")) if citizen else False, "my_summons": list(citizen.received_summons.select_related("blotter_case").all()[:15]) if citizen else [], "my_reservations": list(citizen.facility_reservations.all()[:15]) if citizen else [], "active_sk_seat": __import__("sk_youth.models", fromlist=["SKOfficialSeat"]).SKOfficialSeat.objects.filter(citizen=citizen, term_status="ACTIVE").first() if citizen else None, "social_assistance_records": next((list(m.objects.filter(citizen=citizen).order_by("-id")[:15]) for m in __import__("django.apps", fromlist=["apps"]).apps.get_models() if "Social" in m.__name__ or "Aid" in m.__name__ or "Welfare" in m.__name__), []) if citizen else [], "blast_advisories": list(__import__("governance.models", fromlist=["BarangayBlastAdvisory"]).BarangayBlastAdvisory.objects.filter(barangay=citizen.barangay, target_purok__in=["ALL", citizen.purok])[:15]) if citizen else [], "login_username": login_username, "rec_qr_id": rec_qr_id, "rec_email": rec_email, "otp_stage": otp_stage,
     }, request))
     resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp["Pragma"] = "no-cache"
