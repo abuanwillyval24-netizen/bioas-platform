@@ -1357,7 +1357,7 @@
             {% for d in all_repo_docs %}
             <tr class="repo-row" data-src="{{ d.source_channel }}">
               <td style="white-space:nowrap;">{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
-              <td><strong>{{ d.citizen.full_name }}</strong><br><small><code>{{ d.citizen.citizen_qr_id }}</code> &bull; {{ d.citizen.purok }}</small></td>
+              <td><div style="display:flex;align-items:center;gap:8px;">{% if d.citizen.photo_data_uri %}<img src="{{ d.citizen.photo_data_uri }}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid #1e3a8a;">{% endif %}<div><strong>{{ d.citizen.full_name }}</strong><br><small><code>{{ d.citizen.citizen_qr_id }}</code></small></div></div></td>
               <td><strong>{{ d.document_title }}</strong></td>
               <td><span class="badge">{{ d.get_source_channel_display }}</span></td>
               <td>{{ d.uploaded_by|default:"System" }}</td>
