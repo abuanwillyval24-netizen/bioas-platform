@@ -429,6 +429,39 @@ def command_dashboard(request):
                 sp.allowed_modules = picked if picked else ["OVERVIEW"]
                 sp.save(update_fields=["allowed_modules"])
                 action_notice = f"Updated module access for {sp.full_name} ({sp.get_role_display()})."
+        elif act == "ISSUE_WALKIN_CERT" and active_barangay:
+            import secrets
+            from documents.models import CertificateRequest
+            q_ref = request.POST.get("citizen_ref", "").strip()
+            cit = CitizenProfile.objects.filter(barangay=active_barangay).filter(Q(citizen_qr_id__iexact=q_ref) | Q(full_name__icontains=q_ref)).first()
+            if not cit:
+                action_notice = f"Resident not found for: {q_ref}. Verify 201 Master Record first."
+            else:
+                ctype = request.POST.get("cert_type", "BARANGAY_CLEARANCE")
+                exempt = ctype in ("INDIGENCY", "FIRST_TIME_JOBSEEKER") or request.POST.get("fee_mode") == "EXEMPT"
+                or_num = request.POST.get("official_receipt_number", "").strip()
+                has_derog = BlotterCase.objects.filter(barangay=active_barangay, blocks_clearance=True, respondent_name__icontains=cit.last_name).exists()
+                if has_derog and ctype in ("BARANGAY_CLEARANCE", "GOOD_MORAL", "BUSINESS_CLEARANCE"):
+                    action_notice = f"DEROGATORY HOLD: {cit.full_name} has an active blocking Blotter/Lupon case. Clearance blocked."
+                else:
+                    st = "READY_TO_PRINT" if (exempt or or_num or not active_barangay.fee_collection_enabled) else "PENDING_OR"
+                    c_new = CertificateRequest.objects.create(
+                        barangay=active_barangay, citizen=cit,
+                        control_number=f"CERT-{uuid.uuid4().hex[:6].upper()}-{secrets.token_hex(2).upper()}",
+                        cert_type=ctype, purpose=request.POST.get("purpose", "General Requirement").strip(),
+                        is_fee_exempt=exempt, fee_amount=0.00 if exempt else float(active_barangay.default_clearance_fee),
+                        official_receipt_number=or_num, or_date=timezone.localdate() if or_num else None,
+                        status=st
+                    )
+                    action_notice = f"Certificate {c_new.control_number} created for {cit.full_name} ({c_new.get_status_display()})."
+        elif act == "MARK_CERT_ISSUED" and active_barangay:
+            from documents.models import CertificateRequest
+            c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
+            if c_obj:
+                c_obj.status = "ISSUED_PRINTED"
+                c_obj.issued_date = timezone.localdate()
+                c_obj.save(update_fields=["status", "issued_date"])
+                action_notice = f"Certificate {c_obj.control_number} marked Issued & Released and mirrored to Citizen Portal."
         elif act == "UPDATE_SERVICE_TICKET" and active_barangay:
             from .models import CitizenServiceTicket
             stkt = CitizenServiceTicket.objects.filter(barangay=active_barangay, id=request.POST.get("ticket_id")).first()
@@ -1332,7 +1365,7 @@ def command_dashboard(request):
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
         "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
-        "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
+        "certificates": certificates, "cert_type_choices": __import__("documents.models", fromlist=["CertificateRequest"]).CertificateRequest.CERT_TYPES, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
         "open_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="OPEN")[:30]) if active_barangay else [],
         "archived_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="CLOSED_ARCHIVED")[:30]) if active_barangay else [],
