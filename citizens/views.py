@@ -780,6 +780,7 @@ def normalize_official_2x2_photo(cit, photo_file):
     cit.photo_review_status = "PENDING"
     cit.photo_rejection_reason = ""
     try:
+        cit.user = None
         CitizenSupportingDocument.objects.create(citizen=cit, document_title="2x2 Official ID Photo Submission (Pending Secretary Approval)", source_channel="SELF_PORTAL", uploaded_by=cit.full_name)
     except Exception:
         pass
@@ -802,6 +803,7 @@ def review_citizen_photo(request, citizen_id):
             cit.next_allowed_photo_change = now_dt + timedelta(days=90)
             CitizenProfile.objects.filter(id=cit.id).update(photo_data_uri=cit.photo_data_uri, pending_photo_data_uri="", photo_review_status="APPROVED", photo_rejection_reason="", photo_approved_at=now_dt, next_allowed_photo_change=now_dt + timedelta(days=90))
             try:
+                cit.user = None
                 CitizenSupportingDocument.objects.create(citizen=cit, document_title="2x2 Official ID Photo Approved (600x600px — Locked 90 Days)", source_channel="STAFF_REPOSITORY", uploaded_by=request.user.username)
             except Exception:
                 pass
