@@ -32,6 +32,8 @@ def staff_login(request):
         sp_u.save()
     if request.user.is_authenticated:
         return redirect("/")
+    if request.session.get("citizen_auth_id") and not request.GET.get("logout"):
+        return redirect("/citizen-home/")
     error, notice, otp_pending, otp_masked_email = "", "", False, ""
     role_type = (request.POST.get("role_type") or request.GET.get("role") or "OFFICIAL").strip().upper()
     ref_code = (request.POST.get("ref_code") or "").strip().upper()
