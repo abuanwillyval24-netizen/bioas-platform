@@ -734,6 +734,17 @@ def citizen_home(request):
                 sm.citizen_note = request.POST.get("citizen_note", "").strip()[:200]
                 sm.save(update_fields=["status", "acknowledged_at", "citizen_note"])
                 notice = f"e-Summon {sm.summon_code} digitally acknowledged. Please appear on {sm.hearing_date} at {sm.hearing_time.strftime('%H:%M')}."
+        elif act == "REQUEST_WELFARE_AID":
+            from social_welfare.models import SocialAidDistribution
+            pcat = request.POST.get("program_category", "BURIAL_AICS_ENDORSEMENT")
+            rsn = request.POST.get("aid_reason", "").strip()
+            cyc = f"PORTAL-{timezone.localdate().strftime('%Y-%m')}-{uuid.uuid4().hex[:4].upper()}"
+            SocialAidDistribution.objects.create(
+                barangay=citizen.barangay, citizen=citizen, program_category=pcat,
+                distribution_cycle=cyc, item_description=rsn[:140] or "Citizen Portal Assistance Request",
+                status="VERIFIED_ELIGIBLE", remarks=f"Citizen Portal Request: {rsn[:210]}"
+            )
+            notice = f"Social Assistance Application ({cyc}) submitted to Barangay Social Welfare & Ayuda!"
         elif act == "REQUEST_CERT":
             ctype = request.POST["cert_type"]
             exempt = ctype in ("INDIGENCY", "FIRST_TIME_JOBSEEKER")
