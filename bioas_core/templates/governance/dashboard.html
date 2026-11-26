@@ -705,7 +705,7 @@
             #xl201Table th[data-col="1"], #xl201Table td[data-col="1"] { left: 195px !important; }
           </style>
           <div class="section-title">
-            <span>02C. Master 201 Approved Resident Ledger (Full-Screen Excel Grid &mdash; <span id="xlCount">0</span> Rows)</span>
+            <span>02C. Master 201 Approved Resident Ledger (Full-Screen Excel Grid &mdash; <span id="xlCount">{{ pop_stats.total_residents }}</span> Rows)</span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
               <button type="button" onclick="toggleColMenu()" style="background:#334155;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Customize Columns &#9662;</button>
               <button type="button" onclick="resetColPrefs()" style="background:#475569;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.8rem;font-weight:700;cursor:pointer;">Show All Columns</button>
@@ -766,7 +766,6 @@
                   <th data-col="21" style="background:#0f172a;color:#fff;">4Ps</th>
                   <th data-col="22" style="background:#0f172a;color:#fff;">Pregnant</th>
                   <th data-col="23" style="background:#0f172a;color:#fff;">Supporting Docs Repository</th>
-                  <th data-col="24" style="background:#0f172a;color:#fff;">Portal Edit (Approval)</th>
                 </tr>
               </thead>
               <tbody>
@@ -796,7 +795,6 @@
                   <td data-col="21">{% if c.is_4ps_beneficiary %}Yes{% else %}-{% endif %}</td>
                   <td data-col="22">{% if c.is_pregnant %}<span class="badge badge-warn">Yes</span>{% else %}-{% endif %}</td>
                   <td data-col="23" style="white-space:nowrap;"><a href="/citizen-docs/{{ c.citizen_qr_id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:4px 10px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">View Docs ({{ c.repository_docs.count }}) &#8599;</a></td>
-                  <td data-col="24" style="white-space:nowrap;"><a href="/citizen-home/?qr_id={{ c.citizen_qr_id }}" target="_blank" style="background:#1e3a8a;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">Portal Edit &rarr;</a></td>
                 </tr>
                 {% endif %}{% empty %}
                 <tr><td colspan="25">No approved residents in the 201 ledger yet.</td></tr>
