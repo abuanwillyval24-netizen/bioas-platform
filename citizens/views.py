@@ -709,6 +709,11 @@ def citizen_home(request):
             )
             notice = f"Certificate Requested! Control No.: {cert.control_number} ({cert.get_status_display()})."
 
+    if request.method == "POST" and notice:
+        request.session["bioas_cit_notice"] = notice
+        return redirect("/citizen-home/")
+    if request.method == "GET" and not notice:
+        notice = request.session.pop("bioas_cit_notice", "")
     citizen_qr_uri = make_citizen_qr_uri(request.build_absolute_uri(f"/citizen-home/?qr_id={citizen.citizen_qr_id}")) if citizen else ""
     family_members = citizen.household.members.all() if (citizen and citizen.household) else []
     recent_certs = CertificateRequest.objects.filter(citizen=citizen)[:5] if citizen else []
@@ -837,7 +842,7 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
         <td><span class="badge">{{ d.get_source_channel_display }}</span></td>
         <td>{{ d.uploaded_by|default:"System" }}</td>
         <td style="white-space:nowrap;">{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
-        <td><a href="{% if d.file_data_uri %}{{ d.file_data_uri }}{% else %}/citizen-proof/{{ citizen.id }}/{% endif %}" download="{{ d.document_title|slugify }}.pdf" target="_blank" style="display:inline-block;white-space:nowrap;background:#1e3a8a;color:#fff;padding:5px 11px;border-radius:5px;text-decoration:none;font-size:.76rem;font-weight:700;">View / Download &nearr;</a></td>
+        <td><a href="javascript:void(0)" onclick="openRepoDoc('{% if d.file_data_uri %}{{ d.file_data_uri }}{% else %}/citizen-proof/{{ citizen.id }}/{% endif %}','{{ d.document_title|escapejs }}')" style="display:inline-block;white-space:nowrap;background:#1e3a8a;color:#fff;padding:5px 11px;border-radius:5px;text-decoration:none;font-size:.76rem;font-weight:700;">View / Download &nearr;</a></td>
       </tr>
       {% empty %}
       <tr><td colspan="5" style="color:#64748b;">No supporting documents uploaded for this citizen yet.</td></tr>
@@ -853,7 +858,7 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
       {% endfor %}
     </tbody></table>
   </div>
-</div><div id="repoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:16px;max-width:380px;width:100%;text-align:center;"><img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% elif citizen.photo %}{{ citizen.photo.url }}{% endif %}" style="width:100%;max-height:340px;object-fit:contain;border-radius:10px;"><button type="button" onclick="document.getElementById('repoZoomModal').style.display='none'" style="margin-top:12px;width:100%;background:#1e3a8a;color:#fff;border:0;padding:9px;border-radius:8px;font-weight:800;cursor:pointer;">Close Preview</button></div></div></body></html>"""
+</div><div id="repoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:16px;max-width:380px;width:100%;text-align:center;"><img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% elif citizen.photo %}{{ citizen.photo.url }}{% endif %}" style="width:100%;max-height:340px;object-fit:contain;border-radius:10px;"><button type="button" onclick="document.getElementById('repoZoomModal').style.display='none'" style="margin-top:12px;width:100%;background:#1e3a8a;color:#fff;border:0;padding:9px;border-radius:8px;font-weight:800;cursor:pointer;">Close Preview</button></div></div><div id="repoDocModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:16px;max-width:860px;width:100%;max-height:90vh;display:flex;flex-direction:column;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;"><strong id="repoDocTitle" style="font-size:.95rem;color:#0f172a;">Document Preview</strong><div style="display:flex;gap:8px;"><a id="repoDocDlBtn" href="#" download="document.pdf" style="background:#16a34a;color:#fff;text-decoration:none;padding:6px 12px;border-radius:7px;font-size:.78rem;font-weight:800;">&darr; Download</a><button type="button" onclick="document.getElementById('repoDocModal').style.display='none'" style="background:#e2e8f0;color:#0f172a;border:0;padding:6px 12px;border-radius:7px;font-weight:800;cursor:pointer;">Close</button></div></div><iframe id="repoDocFrame" style="width:100%;height:72vh;border:1px solid #cbd5e1;border-radius:9px;"></iframe></div></div><script>function openRepoDoc(u,t){document.getElementById('repoDocTitle').textContent=t;document.getElementById('repoDocFrame').src=u;var dl=document.getElementById('repoDocDlBtn');dl.href=u;dl.download=(t||'document').replace(/[^a-z0-9._-]+/gi,'_')+'.pdf';document.getElementById('repoDocModal').style.display='flex';}</script></body></html>"""
     return HttpResponse(engines["django"].from_string(tpl).render({
         "citizen": citizen, "repo_docs": repo_docs, "cert_docs": cert_docs,
         "p_col": p_col, "s_col": s_col, "notice": notice, "error": error,
