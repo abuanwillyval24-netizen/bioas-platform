@@ -742,6 +742,61 @@ def approve_citizen(request, citizen_id):
     return redirect("/?tier=BARANGAY&module=CITIZENS")
 
 
+def append_to_citizen_master_pdf(cit, doc_title, uploaded_file, uploader="", source_channel="SELF_PORTAL"):
+    from django.utils import timezone
+    from PIL import ImageDraw
+    from pypdf import PdfReader, PdfWriter
+    cid = cit.citizen_qr_id.strip().upper()
+    std_name = f"{cid}_supporting_doc.pdf"
+    writer = PdfWriter()
+    existing_bytes = None
+    if cit.supporting_doc_data_uri and "," in cit.supporting_doc_data_uri:
+        try: existing_bytes = base64.b64decode(cit.supporting_doc_data_uri.split(",", 1).__getitem__(1))
+        except Exception: existing_bytes = None
+    if not existing_bytes and cit.supporting_document:
+        try:
+            with cit.supporting_document.open("rb") as f: existing_bytes = f.read()
+        except Exception: existing_bytes = None
+    if existing_bytes:
+        try:
+            for pg in PdfReader(BytesIO(existing_bytes)).pages: writer.add_page(pg)
+        except Exception: pass
+    start_pg = len(writer.pages) + 1
+    ts_str = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %I:%M %p")
+    raw = uploaded_file.read()
+    fn_low = (uploaded_file.name or "").lower()
+    if fn_low.endswith(".pdf"):
+        for idx_p, pg in enumerate(PdfReader(BytesIO(raw)).pages, start=start_pg):
+            banner_im = Image.new("RGB", (1240, 68), "#1e3a8a")
+            drw = ImageDraw.Draw(banner_im)
+            drw.text((22, 12), f"PAGE {idx_p}  |  {doc_title}", fill="#ffffff")
+            drw.text((22, 38), f"Uploaded: {ts_str}  |  By: {uploader or cit.full_name}  |  ID: {cid}", fill="#fde68a")
+            b_buf = BytesIO(); banner_im.save(b_buf, format="PDF")
+            b_pg = PdfReader(BytesIO(b_buf.getvalue())).pages.__getitem__(0)
+            pg.merge_transformed_page(b_pg, (1, 0, 0, 1, 0, float(pg.mediabox.height) - 42))
+            writer.add_page(pg)
+    else:
+        c_raw, _ = _compress_under_300kb(raw)
+        im = Image.open(BytesIO(c_raw)).convert("RGB")
+        w, h = im.size
+        canvas = Image.new("RGB", (w, h + 74), "#ffffff")
+        canvas.paste(im, (0, 74))
+        drw = ImageDraw.Draw(canvas)
+        drw.rectangle([0, 0, w, 70], fill="#1e3a8a")
+        drw.text((18, 12), f"PAGE {start_pg}  |  {doc_title}", fill="#ffffff")
+        drw.text((18, 40), f"Uploaded: {ts_str}  |  By: {uploader or cit.full_name}  |  ID: {cid}", fill="#fde68a")
+        nb = BytesIO(); canvas.save(nb, format="PDF", resolution=150.0)
+        for pg in PdfReader(BytesIO(nb.getvalue())).pages: writer.add_page(pg)
+    out = BytesIO(); writer.write(out); merged_bytes = out.getvalue()
+    merged_uri = "data:application/pdf;base64," + base64.b64encode(merged_bytes).decode("ascii")
+    cit.supporting_document.save(std_name, ContentFile(merged_bytes), save=False)
+    cit.supporting_doc_data_uri = merged_uri
+    cit.save(update_fields=["supporting_document", "supporting_doc_data_uri"])
+    CitizenSupportingDocument.objects.filter(citizen=cit).update(file_data_uri=merged_uri)
+    CitizenSupportingDocument.objects.create(citizen=cit, document_title=f"Page {start_pg}: {doc_title} ({ts_str})", file=ContentFile(merged_bytes, name=std_name), file_data_uri=merged_uri, source_channel=source_channel, uploaded_by=uploader or cit.full_name)
+    return start_pg, len(writer.pages)
+
+
 @login_required(login_url="/login/")
 def update_report_status(request, report_id, new_status):
     report = get_object_or_404(CitizenCommunityReport, id=report_id)
@@ -776,15 +831,10 @@ def citizen_docs_repository(request, qr_id):
             error = "Document title and file (PDF, JPG, PNG) are required."
         else:
             staff_prof = getattr(request.user, "staff_profile", None)
-            uploader = staff_prof.full_name if staff_prof else request.user.username
-            CitizenSupportingDocument.objects.create(
-                citizen=citizen,
-                document_title=doc_title,
-                source_channel="STAFF_REPOSITORY",
-                file=uploaded_file,
-                uploaded_by=uploader,
-            )
-            notice = f"Uploaded '{doc_title}' into {citizen.full_name}'s Supporting Docs Repository."
+            uploader = (staff_prof.full_name if staff_prof else request.user.username) if is_official else citizen.full_name
+            ch = "STAFF_REPOSITORY" if is_official else "SELF_PORTAL"
+            pg_no, tot_pg = append_to_citizen_master_pdf(citizen, doc_title, uploaded_file, uploader=uploader, source_channel=ch)
+            notice = f"Merged '{doc_title}' into {citizen.full_name}'s Master Supporting PDF as Page {pg_no} (Total Pages: {tot_pg})."
 
     repo_docs = list(citizen.repository_docs.all())
     cert_docs = [c for c in citizen.certificates.all() if getattr(c, "supporting_document", None)]
