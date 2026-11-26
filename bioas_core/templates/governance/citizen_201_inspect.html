@@ -35,7 +35,7 @@
 </head>
 <body>
   <div class="top no-print">
-    <div style="display:flex;align-items:center;gap:10px;"><img src="https://qrserver.com<span style="white-space:nowrap;font-size:.88rem;">{{ c.citizen_qr_id }}</span>" alt="QR" style="width:54px;height:54px;border-radius:6px;background:#fff;padding:2px;"><div><strong>Official Citizen 201 Master Record</strong> &mdash; {{ c.barangay.name }} <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:800;">{{ c.completeness_score }}% Complete</span>
+    <div style="display:flex;align-items:center;gap:10px;"><img src="https://qrserver.com{{ c.citizen_qr_id }}" alt="QR" style="width:54px;height:54px;border-radius:6px;background:#fff;padding:2px;"><div><strong>Official Citizen 201 Master Record</strong> &mdash; {{ c.barangay.name }} <span style="background:#16a34a;color:#fff;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:800;">{{ c.completeness_score }}% Complete</span>
       <span style="background:rgba(255,255,255,.2);padding:2px 9px;border-radius:999px;font-size:.7rem;margin-left:6px;">Detected: {{ device_label }}</span></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       {% if view_mode == 'mobile' %}
@@ -211,10 +211,10 @@
 
     <div class="card">
       <div class="sec-title"><span>1. System &amp; Barangay Reference</span><span style="font-size:.7rem;color:#64748b;">Section I</span></div>
-      <div class="grid-3">
-        <div class="item"><div class="lbl">Citizen ID</div><div class="val">{{ c.citizen_qr_id }}</div></div>
-        <div class="item"><div class="lbl">Household Number</div><div class="val">{% if c.household %}{{ c.household.household_code }}{% else %}-{% endif %}</div></div>
-        <div class="item"><div class="lbl">Relationship to Household Head</div><div class="val">{% if c.household %}{{ c.get_relationship_to_head_display }}{% else %}-{% endif %}</div></div>
+      <div class="grid-3" style="grid-template-columns:1.45fr 1fr 1fr;">
+        <div class="item"><div class="lbl">Citizen ID</div><div class="val" style="white-space:nowrap;">{{ c.citizen_qr_id }}</div></div>
+        <div class="item"><div class="lbl">Household Number</div><div class="val">{% if c.household %}{{ c.household.household_code }}{% else %}Unassigned (Pending HH Link){% endif %}</div></div>
+        <div class="item"><div class="lbl">Relationship to Household Head</div><div class="val">{{ c.get_relationship_to_head_display|default:"-" }}</div></div>
         <div class="item"><div class="lbl">Barangay Classification</div><div class="val">{{ c.barangay.get_barangay_classification_display }}</div></div>
         <div class="item"><div class="lbl">Residency Status</div><div class="val">{{ c.get_residency_status_display }}</div></div>
         <div class="item"><div class="lbl">Date Registered</div><div class="val">{{ c.created_at|date:"Y-m-d H:i" }}</div></div>
