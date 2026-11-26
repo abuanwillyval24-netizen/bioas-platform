@@ -836,16 +836,41 @@ def citizen_docs_repository(request, qr_id):
 
     notice, error = "", ""
     if request.method == "POST":
-        doc_title = request.POST.get("document_title", "").strip()
-        uploaded_file = request.FILES.get("repo_file")
-        if not doc_title or not uploaded_file:
-            error = "Document title and file (PDF, JPG, PNG) are required."
+        if request.POST.get("repo_action") == "DELETE_REPO_DOC":
+            doc_obj = CitizenSupportingDocument.objects.filter(id=request.POST.get("doc_id"), citizen=citizen).first()
+            if doc_obj:
+                d_lbl = doc_obj.document_title
+                import re as _re
+                m_pg = _re.match(r"^Page\s+(\d+):", d_lbl or "")
+                if m_pg and int(m_pg.group(1)) > 1 and citizen.supporting_doc_data_uri and "," in citizen.supporting_doc_data_uri:
+                    try:
+                        from pypdf import PdfReader, PdfWriter
+                        raw_b = base64.b64decode(citizen.supporting_doc_data_uri.split(",", 1).__getitem__(1))
+                        rdr = PdfReader(BytesIO(raw_b))
+                        rm_idx = int(m_pg.group(1)) - 1
+                        if 0 < rm_idx < len(rdr.pages):
+                            wr = PdfWriter()
+                            for pi, pg in enumerate(rdr.pages):
+                                if pi != rm_idx: wr.add_page(pg)
+                            ob = BytesIO(); wr.write(ob); nb = ob.getvalue()
+                            n_uri = "data:application/pdf;base64," + base64.b64encode(nb).decode("ascii")
+                            citizen.supporting_doc_data_uri = n_uri
+                            citizen.save(update_fields=["supporting_doc_data_uri"])
+                            CitizenSupportingDocument.objects.filter(citizen=citizen).update(file_data_uri=n_uri)
+                    except Exception: pass
+                doc_obj.delete()
+                notice = f"Removed '{d_lbl}' from {citizen.full_name}'s repository. You can now attach a replacement file."
         else:
-            staff_prof = getattr(request.user, "staff_profile", None)
-            uploader = (staff_prof.full_name if staff_prof else request.user.username) if is_official else citizen.full_name
-            ch = "STAFF_REPOSITORY" if is_official else "SELF_PORTAL"
-            pg_no, tot_pg = append_to_citizen_master_pdf(citizen, doc_title, uploaded_file, uploader=uploader, source_channel=ch)
-            notice = f"Merged '{doc_title}' into {citizen.full_name}'s Master Supporting PDF as Page {pg_no} (Total Pages: {tot_pg})."
+            doc_title = request.POST.get("document_title", "").strip()
+            uploaded_file = request.FILES.get("repo_file")
+            if not doc_title or not uploaded_file:
+                error = "Document title and file (PDF, JPG, PNG) are required."
+            else:
+                staff_prof = getattr(request.user, "staff_profile", None)
+                uploader = (staff_prof.full_name if staff_prof else request.user.username) if is_official else citizen.full_name
+                ch = "STAFF_REPOSITORY" if is_official else "SELF_PORTAL"
+                pg_no, tot_pg = append_to_citizen_master_pdf(citizen, doc_title, uploaded_file, uploader=uploader, source_channel=ch)
+                notice = f"Merged '{doc_title}' into {citizen.full_name}'s Master Supporting PDF as Page {pg_no} (Total Pages: {tot_pg})."
 
     repo_docs = list(citizen.repository_docs.all())
     cert_docs = [c for c in citizen.certificates.all() if getattr(c, "supporting_document", None)]
@@ -863,6 +888,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px 12px;border-bottom:
 th{background:#f8fafc;color:#475569;font-size:.74rem;text-transform:uppercase}
 input{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px}
 button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}
+.x-del-btn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-size:.76rem;font-weight:900;cursor:pointer;transition:all .16s ease;margin-left:6px;padding:0;vertical-align:middle}.x-del-btn:hover{background:#dc2626;color:#fff;transform:scale(1.14);box-shadow:0 3px 8px rgba(220,38,38,.32)}
 </style></head><body>
 <div class="top">
   <div><strong>201 Supporting Documents Repository</strong> &mdash; {{ citizen.barangay.name }}</div>
@@ -903,7 +929,7 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
         <td><span class="badge">{{ d.get_source_channel_display }}</span></td>
         <td>{{ d.uploaded_by|default:"System" }}</td>
         <td style="white-space:nowrap;">{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
-        <td><a href="javascript:void(0)" onclick="openRepoDoc('{% if d.file_data_uri %}{{ d.file_data_uri }}{% else %}/citizen-proof/{{ citizen.id }}/{% endif %}','{{ d.document_title|escapejs }}')" style="display:inline-block;white-space:nowrap;background:#1e3a8a;color:#fff;padding:5px 11px;border-radius:5px;text-decoration:none;font-size:.76rem;font-weight:700;">View / Download &nearr;</a></td>
+        <td><a href="javascript:void(0)" onclick="openRepoDoc('{% if d.file_data_uri %}{{ d.file_data_uri }}{% else %}/citizen-proof/{{ citizen.id }}/{% endif %}','{{ d.document_title|escapejs }}')" style="display:inline-block;white-space:nowrap;background:#1e3a8a;color:#fff;padding:5px 11px;border-radius:5px;text-decoration:none;font-size:.76rem;font-weight:700;">View / Download &nearr;</a><button type="button" class="x-del-btn" title="Remove wrong attachment" onclick="askDelRepoDoc('{{ d.id }}','{{ d.document_title|escapejs }}')">&times;</button></td>
       </tr>
       {% empty %}
       <tr><td colspan="5" style="color:#64748b;">No supporting documents uploaded for this citizen yet.</td></tr>
@@ -919,7 +945,7 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
       {% endfor %}
     </tbody></table>
   </div>
-</div><div id="repoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:16px;max-width:380px;width:100%;text-align:center;"><img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% elif citizen.photo %}{{ citizen.photo.url }}{% endif %}" style="width:100%;max-height:340px;object-fit:contain;border-radius:10px;"><button type="button" onclick="document.getElementById('repoZoomModal').style.display='none'" style="margin-top:12px;width:100%;background:#1e3a8a;color:#fff;border:0;padding:9px;border-radius:8px;font-weight:800;cursor:pointer;">Close Preview</button></div></div><div id="repoDocModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:16px;max-width:860px;width:100%;max-height:90vh;display:flex;flex-direction:column;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;"><strong id="repoDocTitle" style="font-size:.95rem;color:#0f172a;">Document Preview</strong><div style="display:flex;gap:8px;"><a id="repoDocDlBtn" href="#" download="document.pdf" style="background:#16a34a;color:#fff;text-decoration:none;padding:6px 12px;border-radius:7px;font-size:.78rem;font-weight:800;">&darr; Download</a><button type="button" onclick="document.getElementById('repoDocModal').style.display='none'" style="background:#e2e8f0;color:#0f172a;border:0;padding:6px 12px;border-radius:7px;font-weight:800;cursor:pointer;">Close</button></div></div><iframe id="repoDocFrame" style="width:100%;height:72vh;border:1px solid #cbd5e1;border-radius:9px;"></iframe></div></div><script>function openRepoDoc(u,t){document.getElementById('repoDocTitle').textContent=t;document.getElementById('repoDocFrame').src=u;var dl=document.getElementById('repoDocDlBtn');dl.href=u;dl.download=(t||'document').replace(/[^a-z0-9._-]+/gi,'_')+'.pdf';document.getElementById('repoDocModal').style.display='flex';}</script></body></html>"""
+</div><div id="repoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:16px;max-width:380px;width:100%;text-align:center;"><img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% elif citizen.photo %}{{ citizen.photo.url }}{% endif %}" style="width:100%;max-height:340px;object-fit:contain;border-radius:10px;"><button type="button" onclick="document.getElementById('repoZoomModal').style.display='none'" style="margin-top:12px;width:100%;background:#1e3a8a;color:#fff;border:0;padding:9px;border-radius:8px;font-weight:800;cursor:pointer;">Close Preview</button></div></div><div id="repoDocModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:16px;max-width:860px;width:100%;max-height:90vh;display:flex;flex-direction:column;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;"><strong id="repoDocTitle" style="font-size:.95rem;color:#0f172a;">Document Preview</strong><div style="display:flex;gap:8px;"><a id="repoDocDlBtn" href="#" download="document.pdf" style="background:#16a34a;color:#fff;text-decoration:none;padding:6px 12px;border-radius:7px;font-size:.78rem;font-weight:800;">&darr; Download</a><button type="button" onclick="document.getElementById('repoDocModal').style.display='none'" style="background:#e2e8f0;color:#0f172a;border:0;padding:6px 12px;border-radius:7px;font-weight:800;cursor:pointer;">Close</button></div></div><iframe id="repoDocFrame" style="width:100%;height:72vh;border:1px solid #cbd5e1;border-radius:9px;"></iframe></div></div><div id="repoDelConfirmModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:10000;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:22px;max-width:420px;width:100%;border-top:5px solid #dc2626;text-align:center;"><h3 style="margin:0 0 8px;color:#991b1b;">Remove Wrong Attachment?</h3><p id="repoDelMsg" style="margin:0 0 16px;font-size:.85rem;color:#475569;line-height:1.5;"></p><form method="post" style="display:flex;gap:8px;justify-content:center;">{% csrf_token %}<input type="hidden" name="repo_action" value="DELETE_REPO_DOC"><input type="hidden" id="repoDelIdInp" name="doc_id" value=""><button type="button" onclick="document.getElementById('repoDelConfirmModal').style.display='none'" style="background:#e2e8f0;color:#0f172a;">Cancel</button><button type="submit" style="background:#dc2626;color:#fff;">Yes, Remove</button></form></div></div>{% if notice %}<div id="repoAckModal" style="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:10001;display:flex;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:22px;max-width:420px;width:100%;border-top:5px solid #16a34a;text-align:center;"><h3 style="margin:0 0 8px;color:#166534;">Action Acknowledged</h3><p style="margin:0 0 16px;font-size:.85rem;color:#475569;line-height:1.5;">{{ notice }}</p><button type="button" onclick="document.getElementById('repoAckModal').remove()" style="width:100%;">Continue</button></div></div>{% endif %}<script>function askDelRepoDoc(id,t){document.getElementById('repoDelIdInp').value=id;document.getElementById('repoDelMsg').textContent='Are you sure you want to remove "'+t+'"? You can attach a replacement file immediately after.';document.getElementById('repoDelConfirmModal').style.display='flex';}function openRepoDoc(u,t){var viewUrl=u;if(u&&u.startsWith('data:application/pdf;base64,')){var b64=u.split(','),bin=atob(b64),arr=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)arr=bin.charCodeAt(i);viewUrl=URL.createObjectURL(new Blob([arr],{type:'application/pdf'}));}document.getElementById('repoDocTitle').textContent=t;document.getElementById('repoDocFrame').src=viewUrl;var dl=document.getElementById('repoDocDlBtn');dl.href=viewUrl;dl.download=(t||'document').replace(/[^a-z0-9._-]+/gi,'_')+'.pdf';document.getElementById('repoDocModal').style.display='flex';}</script></body></html>"""
     return HttpResponse(engines["django"].from_string(tpl).render({
         "citizen": citizen, "repo_docs": repo_docs, "cert_docs": cert_docs,
         "p_col": p_col, "s_col": s_col, "notice": notice, "error": error,
