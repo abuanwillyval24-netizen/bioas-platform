@@ -7,14 +7,14 @@
     :root{--cit-nav:#0f172a;--cit-accent:#1e3a8a}
     *{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
     html,body{height:100%;margin:0;overflow:hidden}
-    body{display:flex;flex-direction:column;background:#eef2f6;color:#0f172a}
-    .topbar{flex-shrink:0;z-index:900;background:var(--cit-nav);color:#fff;padding:10px 20px;box-shadow:0 4px 16px rgba(15,23,42,.22)}
+    body{display:flex;flex-direction:column;background:#F8FAFC;color:#0f172a}
+    .topbar{flex-shrink:0;z-index:900;background:#ffffff;color:#0f172a;border-bottom:1px solid #e2e8f0;padding:10px 20px;box-shadow:0 4px 16px rgba(15,23,42,.22)}
     .topbar a,.topbar button{transition:all .18s ease}
     .topbar a:hover,.topbar button:hover{transform:translateY(-1px);filter:brightness(1.12)}
     .wrap{flex:1;min-height:0;width:100%;max-width:1240px;margin:0 auto;padding:14px 16px;display:flex;flex-direction:column;overflow:hidden;transition:max-width .22s ease}
     .dash-shell{flex:1;min-height:0;display:flex;gap:18px;align-items:stretch;overflow:hidden}
-    .navy-sidebar{width:276px;flex-shrink:0;background:var(--cit-nav);border-radius:18px;padding:12px;box-shadow:0 12px 28px rgba(15,23,42,.18);overflow-y:auto}
-    .id-card-box{background:#fff;border-radius:14px;padding:12px 12px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.15)}
+    .navy-sidebar{width:284px;flex-shrink:0;background:#ffffff;border-radius:20px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 8px 24px rgba(15,23,42,.04);padding:12px;box-shadow:0 12px 28px rgba(15,23,42,.18);overflow-y:auto}
+    .id-card-box{background:#fff;border-radius:16px;overflow:hidden;padding:0 0 14px;text-align:center;border:1px solid #e2e8f0;box-shadow:0 6px 18px rgba(0,0,0,.15)}
     .cit-main{flex:1;min-width:0;overflow-y:auto;padding-right:6px;padding-bottom:24px}
     body.mobile-sim,body.mobile-sim html{height:auto;overflow:auto}
     body.mobile-sim .wrap{max-width:430px !important;overflow:visible}
@@ -94,6 +94,12 @@
       <div class="dash-shell">
         <aside class="navy-sidebar">
           <div class="id-card-box">
+            <div style="height:5px;background:linear-gradient(90deg,#0038A8 0%,#0038A8 42%,#CE1126 42%,#CE1126 84%,#FCD116 84%,#FCD116 100%);"></div>
+            <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 62%,#1d4ed8 100%);color:#fff;padding:11px 12px 34px;">
+              <div style="font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;opacity:.82;font-weight:700;">Republic of the Philippines</div>
+              <div style="font-size:.76rem;font-weight:800;margin-top:1px;">{{ citizen.barangay.name|default:"Official Citizen ID" }}</div>
+            </div>
+            <div style="margin-top:-28px;padding:0 12px;">
             {% if citizen.photo_data_uri or citizen.photo %}
               <div style="display:inline-block;cursor:pointer;" onclick="document.getElementById('citPhotoZoomImg').src=this.querySelector('img').src;document.getElementById('citPhotoZoomModal').style.display='flex';">
                 <img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" style="width:108px;height:108px;border-radius:50%;object-fit:cover;border:3px solid #1e3a8a;box-shadow:0 4px 14px rgba(30,58,138,.18);transition:transform .18s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
@@ -106,9 +112,9 @@
               </div>
             {% endif %}
             <h2 style="margin:8px 0 4px;font-size:1.05rem;color:#0f172a;font-weight:900;">{{ citizen.full_name }}</h2>
-            <span class="badge" style="background:#dcfce7;color:#166534;">&#10003; Active Verified Resident</span>
+            <span class="badge" style="background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;">&#10003; Active Verified Resident</span>
             <div style="font-size:.75rem;color:#475569;margin-top:8px;line-height:1.45;">
-              <div>Ref ID: <strong>{{ citizen.citizen_qr_id }}</strong></div>
+              <div>Ref ID: <code style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f1f5f9;padding:2px 6px;border-radius:5px;font-weight:800;color:#0f172a;">{{ citizen.citizen_qr_id }}</code></div>
               <div>Username: <strong>{{ citizen.portal_username }}</strong></div>
               <div style="font-size:.71rem;color:#64748b;margin-top:3px;">{{ citizen.purok }}, {{ citizen.barangay.name }}</div>
             </div>
@@ -120,12 +126,15 @@
             {% endif %}
             <a href="/citizen-inspect/{{ citizen.id }}/" target="_blank" style="display:block;margin-top:10px;background:#1d4ed8;color:#fff;padding:8px 12px;border-radius:9px;text-decoration:none;font-size:.79rem;font-weight:800;">&#128196; Download Digital ID</a>{% if active_sk_seat %}<a href="/sk-portal/" style="display:block;margin-top:8px;background:#0f766e;color:#fff;padding:8px 12px;border-radius:9px;text-decoration:none;font-size:.79rem;font-weight:800;">&#9889; View SK Portal ({{ active_sk_seat.get_position_display }})</a>{% endif %}
           </div>
+          </div>
           <nav class="side-nav">
+            <div class="nav-grp-lbl">Services</div>
             <button type="button" class="tab-btn active" onclick="openCitTab('tabAdvisories',this)"><span>&#128226; Advisories &amp; Blast Feed</span><span class="badge" style="background:#1e3a8a;color:#fff;">{{ blast_advisories|length }}</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabCerts',this)"><span>&#128220; Request Certificates</span><span class="badge">{{ recent_certs|length }}</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabReports',this)"><span>&#9888; Report Concerns</span><span class="badge">{{ recent_reports|length }}</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabSocial',this)"><span>&#129309; My Social Assistance &amp; Programs</span><span class="badge">&bull;</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabReserve',this)"><span>&#127963; Reserve Facility &amp; Gear</span><span class="badge">{{ my_reservations|length }}</span></button>
+            <div class="nav-grp-lbl">My Records</div>
             <button type="button" class="tab-btn" onclick="openCitTab('tabSummons',this)"><span>&#9878; Verified e-Summon Inbox</span><span class="badge">{{ my_summons|length }}</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabProfile',this)"><span>&#129706; My 201 Profile &amp; Docs</span><span class="badge">&rarr;</span></button>
             <button type="button" class="tab-btn" onclick="openCitTab('tabSettings',this)"><span>&#9881; Account &amp; Theme Settings</span><span class="badge">&bull;</span></button>
@@ -146,6 +155,11 @@
           </div>
           {% endif %}{% endfor %}
 
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
+            <button type="button" onclick="document.querySelector('[onclick*=tabCerts]').click()" style="background:#fff;border:0;border-radius:16px;padding:15px 16px;text-align:left;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer;display:flex;align-items:center;gap:12px;"><span style="width:40px;height:40px;border-radius:12px;background:#EFF6FF;color:#1D4ED8;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">&#128196;</span><div><strong style="display:block;font-size:.84rem;color:#0f172a;">Request Barangay Clearance</strong><span style="font-size:.73rem;color:#64748b;">Apply for certificates online</span></div></button>
+            <button type="button" onclick="document.querySelector('[onclick*=tabReports]').click()" style="background:#fff;border:0;border-radius:16px;padding:15px 16px;text-align:left;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer;display:flex;align-items:center;gap:12px;"><span style="width:40px;height:40px;border-radius:12px;background:#FEF2F2;color:#DC2626;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">&#128226;</span><div><strong style="display:block;font-size:.84rem;color:#0f172a;">File a Blotter / Concern</strong><span style="font-size:.73rem;color:#64748b;">Report community issues fast</span></div></button>
+            <button type="button" onclick="document.querySelector('[onclick*=tabProfile]').click()" style="background:#fff;border:0;border-radius:16px;padding:15px 16px;text-align:left;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer;display:flex;align-items:center;gap:12px;"><span style="width:40px;height:40px;border-radius:12px;background:#ECFDF5;color:#059669;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">&#128100;</span><div><strong style="display:block;font-size:.84rem;color:#0f172a;">Update My 201 Profile</strong><span style="font-size:.73rem;color:#64748b;">Sync 2&times;2 ID photo &amp; vault</span></div></button>
+          </div>
           <div id="tabAdvisories" class="panel active">
             <div class="filter-pills">
               <button type="button" class="fpill active" onclick="filterFeed('ALL',this)">All</button>
@@ -172,7 +186,7 @@
                 {% endfor %}
                 <form method="post" style="display:flex;gap:8px;margin-top:10px;">{% csrf_token %}<input type="hidden" name="action" value="POST_ADV_COMMENT"><input type="hidden" name="advisory_id" value="{{ adv.id }}"><input name="comment_text" placeholder="Write a question for the Barangay Office..." required style="flex:1;border-radius:999px;padding:8px 14px;"><button type="submit" class="btn" style="border-radius:999px;padding:8px 15px;">&#10148;</button></form>
               </div>
-            {% empty %}<div class="card"><p style="color:#64748b;margin:0;">No official Barangay advisories or announcements posted yet.</p></div>{% endfor %}
+            {% empty %}<div class="card" style="text-align:center;padding:38px 24px;"><div style="width:56px;height:56px;border-radius:16px;background:#EFF6FF;color:#1D4ED8;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 12px;">&#128235;</div><h3 style="margin:0 0 6px;font-size:1rem;color:#0f172a;">You're all caught up!</h3><p style="color:#64748b;font-size:.84rem;max-width:420px;margin:0 auto;line-height:1.5;">Official memos, ayuda schedules, and community updates from {{ citizen.barangay.name|default:"your Barangay" }} will appear here.</p></div>{% endfor %}
           </div>
 
           <div id="tabCerts" class="panel">
