@@ -7,6 +7,7 @@ from django.template import engines
 from django.db.models import Count, Sum
 from django.contrib.auth import authenticate, login, logout, get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
 from .models import Province, CityMunicipality, BarangayTenant, OfficialTurnoverRecord
 from .models import Province, CityMunicipality, BarangayTenant, OfficialTurnoverRecord, BarangayPortalShowcase
 from citizens.models import CitizenProfile, Household, CitizenCommunityReport
@@ -22,6 +23,7 @@ from planning_legislation.models import LegislativeMeasure, DevelopmentPlanProje
 from audit_analytics.models import SystemAuditLog, DILGComplianceReport, COAAuditCompliance
 
 
+@never_cache
 def staff_login(request):
     import hashlib, random, secrets
     from django.contrib.auth.hashers import check_password
@@ -125,6 +127,7 @@ def staff_logout(request):
     return redirect("/login/")
 
 
+@never_cache
 @login_required(login_url="/login/")
 def command_dashboard(request):
     import uuid

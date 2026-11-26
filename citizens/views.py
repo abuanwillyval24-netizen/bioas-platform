@@ -197,7 +197,13 @@ def save_shared_201_fields(citizen, post_data):
         setattr(citizen, bf, post_data.get(bf) in ("1", "on", "true", "True"))
 
 
+from django.views.decorators.cache import never_cache
+
+
+@never_cache
 def citizen_portal(request):
+    if request.session.get("citizen_auth_id") and not request.GET.get("logout"):
+        return redirect("/citizen-home/")
     import random, re
     from django.http import JsonResponse
     from django.contrib.auth.hashers import make_password
@@ -416,6 +422,7 @@ def citizen_portal(request):
     }, request))
 
 
+@never_cache
 def citizen_home(request):
     from django.contrib.auth.hashers import check_password, make_password
     import random
@@ -424,6 +431,11 @@ def citizen_home(request):
     rec_qr_id = (request.POST.get("rec_qr_id") or "").strip().upper()
     rec_email = (request.POST.get("rec_email") or "").strip()
     otp_stage, notice, error, citizen = "", "", "", None
+    if request.session.get("citizen_auth_id") and not request.GET.get("logout"):
+        citizen = CitizenProfile.objects.select_related("barangay", "household").filter(id=request.session["citizen_auth_id"]).first()
+        for k in list(request.session.keys()):
+            if "otp" in k.lower():
+                request.session.pop(k, None)
     top_act = request.POST.get("action") if request.method == "POST" else ""
     if top_act == "CITIZEN_LOGIN":
         cand = CitizenProfile.objects.select_related("barangay", "household").filter(portal_username__iexact=login_username).first() if login_username else None
@@ -905,6 +917,7 @@ def update_report_status(request, report_id, new_status):
         report.status = new_status
         report.save(update_fields=["status"])
     return redirect("/?tier=BARANGAY&module=CITIZENS")
+@never_cache
 def citizen_docs_repository(request, qr_id):
     from django.http import HttpResponseForbidden
     from .models import CitizenSupportingDocument
@@ -1033,6 +1046,7 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
         "citizen": citizen, "repo_docs": repo_docs, "cert_docs": cert_docs,
         "p_col": p_col, "s_col": s_col, "notice": notice, "error": error,
     }, request))
+@never_cache
 def citizen_201_inspect(request, citizen_id):
     from django.shortcuts import redirect
     from django.utils import timezone
@@ -1189,6 +1203,7 @@ def citizen_201_inspect(request, citizen_id):
     }, request))
 
 
+@never_cache
 def citizen_proof_pdf(request, citizen_id):
     c = get_object_or_404(CitizenProfile, id=citizen_id)
     data_uri = c.supporting_doc_data_uri
