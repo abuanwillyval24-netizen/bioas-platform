@@ -1362,7 +1362,7 @@
               <td><span class="badge">{{ d.get_source_channel_display }}</span></td>
               <td>{{ d.uploaded_by|default:"System" }}</td>
               <td style="white-space:nowrap;">
-                <a href="{{ d.file.url }}" target="_blank" style="background:#0f766e;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">View File &#8599;</a>
+                <a href="/citizen-proof/{{ d.citizen.id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">View File &#8599;</a>
                 <a href="/citizen-docs/{{ d.citizen.citizen_qr_id }}/" target="_blank" style="margin-left:4px;background:#1e3a8a;color:#fff;padding:4px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">Citizen Vault &#8599;</a>
               </td>
             </tr>
