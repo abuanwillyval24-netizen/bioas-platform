@@ -172,7 +172,7 @@ def save_shared_201_fields(citizen, post_data):
         from citizens.models import Household
         hc = post_data.get("household_code", "").strip().upper()
         if hc:
-            hh_obj, _ = Household.objects.get_or_create(barangay=citizen.barangay, household_code=hc, defaults={"head_of_family": citizen.household_head_name or citizen.full_name, "purok": citizen.purok or "Purok I", "address_line": citizen.address_line or ""})
+            hh_obj, _ = Household.objects.get_or_create(barangay=citizen.barangay, household_code=hc, defaults={"household_head_name": citizen.household_head_name or citizen.full_name, "purok": citizen.purok or "Purok I", "address_line": citizen.address_line or ""})
             citizen.household = hh_obj
         else:
             citizen.household = None
@@ -180,7 +180,7 @@ def save_shared_201_fields(citizen, post_data):
         from citizens.models import Household
         hh = None
         if citizen.household_head_name:
-            hh = Household.objects.filter(barangay=citizen.barangay, head_of_family__icontains=citizen.household_head_name.strip()).first()
+            hh = Household.objects.filter(barangay=citizen.barangay, household_head_name__icontains=citizen.household_head_name.strip()).first()
         if not hh and citizen.shared_contact_matches:
             for m in citizen.shared_contact_matches:
                 if m.household:
