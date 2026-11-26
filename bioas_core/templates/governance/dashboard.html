@@ -119,6 +119,7 @@
       {% endif %}
       {% if "CERTIFICATES" in visible_modules %}<a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>{% endif %}
       {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Derogatory Record Flag</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
+      {% if "CITIZENS" in visible_modules or "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=REGISTRY_SERVICE" class="{% if module == 'REGISTRY_SERVICE' %}active{% endif %}"><span>05. Citizen ID, Move-Out &amp; Account</span><span class="pill">{{ citizen_service_tickets|length }}</span></a>{% endif %}
       </details><details class="side-grp" data-gid="grp_TreasuryampRevenue" style="margin:4px 0;"><summary class="side-group" style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:8px;background:rgba(255,255,255,.07);border-left:3px solid #fbbf24;font-size:.83rem;font-weight:900;color:#f8fafc;letter-spacing:.09em;text-transform:uppercase;"><span>Treasury &amp; Revenue</span><span>&#9662;</span></summary>
       {% if "TREASURY" in visible_modules %}<a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury &amp; Collections</span><span class="pill">{{ receipts|length }}</span></a>{% endif %}
       </details><details class="side-grp" data-gid="grp_CommunityampCare" style="margin:4px 0;"><summary class="side-group" style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:8px;background:rgba(255,255,255,.07);border-left:3px solid #fbbf24;font-size:.83rem;font-weight:900;color:#f8fafc;letter-spacing:.09em;text-transform:uppercase;"><span>Community &amp; Care</span><span>&#9662;</span></summary>
@@ -952,6 +953,8 @@
           </div>
           {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="LUPON_ENGAGEMENT" box_title="Inbound Citizen Coffee Talk Mediation, Case Review & Summons Requests" %}
 
+        {% elif module == "REGISTRY_SERVICE" %}
+          <div class="section-title"><span>05. Citizen ID, Move-Out &amp; Account Security Requests</span><a href="/citizen-home/" target="_blank">Open Citizen Portal ↗</a></div>
           {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="REGISTRY_ACCOUNT" box_title="Inbound Citizen Registry, Barangay ID & Account Security Requests" %}
 
         {% elif module == "TREASURY" %}
