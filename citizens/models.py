@@ -242,6 +242,19 @@ class CitizenProfile(models.Model):
         filled = sum(1 for v in req if v not in (None, ""))
         return int(round((filled / max(1, len(req))) * 100))
 
+    pending_photo_data_uri = models.TextField(blank=True)
+    photo_review_status = models.CharField(max_length=20, choices=[("NONE","None"),("PENDING","Pending Review"),("APPROVED","Approved"),("REJECTED","Rejected")], default="NONE")
+    photo_rejection_reason = models.CharField(max_length=255, blank=True)
+    photo_approved_at = models.DateTimeField(null=True, blank=True)
+    next_allowed_photo_change = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def can_change_photo_now(self):
+        from django.utils import timezone
+        if self.photo_review_status == "REJECTED" or not self.next_allowed_photo_change:
+            return True
+        return timezone.now() >= self.next_allowed_photo_change
+
     def delete(self, *args, **kwargs):
         from django.utils import timezone
         self.is_archived = True

@@ -1,0 +1,61 @@
+<div class="grid-2" style="margin-top:12px;">
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;padding:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px;">
+      <strong style="font-size:.82rem;color:#1e3a8a;">Official 2&times;2 ID Photo (600&times;600px Standard)</strong>
+      {% if citizen.photo_review_status == "PENDING" %}<span style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:800;">Photo Pending Review</span>{% elif citizen.photo_review_status == "APPROVED" %}<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:800;">&check; Approved</span>{% endif %}
+    </div>
+    <div style="background:#eff6ff;border-left:3px solid #1e3a8a;padding:7px 9px;border-radius:6px;font-size:.73rem;color:#1e3a8a;line-height:1.4;margin-bottom:8px;">
+      <strong>Official ID Standard:</strong> Upload a formal, front-facing head-and-shoulders photo on a plain/clean background. Casual selfies, filters, or inappropriate photos will be rejected. Once approved, your photo cannot be changed for <strong>90 days (1 per quarter)</strong>.
+    </div>
+    {% if citizen.photo_review_status == "REJECTED" and citizen.photo_rejection_reason %}
+    <div style="background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;padding:7px 9px;border-radius:7px;font-size:.74rem;margin-bottom:8px;">
+      <strong>Previous Photo Rejected:</strong> {{ citizen.photo_rejection_reason }} &mdash; Please upload a compliant formal photo below.
+    </div>
+    {% endif %}
+    {% if not citizen.can_change_photo_now %}
+    <div style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:9px 10px;border-radius:8px;font-size:.76rem;font-weight:700;">
+      &#128274; Your official 2&times;2 photo is locked until <strong>{{ citizen.next_allowed_photo_change|date:"F d, Y" }}</strong> (1 change allowed per quarter).
+    </div>
+    {% else %}
+    <div style="display:flex;align-items:center;gap:6px;">
+      <input type="file" id="cit2x2Inp" name="photo" accept=".png,.jpg,.jpeg,.webp" onchange="previewCit2x2(this)" style="padding:5px;flex:1;">
+      <button type="button" id="cit2x2ClearBtn" onclick="clearCit2x2()" title="Remove / Replace Photo" style="display:none;width:28px;height:28px;border-radius:999px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:900;cursor:pointer;">&times;</button>
+    </div>
+    <div id="cit2x2GuideWrap" style="display:none;margin-top:8px;text-align:center;">
+      <div style="position:relative;width:136px;height:136px;margin:0 auto;border-radius:10px;overflow:hidden;border:2px solid #1e3a8a;">
+        <img id="cit2x2PrevImg" style="width:100%;height:100%;object-fit:cover;object-position:center 22%;">
+        <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"><ellipse cx="50" cy="36" rx="20" ry="25" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M18 96 C20 72, 80 72, 82 96" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>
+      </div>
+      <div id="cit2x2FaceMsg" style="font-size:.71rem;color:#166534;font-weight:700;margin-top:4px;">2&times;2 Head-and-Shoulders Guide Aligned (600&times;600px Auto-Crop)</div>
+    </div>
+    {% endif %}
+  </div>
+  <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;padding:12px;">
+    <strong style="display:block;font-size:.82rem;color:#1e3a8a;margin-bottom:6px;">Upload Supporting Docs to Barangay Vault (Auto-PDF)</strong>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+      <div><label style="font-size:.71rem;">Document Category *</label><select id="citVaultCat" name="doc_category" style="padding:6px 8px;font-size:.78rem;"><option value="Valid Government ID">Valid Government ID</option><option value="Proof of Residency / Utility Bill">Proof of Residency / Utility Bill</option><option value="Birth Certificate">Birth Certificate</option><option value="Barangay Endorsement">Barangay Endorsement</option><option value="PWD / Senior / Solo Parent ID">PWD / Senior / Solo Parent ID</option><option value="Other Supporting Proof">Other Supporting Proof</option></select></div>
+      <div><label style="font-size:.71rem;">Document Label / Description *</label><input id="citVaultLbl" name="doc_label" placeholder="e.g., PhilSys National ID / Meralco Bill" style="padding:6px 8px;font-size:.78rem;"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <input type="file" id="citVaultInp" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple onchange="previewCitVault(this)" style="padding:5px;flex:1;">
+      <button type="button" id="citVaultClearBtn" onclick="clearCitVault()" title="Remove / Replace File" style="display:none;width:28px;height:28px;border-radius:999px;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;font-weight:900;cursor:pointer;">&times;</button>
+    </div>
+    <div id="citVaultPrevCard" style="display:none;margin-top:7px;background:#fff;border:1px solid #93c5fd;border-radius:8px;padding:6px 9px;font-size:.74rem;color:#1e3a8a;font-weight:700;"></div>
+  </div>
+</div>
+<div id="citHourglassOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:10005;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;padding:26px;max-width:390px;width:100%;text-align:center;border-top:5px solid #f59e0b;">
+    <div style="font-size:2.4rem;display:inline-block;animation:hgSpin 1.4s ease-in-out infinite;">&#9203;</div>
+    <h3 style="margin:10px 0 6px;color:#0f172a;">Uploading &amp; Encrypting to Barangay Vault...</h3>
+    <p style="margin:0;font-size:.82rem;color:#475569;">Please wait while your 201 profile, 2&times;2 ID photo, and supporting documents are synchronized.</p>
+  </div>
+</div>
+<style>@keyframes hgSpin{0%{transform:rotate(0deg)}50%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}</style>
+<script>
+async function previewCit2x2(inp){var w=document.getElementById('cit2x2GuideWrap'),b=document.getElementById('cit2x2ClearBtn'),img=document.getElementById('cit2x2PrevImg'),msg=document.getElementById('cit2x2FaceMsg');if(!inp.files||!inp.files){w.style.display='none';b.style.display='none';return;}var url=URL.createObjectURL(inp.files);img.src=url;w.style.display='block';b.style.display='inline-block';if('FaceDetector' in window){try{var bmp=await createImageBitmap(inp.files);var faces=await new FaceDetector().detect(bmp);if(!faces.length){alert('No clear front-facing face detected. Please upload a formal head-and-shoulders photo.');clearCit2x2();return;}msg.textContent='Face Detected & Centered in 2x2 Frame (600x600px Ready)';}catch(e){}}}
+function clearCit2x2(){var inp=document.getElementById('cit2x2Inp');if(inp)inp.value='';document.getElementById('cit2x2GuideWrap').style.display='none';document.getElementById('cit2x2ClearBtn').style.display='none';}
+function previewCitVault(inp){var c=document.getElementById('citVaultPrevCard'),b=document.getElementById('citVaultClearBtn');if(!inp.files||!inp.files.length){c.style.display='none';b.style.display='none';return;}var names=Array.from(inp.files).map(function(f){return f.name;}).join(', ');c.textContent='Selected for Vault: '+names;c.style.display='block';b.style.display='inline-block';}
+function clearCitVault(){var inp=document.getElementById('citVaultInp');if(inp)inp.value='';document.getElementById('citVaultPrevCard').style.display='none';document.getElementById('citVaultClearBtn').style.display='none';}
+function openCit201Confirm(){var vInp=document.getElementById('citVaultInp'),vLbl=document.getElementById('citVaultLbl');if(vInp&&vInp.value&&(!vLbl||!vLbl.value.trim())){alert('Please enter a Document Label / Description before submitting your supporting document.');vLbl.focus();return;}var m=document.getElementById('confirm201Modal');var p=m.querySelector('p');if(p&&vInp&&vInp.value){p.textContent='Are you sure you want to submit this document and sync your 201 updates to your official Barangay Vault?';}m.style.display='flex';}
+function submitCit201WithHourglass(){var m=document.getElementById('confirm201Modal');if(m)m.style.display='none';var hg=document.getElementById('citHourglassOverlay');if(hg)hg.style.display='flex';document.getElementById('cit201Form').submit();}
+</script>

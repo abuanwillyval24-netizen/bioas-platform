@@ -215,11 +215,8 @@
                   <div><label>&#128274; Legal Sex (PSA / Law)</label><input value="{{ citizen.get_sex_display }}" readonly style="background:#e2e8f0;color:#475569;font-weight:700;"></div>
                 </div>
                 <div style="margin-top:8px;">{% include "governance/_citizen_201_shared_fields.html" with c=citizen %}</div>
-                <div class="grid-2" style="margin-top:10px;">
-                  <div><label>Upgrade / Replace 2x2 ID Photo</label><input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp"></div>
-                  <div><label>Upload Supporting Docs (Auto-Converted to PDF)</label><input type="file" name="supporting_document" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple></div>
-                </div>
-                <button type="button" onclick="document.getElementById('confirm201Modal').style.display='flex'" class="btn" style="margin-top:14px;background:#16a34a;">&#10003; Save &amp; Sync All 201 Profile Updates &rarr;</button>
+                {% include "governance/_citizen_201_photo_and_vault_controls.html" %}
+                <button type="button" onclick="openCit201Confirm()" class="btn" style="margin-top:14px;background:#16a34a;">&#10003; Save &amp; Sync All 201 Profile Updates &rarr;</button>
               </form>
             </div>
             <div class="card"><h4 style="margin-top:0;">My Supporting Documents Vault ({{ citizen.repository_docs.all|length }}) <a href="/citizen-docs/{{ citizen.citizen_qr_id }}/" target="_blank" class="badge" style="float:right;text-decoration:none;background:#1e3a8a;color:#fff;">Open Shared Vault &amp; Add Docs &nearr;</a></h4><table><thead><tr><th>Document Title</th><th>Uploaded</th><th>Action</th></tr></thead><tbody>{% for d in citizen.repository_docs.all %}<tr><td><strong>{{ d.document_title|default:"Supporting Document" }}</strong></td><td>{{ d.uploaded_at|date:"M d, Y" }}</td><td><a href="/citizen-proof/{{ citizen.id }}/" target="_blank" class="badge" style="text-decoration:none;">View Master PDF &nearr;</a></td></tr>{% empty %}<tr><td colspan="3">No supporting documents uploaded yet.</td></tr>{% endfor %}</tbody></table></div>
@@ -313,7 +310,7 @@
     <p style="margin:0 0 18px;font-size:.86rem;color:#475569;line-height:1.5;">Are you sure you want to submit these changes? Your updated 201 record will immediately synchronize with the official Barangay Registry.</p>
     <div style="display:flex;gap:10px;">
       <button type="button" onclick="document.getElementById('confirm201Modal').style.display='none'" style="flex:1;background:#e2e8f0;color:#334155;border:0;padding:10px;border-radius:9px;font-weight:800;cursor:pointer;">Cancel</button>
-      <button type="button" onclick="document.getElementById('confirm201Modal').style.display='none';document.getElementById('cit201Form').submit();" class="btn" style="flex:1;background:#16a34a;">Yes, Submit &amp; Sync</button>
+      <button type="button" onclick="document.getElementById('confirm201Modal').style.display='none';submitCit201WithHourglass();" class="btn" style="flex:1;background:#16a34a;">Yes, Submit &amp; Sync</button>
     </div>
   </div>
 </div>

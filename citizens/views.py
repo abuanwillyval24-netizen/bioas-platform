@@ -542,8 +542,31 @@ def citizen_home(request):
         if act == "UPDATE_201_PROFILE":
             save_shared_201_fields(citizen, request.POST)
             citizen.save()
-            save_standardized_citizen_files(citizen, photo_file=request.FILES.get("photo"), doc_files=request.FILES.getlist("supporting_document"), source_channel="PORTAL_SIGNUP", uploaded_by=citizen.full_name)
-            notice = "201 Master File Updated! All changes have been saved and synchronized with the Barangay Registry."
+            ph_f = request.FILES.get("photo")
+            up_docs = [f for f in request.FILES.getlist("supporting_document") if f]
+            msgs = ["201 Master File Updated!"]
+            if ph_f:
+                if not citizen.can_change_photo_now:
+                    from django.utils import timezone
+                    lk_dt = timezone.localtime(citizen.next_allowed_photo_change).strftime("%B %d, %Y")
+                    error = f"Your official 2x2 photo is locked until {lk_dt} (1 change allowed per quarter)."
+                else:
+                    try:
+                        normalize_official_2x2_photo(citizen, ph_f)
+                        msgs.append("Your 2x2 photo has been submitted and is now pending Barangay Secretary approval.")
+                    except Exception as pe:
+                        error = f"2x2 Photo Error: {pe}"
+            if up_docs and not error:
+                d_cat = request.POST.get("doc_category", "").strip() or "Supporting Document"
+                d_lbl = request.POST.get("doc_label", "").strip()
+                if not d_lbl:
+                    error = "Please enter a Document Label / Description before uploading supporting files."
+                else:
+                    for df in up_docs:
+                        pg_n, tot_n = append_to_citizen_master_pdf(citizen, f"{d_cat} — {d_lbl}", df, uploader=citizen.full_name, source_channel="SELF_PORTAL")
+                    msgs.append(f"Document '{d_cat} — {d_lbl}' uploaded and merged into your Barangay Vault (Page {pg_n} of {tot_n}).")
+            if not error:
+                notice = " ".join(msgs)
         elif act == "LEGACY_UPDATE_201_PROFILE":
             citizen.birth_place = request.POST.get("birth_place", citizen.birth_place).strip()
             citizen.religion = request.POST.get("religion", citizen.religion).strip()
@@ -740,6 +763,48 @@ from django.contrib.auth.decorators import login_required
 
 
 @login_required(login_url="/login/")
+def normalize_official_2x2_photo(cit, photo_file):
+    im = Image.open(photo_file).convert("RGB")
+    w, h = im.size
+    if w < 120 or h < 120:
+        raise ValueError("Photo resolution is too low. Please upload a clear head-and-shoulders photo.")
+    side = min(w, h)
+    left = max(0, (w - side) // 2)
+    top = max(0, int((h - side) * 0.18)) if h > w else 0
+    im = im.crop((left, top, left + side, top + side)).resize((600, 600), Image.Resampling.LANCZOS)
+    buf = BytesIO()
+    im.save(buf, format="JPEG", quality=88, dpi=(300, 300), optimize=True)
+    cit.pending_photo_data_uri = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    cit.photo_review_status = "PENDING"
+    cit.photo_rejection_reason = ""
+    cit.save(update_fields=["pending_photo_data_uri", "photo_review_status", "photo_rejection_reason"])
+
+
+@login_required(login_url="/login/")
+def review_citizen_photo(request, citizen_id):
+    from datetime import timedelta
+    from django.utils import timezone
+    cit = get_object_or_404(CitizenProfile, id=citizen_id)
+    if request.method == "POST":
+        dec = request.POST.get("decision", "").strip().upper()
+        if dec == "APPROVE" and cit.pending_photo_data_uri:
+            cit.photo_data_uri = cit.pending_photo_data_uri
+            cit.pending_photo_data_uri = ""
+            cit.photo_review_status = "APPROVED"
+            cit.photo_rejection_reason = ""
+            now_dt = timezone.now()
+            cit.photo_approved_at = now_dt
+            cit.next_allowed_photo_change = now_dt + timedelta(days=90)
+            cit.save(update_fields=["photo_data_uri", "pending_photo_data_uri", "photo_review_status", "photo_rejection_reason", "photo_approved_at", "next_allowed_photo_change"])
+        elif dec == "REJECT":
+            rsn = request.POST.get("rejection_reason", "").strip() or "Informal selfie, plain background required, or face obscured."
+            cit.pending_photo_data_uri = ""
+            cit.photo_review_status = "REJECTED"
+            cit.photo_rejection_reason = rsn
+            cit.save(update_fields=["pending_photo_data_uri", "photo_review_status", "photo_rejection_reason"])
+    return redirect(request.POST.get("next") or f"/citizen-inspect/{cit.id}/")
+
+
 def approve_citizen(request, citizen_id):
     citizen = get_object_or_404(CitizenProfile, id=citizen_id)
     citizen.status = "ACTIVE_RESIDENT"
@@ -772,8 +837,11 @@ def append_to_citizen_master_pdf(cit, doc_title, uploaded_file, uploader="", sou
     fn_low = (uploaded_file.name or "").lower()
     if fn_low.endswith(".pdf"):
         from PIL import ImageFont
-        f_lg = ImageFont.load_default(size=14)
-        f_sm = ImageFont.load_default(size=11)
+        try:
+            f_lg = ImageFont.load_default(size=14)
+            f_sm = ImageFont.load_default(size=11)
+        except TypeError:
+            f_lg = f_sm = ImageFont.load_default()
         for idx_p, pg in enumerate(PdfReader(BytesIO(raw)).pages, start=start_pg):
             pw, ph = int(float(pg.mediabox.width)), int(float(pg.mediabox.height))
             banner_im = Image.new("RGB", (max(pw, 400), 46), "#1e3a8a")
@@ -794,9 +862,13 @@ def append_to_citizen_master_pdf(cit, doc_title, uploaded_file, uploader="", sou
         canvas = Image.new("RGB", (w, h + 74), "#ffffff")
         canvas.paste(im, (0, 74))
         from PIL import ImageFont
-        fs_lg = ImageFont.load_default(size=max(20, w // 36))
-        fs_sm = ImageFont.load_default(size=max(15, w // 48))
-        bh = max(78, fs_lg.size + fs_sm.size + 28)
+        try:
+            fs_lg = ImageFont.load_default(size=max(20, w // 36))
+            fs_sm = ImageFont.load_default(size=max(15, w // 48))
+            bh = max(78, fs_lg.size + fs_sm.size + 28)
+        except TypeError:
+            fs_lg = fs_sm = ImageFont.load_default()
+            bh = 76
         canvas = Image.new("RGB", (w, h + bh), "#ffffff")
         canvas.paste(im, (0, bh))
         drw = ImageDraw.Draw(canvas)
@@ -807,7 +879,10 @@ def append_to_citizen_master_pdf(cit, doc_title, uploaded_file, uploader="", sou
         for pg in PdfReader(BytesIO(nb.getvalue())).pages: writer.add_page(pg)
     out = BytesIO(); writer.write(out); merged_bytes = out.getvalue()
     merged_uri = "data:application/pdf;base64," + base64.b64encode(merged_bytes).decode("ascii")
-    cit.supporting_document.save(std_name, ContentFile(merged_bytes), save=False)
+    try:
+        cit.supporting_document.save(std_name, ContentFile(merged_bytes), save=False)
+    except Exception:
+        pass
     cit.supporting_doc_data_uri = merged_uri
     cit.save(update_fields=["supporting_document", "supporting_doc_data_uri"])
     CitizenSupportingDocument.objects.filter(citizen=cit).update(file_data_uri=merged_uri)
