@@ -140,6 +140,7 @@
       </details><details class="side-grp" data-gid="grp_TransitionampReference" style="margin:4px 0;"><summary class="side-group" style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:8px;background:rgba(255,255,255,.07);border-left:3px solid #fbbf24;font-size:.83rem;font-weight:900;color:#f8fafc;letter-spacing:.09em;text-transform:uppercase;"><span>Transition &amp; Reference</span><span>&#9662;</span></summary>
       {% if "TURNOVER" in visible_modules %}<a href="?tier=BARANGAY&module=TURNOVER" class="{% if module == 'TURNOVER' %}active{% endif %}"><span>13. Governance Turnover</span><span class="pill">{{ total_pending_turnover }}</span></a>{% endif %}
       {% if "POLICY" in visible_modules %}<a href="?tier=BARANGAY&module=POLICY" class="{% if module == 'POLICY' %}active{% endif %}"><span>14. Policy &amp; Glossary</span><span class="pill">SOP</span></a>{% endif %}
+      {% if is_captain_or_admin %}<a href="?tier=BARANGAY&module=IT_ADMIN" class="{% if module == 'IT_ADMIN' %}active{% endif %}"><span>15. IT Systems &amp; Workstation</span><span class="pill" style="background:#0f766e;color:#fff;">IT</span></a>{% endif %}
       {% if "VAWC" in visible_modules %}<a href="?tier=BARANGAY&module=VAWC" class="{% if module == 'VAWC' %}active{% endif %}">16. VAWC Desk (RA 9262)</a>{% endif %}
       {% if "BADAC" in visible_modules %}<a href="?tier=BARANGAY&module=BADAC" class="{% if module == 'BADAC' %}active{% endif %}">17. BADAC Anti-Drug</a>{% endif %}
       {% if "BCPC" in visible_modules %}<a href="?tier=BARANGAY&module=BCPC" class="{% if module == 'BCPC' %}active{% endif %}">18. BCPC Child Protection</a>{% endif %}
@@ -1406,6 +1407,47 @@
         {% elif module == "INBOUND_FACILITY" %}
           <div class="section-title"><span>09B. Inbound Citizen Facility, Business Closure &amp; Service Quality Feedback</span></div>
           {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="FACILITY_FEEDBACK" box_title="Inbound Facility, Business Closure & Service Feedback Queue" %}
+
+        {% elif module == "IT_ADMIN" and is_captain_or_admin %}
+          <div class="section-title"><span>15. Smart IT Systems, Network &amp; Workstation Configuration Wizard</span>{% if it_last_report %}<button type="button" onclick="window.print()" style="background:#1e3a8a;color:#fff;border:0;padding:7px 14px;border-radius:7px;font-size:.78rem;font-weight:800;cursor:pointer;">🖨 Print IT Configuration Report</button>{% endif %}</div>
+          <div class="grid" style="margin-bottom:14px;">
+            <div class="card"><h3>Workstation Security</h3><div class="stat" style="color:#16a34a;">Desktop-Only</div><small>Official Mobile Login Blocked</small></div>
+            <div class="card"><h3>ISP Resilience</h3><div class="stat" style="color:#1e3a8a;">Cookie-Bound</div><small>Safe Across PLDT / Converge / Starlink</small></div>
+            <div class="card"><h3>Trusted Workstations</h3><div class="stat">{{ trusted_device_count }}</div><small>Active Verified Browser Tokens</small></div>
+          </div>
+          <div class="card" style="border-top:4px solid #0f766e;">
+            <h3 style="margin:0 0 6px;color:#0f766e;font-size:1rem;">🛠 Step-by-Step Guided IT Resolution Wizard</h3>
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="RUN_IT_CONFIG_WIZARD">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
+                <div><label style="font-size:.75rem;font-weight:700;">Step 1: Select Connection / Hardware Scenario *</label><select id="itScenSel" name="it_scenario" onchange="syncItPrompts()"><option value="CHANGE_ISP">A. Changing Internet Provider (ISP) / Backup Fiber</option><option value="REPLACE_WORKSTATION">B. Replacing / Adding New Office Desktop PC</option><option value="EMERGENCY_LOCKOUT">C. Emergency Lockout / Revoke Staff Device Tokens</option><option value="SECURITY_POSTURE_AUDIT">D. Full Workstation &amp; Citizen Hybrid Security Audit</option></select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Step 2: Affected Official / Workstation (Optional)</label><select name="target_staff_id"><option value="">All Barangay Office Workstations</option>{% for sp in barangay_staff_list %}<option value="{{ sp.id }}">{{ sp.full_name }} ({{ sp.get_role_display }})</option>{% endfor %}</select></div>
+                <div><label style="font-size:.75rem;font-weight:700;">Step 3: New ISP Name or Workstation Asset Tag *</label><input name="isp_or_pc_label" placeholder="e.g., Converge Fiber 300Mbps or Secretary-PC-02" required></div>
+              </div>
+              <div id="itPromptGuide" style="margin-top:12px;padding:12px;background:#f8fafc;border:1px solid #cbd5e1;border-left:4px solid #1e3a8a;border-radius:8px;font-size:.82rem;color:#1e293b;line-height:1.55;"></div>
+              <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:800;color:#0f172a;cursor:pointer;"><input type="checkbox" required style="width:auto;"> I confirm the guided IT steps above have been followed on this Barangay workstation.</label>
+                <button type="submit" style="background:#0f766e;color:#fff;border:0;padding:9px 16px;border-radius:8px;font-weight:800;font-size:.82rem;cursor:pointer;">Execute Configuration &amp; Generate Printable Report &rarr;</button>
+              </div>
+            </form>
+          </div>
+          {% if it_last_report %}
+          <div class="card" style="margin-top:16px;border:2px solid #1e3a8a;background:#fff;">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #0f172a;padding-bottom:8px;margin-bottom:10px;">
+              <div><div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#475569;">Republic of the Philippines &bull; {{ active_barangay.name }}</div><h3 style="margin:2px 0 0;color:#0f172a;font-size:1.05rem;">OFFICIAL IT WORKSTATION &amp; NETWORK CONFIGURATION REPORT</h3></div>
+              <div style="text-align:right;"><strong style="color:#1e3a8a;font-size:.95rem;">{{ it_last_report.code }}</strong><div style="font-size:.74rem;color:#64748b;">{{ it_last_report.at }}</div></div>
+            </div>
+            <table style="margin:0;"><tbody>
+              <tr><th style="width:220px;">Configuration Scenario</th><td><strong>{{ it_last_report.scenario }}</strong></td></tr>
+              <tr><th>Target Official / Unit</th><td>{{ it_last_report.target }}</td></tr>
+              <tr><th>ISP / Hardware Asset Label</th><td>{{ it_last_report.label }}</td></tr>
+              <tr><th>Revoked Legacy Tokens</th><td>{{ it_last_report.purged }} old device token(s) cleared</td></tr>
+              <tr><th>Security &amp; Hybrid Checks</th><td>✓ HTTPS/CSRF Verified &bull; ✓ Official Desktop-Only Lock Active &bull; ✓ Citizen Mobile Portal Active</td></tr>
+              <tr><th>Certified By</th><td>{{ it_last_report.by }} (Authorized IT / Barangay Administrator)</td></tr>
+            </tbody></table>
+            <div style="margin-top:12px;text-align:right;"><button type="button" onclick="window.print()" style="background:#1e3a8a;color:#fff;border:0;padding:8px 16px;border-radius:7px;font-weight:800;font-size:.82rem;cursor:pointer;">🖨 Print Official IT Report</button></div>
+          </div>
+          {% endif %}
+          <script>var IT_GUIDES={CHANGE_ISP:'<strong>Guided Steps for ISP Change:</strong><br>1. Connect the Barangay Hall router/switch to the new ISP line (PLDT, Converge, Globe, or Starlink).<br>2. Open this BIOAS portal on each office desktop and verify HTTPS padlock loads cleanly.<br>3. Click Execute below to certify the network transition—no staff re-registration is needed.',REPLACE_WORKSTATION:'<strong>Guided Steps for Desktop Replacement:</strong><br>1. Select the staff member assigned to the replaced PC above.<br>2. Click Execute below to revoke the old PC browser token.<br>3. Have the staff member sign in once on the new office desktop and enter their 6-digit verification code to bind the new workstation.',EMERGENCY_LOCKOUT:'<strong>Guided Steps for Lost/Compromised Device:</strong><br>1. Select the affected Barangay Official above.<br>2. Click Execute immediately to purge all trusted browser tokens.<br>3. Reset their account password in Admin and require fresh 2FA verification on a verified Barangay Hall desktop.',SECURITY_POSTURE_AUDIT:'<strong>Guided Steps for Hybrid Security Audit:</strong><br>1. Confirm Barangay Official mobile login block is active.<br>2. Confirm Citizen Portal mobile self-service is reachable.<br>3. Click Execute to generate a signed compliance audit report for COA/DILG IT records.'};function syncItPrompts(){var s=document.getElementById('itScenSel'),g=document.getElementById('itPromptGuide');if(s&&g)g.innerHTML=IT_GUIDES[s.value]||'';}syncItPrompts();</script>
 
         {% elif module == "AUDIT" %}
           <div class="section-title"><span>12A. COA Audit &amp; Liquidation Packages</span><a href="/admin/audit_analytics/coaauditcompliance/add/">+ Log COA Package</a></div>

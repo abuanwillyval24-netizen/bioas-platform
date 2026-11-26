@@ -169,7 +169,7 @@ def command_dashboard(request):
     else:
         visible_modules = list(all_mod_codes)
     if "CITIZENS" in visible_modules or "LEDGER_201" in visible_modules or request.user.is_superuser:
-        for extra_sub in ("CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "DOCS_REPO", "CITIZEN_REPORTS", "PHOTO_REVIEW", "REGISTRY_SERVICE", "INBOUND_DOCS", "INBOUND_LUPON", "INBOUND_SAFETY", "INBOUND_PROJECTS", "INBOUND_WELFARE", "INBOUND_FACILITY"):
+        for extra_sub in ("CITIZENS_INTAKE", "HOUSEHOLDS", "SHARED_GALLERY", "DOCS_REPO", "CITIZEN_REPORTS", "PHOTO_REVIEW", "REGISTRY_SERVICE", "INBOUND_DOCS", "INBOUND_LUPON", "INBOUND_SAFETY", "INBOUND_PROJECTS", "INBOUND_WELFARE", "INBOUND_FACILITY", "IT_ADMIN"):
             if extra_sub not in visible_modules:
                 visible_modules.append(extra_sub)
 
@@ -468,6 +468,40 @@ def command_dashboard(request):
                 c_obj.issued_date = timezone.localdate()
                 c_obj.save(update_fields=["status", "issued_date"])
                 action_notice = f"Certificate {c_obj.control_number} marked Issued & Released and mirrored to Citizen Portal."
+        elif act == "RUN_IT_CONFIG_WIZARD" and active_barangay and (request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN")):
+            from .models import TrustedLoginDevice, WalkInIncidentTicket
+            sc = request.POST.get("it_scenario", "CHANGE_ISP")
+            sp_id = request.POST.get("target_staff_id", "").strip()
+            isp_note = request.POST.get("isp_or_pc_label", "").strip() or "Primary Barangay Workstation / ISP"
+            sp_t = BarangayStaffProfile.objects.filter(barangay=active_barangay, id=sp_id).first() if sp_id else None
+            purged = 0
+            if sp_t and sp_t.user and sc in ("REPLACE_WORKSTATION", "EMERGENCY_LOCKOUT"):
+                qs_d = TrustedLoginDevice.objects.filter(account_key=f"OFF:{sp_t.user.id}")
+                purged = qs_d.count()
+                qs_d.delete()
+            rep_code = f"IT-{uuid.uuid4().hex[:6].upper()}"
+            t_lbl = sp_t.full_name if sp_t else "All Barangay Workstations"
+            summary_txt = f"Scenario: {sc} | Target: {t_lbl} | Note: {isp_note} | Revoked Old Tokens: {purged}"
+            WalkInIncidentTicket.objects.create(barangay=active_barangay, icn_code=rep_code, category="IT_SYSTEM_CONFIG", description=summary_txt, created_by_name=actor_name, created_by_role=actor_role, status="CLOSED_ARCHIVED", resolution_note="Verified & Certified by IT/Admin Wizard", closed_at=timezone.now())
+            request.session["bioas_it_report"] = {"code": rep_code, "scenario": sc, "target": t_lbl, "label": isp_note, "purged": purged, "by": actor_name, "at": timezone.localtime().strftime('%Y-%m-%d %I:%M %p'), "trusted_count": TrustedLoginDevice.objects.count()}
+            action_notice = f"IT Configuration {rep_code} completed! Printable report ready below."
+        elif act == "RUN_IT_CONFIG_WIZARD" and active_barangay and (request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN")):
+            from .models import TrustedLoginDevice, WalkInIncidentTicket
+            sc = request.POST.get("it_scenario", "CHANGE_ISP")
+            sp_id = request.POST.get("target_staff_id", "").strip()
+            isp_note = request.POST.get("isp_or_pc_label", "").strip() or "Primary Barangay Workstation / ISP"
+            sp_t = BarangayStaffProfile.objects.filter(barangay=active_barangay, id=sp_id).first() if sp_id else None
+            purged = 0
+            if sp_t and sp_t.user and sc in ("REPLACE_WORKSTATION", "EMERGENCY_LOCKOUT"):
+                qs_d = TrustedLoginDevice.objects.filter(account_key=f"OFF:{sp_t.user.id}")
+                purged = qs_d.count()
+                qs_d.delete()
+            rep_code = f"IT-{uuid.uuid4().hex[:6].upper()}"
+            t_lbl = sp_t.full_name if sp_t else "All Barangay Workstations"
+            summary_txt = f"Scenario: {sc} | Target: {t_lbl} | Note: {isp_note} | Revoked Old Tokens: {purged}"
+            WalkInIncidentTicket.objects.create(barangay=active_barangay, icn_code=rep_code, category="IT_SYSTEM_CONFIG", description=summary_txt, created_by_name=actor_name, created_by_role=actor_role, status="CLOSED_ARCHIVED", resolution_note="Verified & Certified by IT/Admin Wizard", closed_at=timezone.now())
+            request.session["bioas_it_report"] = {"code": rep_code, "scenario": sc, "target": t_lbl, "label": isp_note, "purged": purged, "by": actor_name, "at": timezone.localtime().strftime("%Y-%m-%d %I:%M %p"), "trusted_count": TrustedLoginDevice.objects.count()}
+            action_notice = f"IT Configuration {rep_code} completed! Printable report ready below."
         elif act == "UPDATE_SERVICE_TICKET" and active_barangay:
             from .models import CitizenServiceTicket
             stkt = CitizenServiceTicket.objects.filter(barangay=active_barangay, id=request.POST.get("ticket_id")).first()
@@ -1370,7 +1404,7 @@ def command_dashboard(request):
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
-        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
+        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "it_last_report": request.session.get("bioas_it_report"), "trusted_device_count": __import__("governance.models", fromlist=["TrustedLoginDevice"]).TrustedLoginDevice.objects.count(), "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
         "certificates": certificates, "cert_type_choices": __import__("documents.models", fromlist=["CertificateRequest"]).CertificateRequest.CERT_TYPES, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
         "open_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="OPEN")[:30]) if active_barangay else [],
