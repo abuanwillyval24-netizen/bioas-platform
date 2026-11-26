@@ -762,7 +762,6 @@ from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
 
-@login_required(login_url="/login/")
 def normalize_official_2x2_photo(cit, photo_file):
     im = Image.open(photo_file).convert("RGB")
     w, h = im.size
@@ -813,6 +812,7 @@ def review_citizen_photo(request, citizen_id):
     return redirect(request.POST.get("next") or f"/citizen-inspect/{cit.id}/")
 
 
+@login_required(login_url="/login/")
 def approve_citizen(request, citizen_id):
     citizen = get_object_or_404(CitizenProfile, id=citizen_id)
     citizen.status = "ACTIVE_RESIDENT"
