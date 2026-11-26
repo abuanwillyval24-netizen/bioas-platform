@@ -146,11 +146,11 @@
         <div><label>Mobile Number *</label><input name="mobile_number" value="{{ draft.mobile_number }}" placeholder="09XX-XXX-XXXX" required></div>
       </div>
 
-      <div class="sec-hdr">Account Credentials</div>
-      <div><label>Portal Username * <span id="uAvailBadge" style="margin-left:6px;font-weight:800;"></span></label><input id="portalUserInp" name="portal_username" value="{{ draft.portal_username }}" placeholder="Start with a letter (e.g., abuan24)" oninput="checkUserAvail(this.value)" required></div>
+      <div class="sec-hdr">Account Credentials</div><input type="text" name="_decoy_u" style="display:none" tabindex="-1" autocomplete="off"><input type="password" name="_decoy_p" style="display:none" tabindex="-1" autocomplete="new-password">
+      <div><label>Portal Username * <span id="uAvailBadge" style="margin-left:6px;font-weight:800;"></span></label><input id="portalUserInp" name="portal_username" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" value="{{ draft.portal_username }}" placeholder="Start with a letter (e.g., abuan24)" oninput="checkUserAvail(this.value)" required></div>
       <div class="grid-2" style="margin-top:10px;">
-        <div><label>Password *</label><input type="password" id="pwInp" name="portal_password" placeholder="Create strong password" oninput="checkPwRules()" required></div>
-        <div><label>Confirm Password * <span id="pwMatchTag" style="margin-left:4px;"></span></label><input type="password" id="pwConfInp" name="confirm_password" placeholder="Re-enter password" oninput="checkPwRules()" required></div>
+        <div><label>Password *</label><input type="password" id="pwInp" name="portal_password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" placeholder="Create strong password" oninput="checkPwRules()" required></div>
+        <div><label>Confirm Password * <span id="pwMatchTag" style="margin-left:4px;"></span></label><input type="password" id="pwConfInp" name="confirm_password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" placeholder="Re-enter password" oninput="checkPwRules()" required></div>
       </div>
       <div class="chk-list"><div id="rLen" class="chk-item">&#9675; Min. 8 characters</div><div id="rUp" class="chk-item">&#9675; 1 uppercase letter (A-Z)</div><div id="rNum" class="chk-item">&#9675; 1 number (0-9)</div><div id="rSpec" class="chk-item">&#9675; 1 special character (!@#$%)</div></div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:.82rem;color:#1e293b;">
