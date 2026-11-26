@@ -68,8 +68,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", SECRET_KEY)
 DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes")
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",") if h.strip()]
 
-if os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS"):
-    CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.environ["DJANGO_CSRF_TRUSTED_ORIGINS"].split(",") if o.strip()]
+CSRF_TRUSTED_ORIGINS = ["https://*.onrender.com"] + [o.strip() for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
 if "whitenoise.middleware.WhiteNoiseMiddleware" not in MIDDLEWARE:
     sec_idx = MIDDLEWARE.index("django.middleware.security.SecurityMiddleware") + 1 if "django.middleware.security.SecurityMiddleware" in MIDDLEWARE else 0

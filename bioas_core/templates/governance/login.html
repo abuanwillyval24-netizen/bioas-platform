@@ -36,9 +36,9 @@
           <option value="OFFICIAL" {% if role_type == "OFFICIAL" %}selected{% endif %}>Barangay Official (Elected / Appointed)</option>
         </select>
         <label id="refCodeLabel">{% if role_type == "CITIZEN" %}System-Generated Reference Number *{% else %}Unique Official Code{% endif %}</label>
-        <input name="ref_code" id="refCodeInput" value="{{ ref_code }}" placeholder="{% if role_type == 'CITIZEN' %}e.g., NUE-CAB-LAG-2026-00201{% else %}e.g., OFF-CAB-LAG-2026-0001{% endif %}" {% if role_type == "CITIZEN" %}required{% endif %}>
-        <label>Username *</label><input name="username" value="{{ username_in }}" placeholder="Enter username" required autofocus>
-        <label>Password *</label><input type="password" name="password" placeholder="Enter password" required>
+        <input name="ref_code" id="refCodeInput" autocapitalize="characters" autocorrect="off" spellcheck="false" value="{{ ref_code }}" placeholder="{% if role_type == 'CITIZEN' %}e.g., NUE-CAB-LAG-2026-00201{% else %}e.g., OFF-CAB-LAG-2026-0001{% endif %}" {% if role_type == "CITIZEN" %}required{% endif %}>
+        <label>Username *</label><input name="username" value="{{ username_in }}" placeholder="Enter username" autocapitalize="none" autocorrect="off" spellcheck="false" required autofocus>
+        <label>Password *</label><div style="position:relative;"><input id="loginPassInp" type="password" name="password" placeholder="Enter password" style="padding-right:42px;" required><button type="button" aria-label="Show or hide password" onclick="var i=document.getElementById('loginPassInp');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈';" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:auto;margin:0;padding:4px 7px;background:transparent;color:#475569;border:0;font-size:1rem;cursor:pointer;">👁</button></div>
         <button type="submit">Sign In &rarr;</button>
       </form>
       <script>function syncRoleFields(){const r=document.getElementById('roleSelector').value,l=document.getElementById('refCodeLabel'),i=document.getElementById('refCodeInput');if(r==='CITIZEN'){l.textContent='System-Generated Reference Number *';i.placeholder='e.g., NUE-CAB-LAG-2026-00201';i.required=true;}else{l.textContent='Unique Official Code';i.placeholder='e.g., OFF-CAB-LAG-2026-0001';i.required=false;}}</script>
