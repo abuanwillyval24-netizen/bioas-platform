@@ -216,7 +216,7 @@
                 </div>
                 <div style="margin-top:8px;">{% include "governance/_citizen_201_shared_fields.html" with c=citizen %}</div>
                 {% include "governance/_citizen_201_photo_and_vault_controls.html" %}
-                <button type="button" onclick="openCit201Confirm()" class="btn" style="margin-top:14px;background:#16a34a;">&#10003; Save &amp; Sync All 201 Profile Updates &rarr;</button>
+                <button type="button" id="cit201SyncBtn" disabled onclick="openCit201Confirm()" class="btn" style="margin-top:14px;background:#16a34a;">&#10003; Save &amp; Sync All 201 Profile Updates &rarr;</button>
               </form>
             </div>
             <div class="card"><h4 style="margin-top:0;">My Supporting Documents Vault ({{ citizen.repository_docs.all|length }}) <a href="/citizen-docs/{{ citizen.citizen_qr_id }}/" target="_blank" class="badge" style="float:right;text-decoration:none;background:#1e3a8a;color:#fff;">Open Shared Vault &amp; Add Docs &nearr;</a></h4><table><thead><tr><th>Document Title</th><th>Uploaded</th><th>Action</th></tr></thead><tbody>{% for d in citizen.repository_docs.all %}<tr><td><strong>{{ d.document_title|default:"Supporting Document" }}</strong></td><td>{{ d.uploaded_at|date:"M d, Y" }}</td><td><a href="/citizen-proof/{{ citizen.id }}/" target="_blank" class="badge" style="text-decoration:none;">View Master PDF &nearr;</a></td></tr>{% empty %}<tr><td colspan="3">No supporting documents uploaded yet.</td></tr>{% endfor %}</tbody></table></div>
@@ -314,5 +314,5 @@
     </div>
   </div>
 </div>
-</body>
+<style>#cit201SyncBtn:disabled{background:#94a3b8!important;color:#f8fafc!important;opacity:.52!important;cursor:not-allowed!important;pointer-events:none!important;box-shadow:none!important;transform:none!important}</style><script>window.addEventListener('load',function(){var f=document.getElementById('cit201Form'),b=document.getElementById('cit201SyncBtn');if(!f||!b)return;var init=new Map();function valOf(el){return el.type==='checkbox'?el.checked:String(el.value||'').trim();}f.querySelectorAll('input,select,textarea').forEach(function(el){if(el.type!=='file'&&el.type!=='hidden'&&!el.readOnly&&el.name!=='doc_category')init.set(el,valOf(el));});function chk(){var dirty=false;f.querySelectorAll('input,select,textarea').forEach(function(el){if(el.type==='file'){if(el.files&&el.files.length)dirty=true;}else if(init.has(el)){if(init.get(el)!==valOf(el))dirty=true;}});b.disabled=!dirty;b.style.background=dirty?'#16a34a':'#94a3b8';}chk();f.addEventListener('input',chk);f.addEventListener('change',chk);setInterval(chk,350);});</script></body>
 </html>
