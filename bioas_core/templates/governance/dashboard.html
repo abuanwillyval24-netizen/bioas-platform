@@ -605,8 +605,6 @@
             });
             renderPendQueue();
           </script>
-          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="REGISTRY_ACCOUNT" box_title="Inbound Citizen Registry, Barangay ID & Account Security Requests" %}
-
         {% elif module == "HOUSEHOLDS" %}
           <div class="section-title"><span>02D. Household &amp; Family Tree Breakdown (Head &rarr; Members &rarr; Relationships)</span></div>
           <table><thead><tr><th>Household ID</th><th>Head of Family (Purok)</th><th>Members &amp; Relationships</th><th>Children (Unmarried / Married)</th><th>Seniors / PWD / Solo / Pregnant</th></tr></thead><tbody>
@@ -953,6 +951,8 @@
             <table style="margin-top:10px;"><thead><tr><th>Summon Code</th><th>Case</th><th>Recipient</th><th>Schedule</th><th>Receipt Status</th></tr></thead><tbody>{% for s in lupon_summons %}<tr><td><strong>{{ s.summon_code }}</strong></td><td>{{ s.blotter_case.case_number }}</td><td>{{ s.recipient_citizen.full_name }}</td><td>{{ s.hearing_date }} {{ s.hearing_time|time:"H:i" }}</td><td><span class="badge">{{ s.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No e-Summons issued yet.</td></tr>{% endfor %}</tbody></table>
           </div>
           {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="LUPON_ENGAGEMENT" box_title="Inbound Citizen Coffee Talk Mediation, Case Review & Summons Requests" %}
+
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="REGISTRY_ACCOUNT" box_title="Inbound Citizen Registry, Barangay ID & Account Security Requests" %}
 
         {% elif module == "TREASURY" %}
           <div class="section-title"><span>05A. Pending Official Receipt (OR) Clearance Unlock Queue</span></div>
