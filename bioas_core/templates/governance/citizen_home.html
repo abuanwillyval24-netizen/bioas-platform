@@ -74,6 +74,7 @@
       <button type="button" onclick="document.getElementById('citAckModal').remove()" class="btn" style="width:100%;">Continue</button>
     </div>
   </div>
+  <script>(function(){var m=document.getElementById('citAckModal');if(!m)return;var k='bioas_ack_'+btoa(unescape(encodeURIComponent(m.innerText))).slice(0,48);var nav=(performance.getEntriesByType('navigation')[0]||{}).type;if(sessionStorage.getItem(k)||nav==='back_forward'){m.remove();}else{sessionStorage.setItem(k,'1');}window.addEventListener('pageshow',function(e){if(e.persisted&&document.getElementById('citAckModal'))document.getElementById('citAckModal').remove();});})();</script>
   {% endif %}
 
   <div class="wrap">
