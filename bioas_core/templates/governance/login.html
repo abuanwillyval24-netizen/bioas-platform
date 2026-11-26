@@ -10,20 +10,26 @@
         <p>{{ showcase.hero_tagline|default:"Transparent, Fast & Citizen-Centered Digital Barangay Governance" }}</p>
       </div>
     </div>
-    <div class="login-card">
+    <div class="login-card" style="position:relative;overflow:hidden;">
+      <style>@keyframes bioasSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>
+      <div id="loginSpinnerOverlay" style="display:none;position:absolute;inset:0;background:rgba(255,255,255,.92);backdrop-filter:blur(3px);z-index:50;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;">
+        <div style="width:48px;height:48px;border:4px solid #dbeafe;border-top-color:#1e3a8a;border-radius:50%;animation:bioasSpin .8s linear infinite;margin-bottom:14px;"></div>
+        <div style="font-weight:900;font-size:.98rem;color:#0f172a;">Signing in to BIOAS...</div>
+        <div style="font-size:.78rem;color:#475569;margin-top:4px;">Verifying credentials &amp; loading portal</div>
+      </div>
       <h2>Unified Portal Sign In</h2>
       <p class="sub">Citizen Services &amp; Barangay Operations Access</p>
       {% if error %}<div class="err">{{ error }}</div>{% endif %}
       {% if notice %}<div style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:8px 10px;border-radius:8px;font-size:.79rem;margin-bottom:10px;font-weight:600;">{{ notice }}</div>{% endif %}
       {% if otp_pending %}
-      <form method="post">{% csrf_token %}<input type="hidden" name="login_step" value="VERIFY_LOGIN_OTP">
+      <form method="post" onsubmit="var o=document.getElementById('loginSpinnerOverlay');if(o)o.style.display='flex';">{% csrf_token %}<input type="hidden" name="login_step" value="VERIFY_LOGIN_OTP">
         <label>6-Digit Verification OTP (Sent to {{ otp_masked_email }}) *</label>
         <input name="login_otp_code" maxlength="6" placeholder="Enter 6-digit OTP" required autofocus>
         <button type="submit" style="background:#16a34a;">Verify Device &amp; Complete Sign In &rarr;</button>
       </form>
       <div class="recovery-row"><a href="/login/">&larr; Back to Login</a></div>
       {% else %}
-      <form method="post">{% csrf_token %}<input type="hidden" name="login_step" value="CREDENTIALS">
+      <form method="post" onsubmit="var o=document.getElementById('loginSpinnerOverlay');if(o)o.style.display='flex';">{% csrf_token %}<input type="hidden" name="login_step" value="CREDENTIALS">
         <label>Login as *</label>
         <select name="role_type" id="roleSelector" onchange="syncRoleFields()" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.88rem;background:#f8fafc;">
           <option value="CITIZEN" {% if role_type == "CITIZEN" %}selected{% endif %}>Citizen (Resident Self-Service)</option>
