@@ -89,6 +89,11 @@ def save_standardized_citizen_files(cit, photo_file=None, doc_files=None, source
             cit.save(update_fields=["photo", "photo_data_uri"])
 
     valid_docs = [f for f in (doc_files or []) if f]
+    if valid_docs and (cit.supporting_doc_data_uri or cit.supporting_document):
+        for fobj in valid_docs:
+            lbl = os.path.splitext(fobj.name).__getitem__(0).replace("_", " ").title() or "Additional Supporting Document"
+            append_to_citizen_master_pdf(cit, lbl, fobj, uploader=uploaded_by or cit.full_name, source_channel=source_channel)
+        return
     if valid_docs:
         pdf_bytes = None
         img_pages = []
@@ -788,10 +793,16 @@ def append_to_citizen_master_pdf(cit, doc_title, uploaded_file, uploader="", sou
         w, h = im.size
         canvas = Image.new("RGB", (w, h + 74), "#ffffff")
         canvas.paste(im, (0, 74))
+        from PIL import ImageFont
+        fs_lg = ImageFont.load_default(size=max(20, w // 36))
+        fs_sm = ImageFont.load_default(size=max(15, w // 48))
+        bh = max(78, fs_lg.size + fs_sm.size + 28)
+        canvas = Image.new("RGB", (w, h + bh), "#ffffff")
+        canvas.paste(im, (0, bh))
         drw = ImageDraw.Draw(canvas)
-        drw.rectangle([0, 0, w, 70], fill="#1e3a8a")
-        drw.text((18, 12), f"PAGE {start_pg}  |  {doc_title}", fill="#ffffff")
-        drw.text((18, 40), f"Uploaded: {ts_str}  |  By: {uploader or cit.full_name}  |  ID: {cid}", fill="#fde68a")
+        drw.rectangle([0, 0, w, bh - 4], fill="#1e3a8a")
+        drw.text((18, 10), f"PAGE {start_pg}  |  {doc_title}", fill="#ffffff", font=fs_lg)
+        drw.text((18, fs_lg.size + 18), f"Uploaded: {ts_str}  |  By: {uploader or cit.full_name}  |  ID: {cid}", fill="#fde68a", font=fs_sm)
         nb = BytesIO(); canvas.save(nb, format="PDF", resolution=150.0)
         for pg in PdfReader(BytesIO(nb.getvalue())).pages: writer.add_page(pg)
     out = BytesIO(); writer.write(out); merged_bytes = out.getvalue()
