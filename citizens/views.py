@@ -807,15 +807,15 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
   {% if error %}<div class="card" style="background:#fee2e2;color:#991b1b;font-weight:700;">{{ error }}</div>{% endif %}
 
   <div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;border-top:4px solid {{ p_col }};">
-    {% if citizen.photo %}
-      <img src="{{ citizen.photo.url }}" alt="2x2 Photo" style="width:76px;height:76px;object-fit:cover;border-radius:8px;border:2px solid {{ s_col }};">
+    {% if citizen.photo_data_uri or citizen.photo %}
+      <img id="repo2x2Img" onclick="document.getElementById('repoZoomModal').style.display='flex'" title="Click to enlarge 2x2 photo" src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% else %}{{ citizen.photo.url }}{% endif %}" alt="2x2 Photo" style="width:76px;height:76px;object-fit:cover;border-radius:8px;border:2px solid {{ s_col }};cursor:zoom-in;">
     {% else %}
       <div style="width:76px;height:76px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#475569;text-align:center;">No 2x2 Photo</div>
     {% endif %}
     <div style="flex:1;min-width:220px;">
       <div style="font-size:1.15rem;font-weight:800;">{{ citizen.full_name }} <span class="badge">{{ citizen.citizen_qr_id }}</span></div>
       <div style="font-size:.84rem;color:#475569;margin-top:3px;">{{ citizen.purok }} &bull; {{ citizen.address_line|default:"No street address" }} &bull; Age {{ citizen.age }} ({{ citizen.get_sex_display }})</div>
-      <div style="font-size:.8rem;color:#166534;font-weight:700;margin-top:3px;">Status: {{ citizen.get_status_display }} {% if citizen.photo %}&bull; <a href="{{ citizen.photo.url }}" target="_blank" style="color:#1e3a8a;">Open Full 2x2 Photo &nearr;</a>{% endif %}</div>
+      <div style="font-size:.8rem;color:#166534;font-weight:700;margin-top:3px;">Status: {{ citizen.get_status_display }} {% if citizen.photo_data_uri or citizen.photo %}&bull; <a href="javascript:void(0)" onclick="document.getElementById('repoZoomModal').style.display='flex'" style="color:#1e3a8a;">Open Full 2x2 Photo &nearr;</a>{% endif %}</div>
     </div>
   </div>
 
@@ -837,7 +837,7 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
         <td><span class="badge">{{ d.get_source_channel_display }}</span></td>
         <td>{{ d.uploaded_by|default:"System" }}</td>
         <td style="white-space:nowrap;">{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
-        <td><a href="{{ d.file.url }}" target="_blank" style="background:#1e3a8a;color:#fff;padding:5px 11px;border-radius:5px;text-decoration:none;font-size:.76rem;font-weight:700;">View / Download &nearr;</a></td>
+        <td><a href="{% if d.file_data_uri %}{{ d.file_data_uri }}{% else %}/citizen-proof/{{ citizen.id }}/{% endif %}" download="{{ d.document_title|slugify }}.pdf" target="_blank" style="display:inline-block;white-space:nowrap;background:#1e3a8a;color:#fff;padding:5px 11px;border-radius:5px;text-decoration:none;font-size:.76rem;font-weight:700;">View / Download &nearr;</a></td>
       </tr>
       {% empty %}
       <tr><td colspan="5" style="color:#64748b;">No supporting documents uploaded for this citizen yet.</td></tr>
@@ -853,7 +853,7 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
       {% endfor %}
     </tbody></table>
   </div>
-</div></body></html>"""
+</div><div id="repoZoomModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;border-radius:14px;padding:16px;max-width:380px;width:100%;text-align:center;"><img src="{% if citizen.photo_data_uri %}{{ citizen.photo_data_uri }}{% elif citizen.photo %}{{ citizen.photo.url }}{% endif %}" style="width:100%;max-height:340px;object-fit:contain;border-radius:10px;"><button type="button" onclick="document.getElementById('repoZoomModal').style.display='none'" style="margin-top:12px;width:100%;background:#1e3a8a;color:#fff;border:0;padding:9px;border-radius:8px;font-weight:800;cursor:pointer;">Close Preview</button></div></div></body></html>"""
     return HttpResponse(engines["django"].from_string(tpl).render({
         "citizen": citizen, "repo_docs": repo_docs, "cert_docs": cert_docs,
         "p_col": p_col, "s_col": s_col, "notice": notice, "error": error,
