@@ -766,16 +766,22 @@ def append_to_citizen_master_pdf(cit, doc_title, uploaded_file, uploader="", sou
     raw = uploaded_file.read()
     fn_low = (uploaded_file.name or "").lower()
     if fn_low.endswith(".pdf"):
+        from PIL import ImageFont
+        f_lg = ImageFont.load_default(size=14)
+        f_sm = ImageFont.load_default(size=11)
         for idx_p, pg in enumerate(PdfReader(BytesIO(raw)).pages, start=start_pg):
-            banner_im = Image.new("RGB", (1240, 68), "#1e3a8a")
+            pw, ph = int(float(pg.mediabox.width)), int(float(pg.mediabox.height))
+            banner_im = Image.new("RGB", (max(pw, 400), 46), "#1e3a8a")
             drw = ImageDraw.Draw(banner_im)
-            drw.text((22, 12), f"PAGE {idx_p}  |  {doc_title}", fill="#ffffff")
-            drw.text((22, 38), f"Uploaded: {ts_str}  |  By: {uploader or cit.full_name}  |  ID: {cid}", fill="#fde68a")
-            b_buf = BytesIO(); banner_im.save(b_buf, format="PDF")
+            drw.text((14, 7), f"PAGE {idx_p}  |  {doc_title}", fill="#ffffff", font=f_lg)
+            drw.text((14, 26), f"Uploaded: {ts_str}  |  By: {uploader or cit.full_name}  |  ID: {cid}", fill="#fde68a", font=f_sm)
+            b_buf = BytesIO(); banner_im.save(b_buf, format="PDF", resolution=72.0)
             b_pg = PdfReader(BytesIO(b_buf.getvalue())).pages.__getitem__(0)
             writer.add_page(pg)
             ap = writer.pages.__getitem__(-1)
-            ap.merge_transformed_page(b_pg, (1, 0, 0, 1, 0, float(ap.mediabox.height) - 42))
+            ap.mediabox.upper_right = (pw, ph + 46)
+            ap.cropbox.upper_right = (pw, ph + 46)
+            ap.merge_transformed_page(b_pg, (1, 0, 0, 1, 0, ph))
     else:
         c_raw, _ = _compress_under_300kb(raw)
         im = Image.open(BytesIO(c_raw)).convert("RGB")
@@ -814,15 +820,8 @@ def citizen_docs_repository(request, qr_id):
     is_owner = (request.session.get("citizen_auth_id") == citizen.id)
     if not is_official and not is_owner:
         return HttpResponseForbidden("403 Forbidden: Unauthorized access to another resident's 201 documents.")
-    if citizen.supporting_document and citizen.supporting_document.name:
-        if not CitizenSupportingDocument.objects.filter(citizen=citizen, file=citizen.supporting_document.name).exists():
-            CitizenSupportingDocument.objects.create(
-                citizen=citizen,
-                document_title=f"201 Supporting Document ({citizen.full_name})",
-                source_channel="WALKIN_DESK",
-                file=citizen.supporting_document.name,
-                uploaded_by="201 Master Record",
-            )
+    if (citizen.supporting_doc_data_uri or citizen.supporting_document) and not CitizenSupportingDocument.objects.filter(citizen=citizen).exists():
+        CitizenSupportingDocument.objects.create(citizen=citizen, document_title=f"Page 1: Initial 201 Supporting Document ({citizen.full_name})", source_channel="SELF_PORTAL", file_data_uri=citizen.supporting_doc_data_uri or "", uploaded_by=citizen.full_name)
 
     notice, error = "", ""
     if request.method == "POST":
