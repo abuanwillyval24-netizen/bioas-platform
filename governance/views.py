@@ -415,6 +415,17 @@ def command_dashboard(request):
                 tkt.resolution_note = request.POST.get("resolution_note", "Resolved & Closed by Officer").strip()[:240]
                 tkt.save(update_fields=["status", "closed_at", "resolution_note"])
                 action_notice = f"Incident {tkt.icn_code} closed and archived."
+        elif act == "UPDATE_SERVICE_TICKET" and active_barangay:
+            from .models import CitizenServiceTicket
+            stkt = CitizenServiceTicket.objects.filter(barangay=active_barangay, id=request.POST.get("ticket_id")).first()
+            if stkt:
+                stkt.status = request.POST.get("status", stkt.status)
+                rep_txt = request.POST.get("office_reply", "").strip()
+                if rep_txt:
+                    stkt.office_reply = rep_txt
+                stkt.handled_by = actor_name
+                stkt.save(update_fields=["status", "office_reply", "handled_by", "updated_at"])
+                action_notice = f"Ticket {stkt.ticket_code} updated ({stkt.get_status_display()}) and mirrored to Citizen Portal."
         elif act == "SAVE_CITIZEN_201":
             action_error = "Data Sovereignty Lock: Citizen 201 Master Files are owned and edited exclusively by the Citizen via their Citizen Portal."
         elif act == "DISABLED_SAVE_CITIZEN_201":
@@ -1306,7 +1317,7 @@ def command_dashboard(request):
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
-        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports,
+        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
         "certificates": certificates, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
         "open_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="OPEN")[:30]) if active_barangay else [],
