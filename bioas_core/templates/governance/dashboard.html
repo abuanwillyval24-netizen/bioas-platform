@@ -366,7 +366,8 @@
 
             <form id="consolidateDupForm" method="post" style="display:none;">{% csrf_token %}<input type="hidden" name="action" value="CONSOLIDATE_DUPLICATE_STAGING"></form>
             </div>
-            <div id="pendStickyBar" class="section-title" style="position:sticky;top:-18px;z-index:95;background:#fff;padding:12px 14px;border-radius:10px;border-bottom:2px solid #cbd5e1;box-shadow:0 4px 10px rgba(15,23,42,.06);z-index:80;box-shadow:0 4px 12px rgba(15,23,42,.06);background:#ffffff;padding:12px 14px;margin:0 -4px 10px;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:10px;box-shadow:0 4px 14px rgba(15,23,42,.08);flex-wrap:wrap;gap:8px;">
+            {% include "governance/_pending_2x2_queue.html" %}
+          <div id="pendStickyBar" class="section-title" style="position:sticky;top:-18px;z-index:95;background:#fff;padding:12px 14px;border-radius:10px;border-bottom:2px solid #cbd5e1;box-shadow:0 4px 10px rgba(15,23,42,.06);z-index:80;box-shadow:0 4px 12px rgba(15,23,42,.06);background:#ffffff;padding:12px 14px;margin:0 -4px 10px;border:1px solid #cbd5e1;border-top:4px solid var(--primary);border-radius:10px;box-shadow:0 4px 14px rgba(15,23,42,.08);flex-wrap:wrap;gap:8px;">
               <span>02B. Pending Citizen Verification Queue ({{ turnover_summary.pending_citizens }} Awaiting Official Check)</span>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input id="pendSearchInput" value="{{ search_query }}" oninput="filterPendQueue()" placeholder="Filter pending by Name, QR ID, or Purok..." style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.78rem;min-width:200px;"><span id="pendSelBadge" style="background:#dbeafe;color:#1e40af;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;">0 Selected</span><button type="button" onclick="selectNoDocRows()" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:5px 10px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Select No-Doc Rows</button><button type="button" onclick="submitMassReject()" style="background:#dc2626;color:#fff;border:0;padding:6px 11px;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;">Reject Selected &#10005;</button>
                 <button type="submit" form="massApproveForm" onclick="return confirm('Approve ONLY the checked citizen records into the official 201 Master File?')" style="background:#1e3a8a;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;">&#9989; Approve Checked</button>
@@ -608,6 +609,7 @@
           </tbody></table>
 
         {% elif module == "SHARED_GALLERY" %}
+          {% include "governance/_pending_2x2_queue.html" %}
           <div class="section-title" style="margin-top:8px;">
             <span>02E. Shared Citizen Profiles Gallery (Official &amp; Citizen Synchronized View &mdash; {{ pop_stats.total_residents }})</span>
             <a href="/citizen-home/" target="_blank" style="background:var(--primary);color:#ffffff !important;padding:7px 14px;border-radius:7px;font-size:.78rem;font-weight:800;text-decoration:none;">Open Citizen Self-Service View &#8599;</a>
@@ -1336,6 +1338,7 @@
             </tbody></table>
           </div>
         {% elif module == "DOCS_REPO" %}
+          {% include "governance/_pending_2x2_queue.html" %}
           <div class="section-title">
             <span>02C. Entire Barangay Supporting Docs Repository (<span id="repoDocCount">{{ all_repo_docs|length }}</span> Uploaded Files)</span>
             <a href="?tier=BARANGAY&module=LEDGER_201">&larr; Back to 201 Excel Ledger</a>
