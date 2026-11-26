@@ -1,0 +1,28 @@
+<div class="card" style="margin-top:18px;border-top:4px solid #0f766e;padding:14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+    <h3 style="margin:0;color:#0f766e;font-size:.98rem;">📨 {{ box_title }}</h3>
+    <span style="font-size:.74rem;font-weight:800;color:#475569;">Mirrors live to Citizen Portal</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="margin:0;width:100%;border-collapse:collapse;">
+      <thead><tr><th>Ticket Code &amp; Date</th><th>Resident / Privacy</th><th>Request Type &amp; Details</th><th>Official Action &amp; Mirror Reply</th></tr></thead>
+      <tbody>
+        {% for tk in tickets %}{% if tk.service_group == filter_group %}
+        <tr>
+          <td><strong style="color:#0f766e;">{{ tk.ticket_code }}</strong><div style="font-size:.72rem;color:#64748b;">{{ tk.created_at|date:"M d, Y H:i" }}</div></td>
+          <td>{% if tk.is_anonymous or not tk.citizen %}<span class="badge" style="background:#fef3c7;color:#92400e;">🕵 Anonymous Resident</span>{% else %}<strong>{{ tk.citizen.full_name }}</strong><div style="font-size:.72rem;color:#64748b;">{{ tk.citizen.purok }} &bull; {{ tk.citizen.citizen_qr_id }}</div>{% if tk.allow_recognition %}<span class="badge" style="background:#dcfce7;color:#166534;margin-top:2px;">★ Recognition Consented</span>{% endif %}{% endif %}</td>
+          <td><div style="font-weight:800;color:#0f172a;font-size:.83rem;">{{ tk.ticket_type }} — {{ tk.subject }}</div>{% if tk.location_or_ref %}<div style="font-size:.73rem;color:#0f766e;font-weight:700;">Ref / Landmark: {{ tk.location_or_ref }}</div>{% endif %}<div style="font-size:.76rem;color:#475569;white-space:pre-line;margin-top:2px;">{{ tk.details|truncatechars:180 }}</div>{% if tk.supporting_file %}<a href="{{ tk.supporting_file.url }}" target="_blank" style="display:inline-block;margin-top:4px;font-size:.73rem;color:#1e3a8a;font-weight:800;">📎 Inspect Uploaded Proof / File ↗</a>{% endif %}</td>
+          <td style="min-width:240px;">
+            <form method="post" style="display:flex;flex-direction:column;gap:5px;">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_SERVICE_TICKET"><input type="hidden" name="ticket_id" value="{{ tk.id }}">
+              <select name="status" style="padding:5px 8px;font-size:.75rem;font-weight:700;border-radius:6px;">{% for val,lbl in tk.STATUS_CHOICES %}<option value="{{ val }}" {% if tk.status == val %}selected{% endif %}>{{ lbl }}</option>{% endfor %}</select>
+              <input name="office_reply" value="{{ tk.office_reply }}" placeholder="Official reply mirrored to citizen..." style="padding:5px 8px;font-size:.74rem;">
+              <button type="submit" style="background:#1e3a8a;color:#fff;border:0;padding:6px 10px;border-radius:6px;font-size:.74rem;font-weight:800;cursor:pointer;">Save &amp; Mirror to Citizen &rarr;</button>
+            </form>{% if tk.handled_by %}<div style="font-size:.69rem;color:#64748b;margin-top:3px;">Last action by {{ tk.handled_by }}</div>{% endif %}
+          </td>
+        </tr>
+        {% endif %}{% endfor %}
+        <tr><td colspan="4" style="text-align:center;padding:12px;color:#64748b;font-size:.78rem;">Any inbound Citizen Portal requests under this module appear automatically above.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>

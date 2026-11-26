@@ -605,6 +605,8 @@
             });
             renderPendQueue();
           </script>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="REGISTRY_ACCOUNT" box_title="Inbound Citizen Registry, Barangay ID & Account Security Requests" %}
+
         {% elif module == "HOUSEHOLDS" %}
           <div class="section-title"><span>02D. Household &amp; Family Tree Breakdown (Head &rarr; Members &rarr; Relationships)</span></div>
           <table><thead><tr><th>Household ID</th><th>Head of Family (Purok)</th><th>Members &amp; Relationships</th><th>Children (Unmarried / Married)</th><th>Seniors / PWD / Solo / Pregnant</th></tr></thead><tbody>
@@ -926,6 +928,8 @@
             </form>
             {% for cert in certificates %}{% if cert.dispute_status == "DISPUTE_OPEN" or cert.hold_or_delay_reason %}<div style="margin-top:8px;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:.8rem;"><strong>{{ cert.control_number }}</strong> ({{ cert.citizen.full_name }}) &bull; {% if cert.citizen_dispute_note %}Citizen Note: <em>"{{ cert.citizen_dispute_note }}"</em>{% endif %} {% if cert.hold_or_delay_reason %}| Hold: {{ cert.hold_or_delay_reason }}{% endif %} {% if cert.office_dispute_reply %}| Reply: {{ cert.office_dispute_reply }}{% endif %}</div>{% endif %}{% endfor %}
           </div>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="DOCS_CERTIFICATES" box_title="Inbound Citizen Certified True Copy, Missing Docs & Business Requests" %}
+
         {% elif module == "BLOTTER" %}
           <div class="section-title"><span>04. Derogatory Record Flag Vault</span><a href="/admin/blotter/blottercase/add/">+ Log Case</a></div>
           <table><thead><tr><th>Case No.</th><th>Parties (VAWC Masked)</th><th>Stage</th><th>Clearance</th></tr></thead><tbody>
@@ -948,6 +952,8 @@
             </form>
             <table style="margin-top:10px;"><thead><tr><th>Summon Code</th><th>Case</th><th>Recipient</th><th>Schedule</th><th>Receipt Status</th></tr></thead><tbody>{% for s in lupon_summons %}<tr><td><strong>{{ s.summon_code }}</strong></td><td>{{ s.blotter_case.case_number }}</td><td>{{ s.recipient_citizen.full_name }}</td><td>{{ s.hearing_date }} {{ s.hearing_time|time:"H:i" }}</td><td><span class="badge">{{ s.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No e-Summons issued yet.</td></tr>{% endfor %}</tbody></table>
           </div>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="LUPON_ENGAGEMENT" box_title="Inbound Citizen Coffee Talk Mediation, Case Review & Summons Requests" %}
+
         {% elif module == "TREASURY" %}
           <div class="section-title"><span>05A. Pending Official Receipt (OR) Clearance Unlock Queue</span></div>
           <table><thead><tr><th>Control No.</th><th>Citizen</th><th>Document</th><th>Fee</th><th>Action</th></tr></thead><tbody>
@@ -1109,6 +1115,8 @@
           </script>
 
           
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="WELFARE_DISASTER" box_title="Inbound Citizen Representative Ayuda Claims, Exclusion Disputes & Disaster Reports" %}
+
         {% elif module == "FLEET" %}
           <div class="section-title"><span>08. Fleet & Equipment</span><a href="/admin/assets_fleet/">+ Manage Fleet</a></div>
           <table><thead><tr><th>Plate</th><th>Vehicle</th><th>Driver</th><th>Status</th></tr></thead><tbody>
@@ -1118,11 +1126,15 @@
           <table><thead><tr><th>Code</th><th>Resident</th><th>Facility / Gear</th><th>Schedule</th><th>Status</th><th>Custodian Action</th></tr></thead><tbody>
             {% for rv in reservations %}<tr><td><strong>{{ rv.booking_code }}</strong></td><td>{{ rv.citizen.full_name }}</td><td>{{ rv.get_facility_or_item_display }}<div style="font-size:.73rem;color:#64748b;">{{ rv.purpose }}</div></td><td>{{ rv.reservation_date }} ({{ rv.start_time|time:"H:i" }}-{{ rv.end_time|time:"H:i" }})</td><td><span class="badge">{{ rv.get_status_display }}</span></td><td><form method="post" style="display:flex;gap:4px;">{% csrf_token %}<input type="hidden" name="action" value="UPDATE_RESERVATION_STATUS"><input type="hidden" name="res_id" value="{{ rv.id }}"><select name="new_status" style="padding:4px 6px;font-size:.75rem;"><option value="APPROVED">Approve</option><option value="REJECTED">Decline</option><option value="COMPLETED">Completed</option></select><button type="submit" style="background:#0f766e;color:#fff;border:0;border-radius:6px;padding:4px 9px;font-size:.74rem;font-weight:700;cursor:pointer;">Save</button></form></td></tr>{% empty %}<tr><td colspan="6">No facility/equipment bookings yet.</td></tr>{% endfor %}
           </tbody></table>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="FACILITY_FEEDBACK" box_title="Inbound Citizen Facility, Business Closure & Service Quality Feedback" %}
+
         {% elif module == "DRRM" %}
           <div class="section-title"><span>09. BDRRMC & Evacuation</span><a href="/admin/drrm/">+ Manage DRRM</a></div>
           <table><thead><tr><th>Code</th><th>Alert</th><th>Level</th><th>Families</th></tr></thead><tbody>
             {% for hz in hazards %}<tr><td><strong>{{ hz.alert_code }}</strong></td><td>{{ hz.title }}</td><td><span class="badge badge-warn">{{ hz.get_alert_level_display }}</span></td><td>{{ hz.affected_families_count }}</td></tr>{% endfor %}
           </tbody></table>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="PROJECTS_INFRA" box_title="Inbound Citizen Infrastructure Proposals, Project Defects & Waste Reports" %}
+
         {% elif module == "SK" %}
           <div class="section-title"><span>10. SK & Youth (KK)</span><a href="/admin/sk_youth/">+ Manage SK</a></div>
           <table><thead><tr><th>Code</th><th>Project</th><th>Budget</th><th>Status</th></tr></thead><tbody>
