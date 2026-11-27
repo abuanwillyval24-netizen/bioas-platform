@@ -1,4 +1,5 @@
-﻿import base64
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+import base64
 from io import BytesIO
 import os
 import re
@@ -1242,6 +1243,7 @@ def citizen_201_inspect(request, citizen_id):
 
 
 @never_cache
+@xframe_options_sameorigin
 def citizen_proof_pdf(request, citizen_id):
     c = get_object_or_404(CitizenProfile, id=citizen_id)
     data_uri = c.supporting_doc_data_uri
@@ -1250,8 +1252,17 @@ def citizen_proof_pdf(request, citizen_id):
         if repo_item:
             data_uri = repo_item.file_data_uri
     if data_uri and "," in data_uri:
-        b64_part = data_uri.split(",", 1).__getitem__(1)
-        raw_pdf = base64.b64decode(b64_part)
+        hdr, b64_part = data_uri.split(",", 1)
+        mime = hdr.split(";")[0].replace("data:", "").strip() or "application/pdf"
+        ext = "pdf" if "pdf" in mime else ("png" if "png" in mime else "jpg")
+        raw_bytes = base64.b64decode(b64_part)
+        resp = HttpResponse(raw_bytes, content_type=mime)
+        resp["Content-Disposition"] = f'inline; filename="{c.citizen_qr_id}_supporting_doc.{ext}"'
+        return resp
+    if not c.supporting_document or not os.path.exists(getattr(c.supporting_document, "path", "")):
+        raw_pdf = build_standardized_citizen_pdf(c)
+        c.supporting_doc_data_uri = "data:application/pdf;base64," + base64.b64encode(raw_pdf).decode("ascii")
+        c.save(update_fields=["supporting_doc_data_uri"])
         resp = HttpResponse(raw_pdf, content_type="application/pdf")
         resp["Content-Disposition"] = f'inline; filename="{c.citizen_qr_id}_supporting_doc.pdf"'
         return resp
