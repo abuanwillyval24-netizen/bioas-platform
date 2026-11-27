@@ -53,11 +53,13 @@ def issue_certificate_counter(request):
 
 def print_certificate(request, control_number):
     cert = get_object_or_404(CertificateRequest, control_number=control_number)
-    if cert.status == "PENDING_OR":
-        return HttpResponse(f"<h2>Payment Hold ({cert.control_number}): Official Receipt required before printing. <a href='/'>Back</a></h2>")
+    if cert.status in ("PENDING_REVIEW", "PENDING_OR", "PENDING_COUNCILOR", "PENDING_CAPTAIN", "REJECTED_HOLD"):
+        return HttpResponse(f"<h2>Approval Gate ({cert.control_number}): Current status is '{cert.get_status_display()}'. Punong Barangay Final Approval is required before printing &amp; Barangay Dry Seal. <a href='/?tier=BARANGAY&module=CERTIFICATES'>Back</a></h2>")
     if cert.status == "READY_TO_PRINT":
-        cert.status = "RELEASED"
-        cert.save(update_fields=["status"])
+        cert.status = "ISSUED_PRINTED"
+        cert.signatory_name = cert.barangay.get_active_signatory()
+        cert.issued_by = request.user.username if request.user.is_authenticated else "Releasing Clerk"
+        cert.save(update_fields=["status", "signatory_name", "issued_by"])
 
     signatory = cert.barangay.get_active_signatory()
     fee_label = "FEE EXEMPT" if cert.is_fee_exempt else (f"OR #{cert.official_receipt_number}" if cert.official_receipt_number else "NO FEE")

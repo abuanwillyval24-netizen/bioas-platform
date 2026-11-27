@@ -469,6 +469,58 @@ def command_dashboard(request):
                     sa_obj.released_date = timezone.localdate()
                 sa_obj.save(update_fields=["status", "released_by", "released_date"])
                 action_notice = f"Social Aid for {sa_obj.citizen.full_name} updated to {sa_obj.get_status_display()} — mirrored live to Citizen Portal."
+        elif act == "ROUTE_CERT_FROM_SECRETARY" and active_barangay:
+            c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
+            if c_obj:
+                has_derog = BlotterCase.objects.filter(barangay=active_barangay, blocks_clearance=True, respondent_name__icontains=c_obj.citizen.last_name).exists()
+                if has_derog and c_obj.cert_type in ("BARANGAY_CLEARANCE", "GOOD_MORAL", "BUSINESS_CLEARANCE"):
+                    c_obj.status = "REJECTED_HOLD"
+                    c_obj.hold_or_delay_reason = "Active Derogatory / Lupon Record Hold"
+                    c_obj.save(update_fields=["status", "hold_or_delay_reason"])
+                    action_notice = f"DEROGATORY HOLD: {c_obj.control_number} placed on Hold due to active Blotter/Lupon record."
+                else:
+                    cid = request.POST.get("assigned_councilor_id", "").strip()
+                    c_staff = BarangayStaffProfile.objects.filter(barangay=active_barangay, id=cid).first() if cid else None
+                    c_obj.assigned_councilor = c_staff
+                    try:
+                        f_val = float(request.POST.get("fee_amount", c_obj.fee_amount) or 0)
+                    except ValueError:
+                        f_val = float(c_obj.fee_amount or 0)
+                    if c_obj.is_fee_exempt or f_val <= 0:
+                        c_obj.fee_amount = 0.00
+                        c_obj.status = "PENDING_COUNCILOR"
+                        nxt_lbl = f"Purok Councilor ({c_staff.full_name})" if c_staff else "Purok Councilor Approval Module"
+                    else:
+                        c_obj.fee_amount = f_val
+                        c_obj.status = "PENDING_OR"
+                        nxt_lbl = "Barangay Treasurer for OR Payment (auto-routes to Purok Councilor after OR)"
+                    c_obj.save(update_fields=["assigned_councilor", "fee_amount", "status"])
+                    action_notice = f"Certificate {c_obj.control_number} forwarded directly to {nxt_lbl}!"
+        elif act == "TREASURER_APPROVE_OR_FORWARD" and active_barangay:
+            c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
+            or_no = request.POST.get("official_receipt_number", "").strip()
+            if c_obj and or_no:
+                c_obj.official_receipt_number = or_no
+                c_obj.or_date = timezone.localdate()
+                c_obj.status = "PENDING_COUNCILOR"
+                c_obj.save(update_fields=["official_receipt_number", "or_date", "status"])
+                c_lbl = c_obj.assigned_councilor.full_name if c_obj.assigned_councilor else "Assigned Purok Councilor"
+                action_notice = f"OR #{or_no} approved for {c_obj.control_number}! Forwarded straight to {c_lbl} (no return to Secretary)."
+        elif act == "COUNCILOR_ENDORSE_CERT" and active_barangay:
+            c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
+            if c_obj:
+                c_obj.councilor_endorsed_by = actor_name
+                c_obj.status = "PENDING_CAPTAIN"
+                c_obj.save(update_fields=["councilor_endorsed_by", "status"])
+                action_notice = f"Purok Councilor endorsement recorded for {c_obj.control_number}! Forwarded to Punong Barangay for Final Approval."
+        elif act == "CAPTAIN_APPROVE_CERT" and active_barangay and (request.user.is_superuser or (staff_profile and staff_profile.role == "CAPTAIN")):
+            c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
+            if c_obj:
+                c_obj.captain_approved_by = actor_name
+                c_obj.signatory_name = active_barangay.get_active_signatory()
+                c_obj.status = "READY_TO_PRINT"
+                c_obj.save(update_fields=["captain_approved_by", "signatory_name", "status"])
+                action_notice = f"Punong Barangay Final Approval granted for {c_obj.control_number}! Returned to Releasing Desk for Printing & Dry Seal."
         elif act == "MARK_CERT_ISSUED" and active_barangay:
             c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
             if c_obj:
@@ -1228,7 +1280,19 @@ def command_dashboard(request):
     all_repo_docs = CitizenSupportingDocument.objects.select_related("citizen").defer("file_data_uri", "citizen__supporting_doc_data_uri", "citizen__pending_photo_data_uri").filter(citizen__barangay=active_barangay) if active_barangay else CitizenSupportingDocument.objects.none()
     households = Household.objects.prefetch_related("members").filter(barangay=active_barangay) if active_barangay else Household.objects.none()
     citizen_reports = CitizenCommunityReport.objects.filter(barangay=active_barangay) if active_barangay else CitizenCommunityReport.objects.none()
-    certificates = CertificateRequest.objects.filter(barangay=active_barangay) if active_barangay else CertificateRequest.objects.none()
+    councilor_staff_list = list(BarangayStaffProfile.objects.filter(barangay=active_barangay, role="COUNCILOR", approval_status="ACTIVE").order_by("full_name")) if active_barangay else []
+    certificates = list(CertificateRequest.objects.select_related("citizen", "assigned_councilor").filter(barangay=active_barangay)[:60]) if active_barangay else []
+    for _c in certificates:
+        _p = (_c.citizen.purok or "").strip().lower()
+        _det = _c.assigned_councilor
+        if not _det and _p:
+            for _sp in councilor_staff_list:
+                if _p in (_sp.assigned_purok or "").lower() or _p in (_sp.committee_assignment or "").lower():
+                    _det = _sp
+                    break
+        if not _det and councilor_staff_list:
+            _det = councilor_staff_list
+        _c.detected_councilor = _det
     pending_or_certs = certificates.filter(status="PENDING_OR")
     blotter_cases = BlotterCase.objects.filter(barangay=active_barangay) if active_barangay else BlotterCase.objects.none()
     receipts = OfficialReceipt.objects.filter(barangay=active_barangay, is_voided=False) if active_barangay else OfficialReceipt.objects.none()
@@ -1412,7 +1476,7 @@ def command_dashboard(request):
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
-        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "it_last_report": request.session.get("bioas_it_report"), "trusted_device_count": __import__("governance.models", fromlist=["TrustedLoginDevice"]).TrustedLoginDevice.objects.count(), "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
+        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "councilor_staff_list": councilor_staff_list, "it_last_report": request.session.get("bioas_it_report"), "trusted_device_count": __import__("governance.models", fromlist=["TrustedLoginDevice"]).TrustedLoginDevice.objects.count(), "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
         "certificates": certificates, "cert_type_choices": __import__("documents.models", fromlist=["CertificateRequest"]).CertificateRequest.CERT_TYPES, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
         "open_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="OPEN")[:30]) if active_barangay else [],
