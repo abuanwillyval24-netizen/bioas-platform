@@ -396,6 +396,18 @@
         curMain.scrollTop=st;
         if(window.syncSdTypes) window.syncSdTypes();
       }
+      var curCard=document.querySelector('.id-card-box'), newCard=doc.querySelector('.id-card-box');
+      if(curCard && newCard && curCard.innerHTML!==newCard.innerHTML){
+        var uEl=document.getElementById('citUserDisp');
+        var wasShown=uEl && uEl.getAttribute('data-shown')==='1';
+        curCard.innerHTML=newCard.innerHTML;
+        if(wasShown){
+          var nu=document.getElementById('citUserDisp');
+          var nb=curCard.querySelector('button');
+          if(nu){nu.textContent=nu.getAttribute('data-real');nu.style.letterSpacing='normal';nu.setAttribute('data-shown','1');}
+          if(nb){nb.textContent='Hide';}
+        }
+      }
       var curNav=document.querySelector('nav.side-nav'), newNav=doc.querySelector('nav.side-nav');
       if(curNav && newNav){
         var curBtns=curNav.querySelectorAll('.tab-btn'), newBtns=newNav.querySelectorAll('.tab-btn');
