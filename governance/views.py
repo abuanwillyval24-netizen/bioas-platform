@@ -1332,10 +1332,17 @@ def command_dashboard(request):
 
     active_citizens = list(citizens.filter(status="ACTIVE_RESIDENT"))
     one_year_ago = date.today() - timedelta(days=365)
-    purok_names = ["Purok I", "Purok II", "Purok III", "Purok IV", "Purok V", "Purok VI", "Purok VII"]
+    if active_barangay:
+        CitizenProfile.objects.filter(barangay=active_barangay, purok__iexact="Puro VI").update(purok="Purok VI")
+        CitizenProfile.objects.filter(barangay=active_barangay, purok__iexact="Purok VII").update(purok="Purok VI")
+        for _ac in active_citizens:
+            if (_ac.purok or "").strip().lower() in ("puro vi", "purok vii"):
+                _ac.purok = "Purok VI"
+    purok_names = ["Purok I", "Purok II", "Purok III", "Purok IV", "Purok V", "Purok VI"]
     for c in active_citizens:
-        if c.purok and c.purok not in purok_names:
-            purok_names.append(c.purok)
+        _pn = (c.purok or "").strip()
+        if _pn and _pn not in purok_names:
+            purok_names.append(_pn)
     purok_rows = [{"name": p, "count": sum(1 for c in active_citizens if (c.purok or "Purok I") == p)} for p in purok_names]
 
     children_list = [c for c in active_citizens if c.relationship_to_head == "CHILD" or c.age < 18]
