@@ -1293,7 +1293,7 @@ def command_dashboard(request):
         if not _det and councilor_staff_list:
             _det = councilor_staff_list
         _c.detected_councilor = _det
-    pending_or_certs = certificates.filter(status="PENDING_OR")
+    pending_or_certs = [c for c in certificates if c.status == "PENDING_OR"]
     blotter_cases = BlotterCase.objects.filter(barangay=active_barangay) if active_barangay else BlotterCase.objects.none()
     receipts = OfficialReceipt.objects.filter(barangay=active_barangay, is_voided=False) if active_barangay else OfficialReceipt.objects.none()
     abuloy_sheets = AbuloySheet.objects.filter(barangay=active_barangay) if active_barangay else AbuloySheet.objects.none()
