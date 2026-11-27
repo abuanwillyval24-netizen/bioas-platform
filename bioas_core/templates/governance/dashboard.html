@@ -474,7 +474,7 @@
           <table><thead><tr><th>Date</th><th>Citizen</th><th>Program</th><th>Medicine</th></tr></thead><tbody>
             {% for h in health_records %}<tr><td>{{ h.visit_date }}</td><td><strong>{{ h.citizen.full_name }}</strong></td><td>{{ h.get_program_type_display }}</td><td>{{ h.vaccine_or_medicine_given }}</td></tr>{% endfor %}
           </tbody></table>
-        {% elif module == "WELFARE" %}
+        {% elif module == "WELFARE" or module == "SOCIAL" %}
           <div class="section-title"><span>07A. Configurable Association Groups & Assigned Heads</span><a href="/admin/social_welfare/associationgroup/add/">+ Add Association Group</a></div>
           <table><thead><tr><th>Code</th><th>Association Group</th><th>Assigned Association Head</th><th>Members</th><th>Status</th></tr></thead><tbody>
             {% for ag in associations %}<tr><td><strong>{{ ag.group_code }}</strong></td><td>{{ ag.group_name }}</td><td><strong>{{ ag.display_head }}</strong></td><td>{{ ag.member_count }}</td><td><span class="badge">{% if ag.is_active %}Active{% else %}Inactive{% endif %}</span></td></tr>{% empty %}<tr><td colspan="5">No association groups configured yet.</td></tr>{% endfor %}
@@ -622,7 +622,7 @@
           
           {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="WELFARE_DISASTER" box_title="Inbound Citizen Representative Ayuda Claims, Exclusion Disputes & Disaster Reports" %}
 
-        {% elif module == "FLEET" %}
+        {% elif module == "FLEET" or module == "ASSETS" %}
           <div class="section-title"><span>08. Fleet & Equipment</span><a href="/admin/assets_fleet/">+ Manage Fleet</a></div>
           <table><thead><tr><th>Plate</th><th>Vehicle</th><th>Driver</th><th>Status</th></tr></thead><tbody>
             {% for v in vehicles %}<tr><td><strong>{{ v.plate_or_body_number }}</strong></td><td>{{ v.vehicle_name }}</td><td>{{ v.assigned_driver }}</td><td><span class="badge">{{ v.get_status_display }}</span></td></tr>{% endfor %}
@@ -640,7 +640,7 @@
           </tbody></table>
           {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="PROJECTS_INFRA" box_title="Inbound Citizen Infrastructure Proposals, Project Defects & Waste Reports" %}
 
-        {% elif module == "SK" %}
+        {% elif module == "SK" or module == "SK_YOUTH" %}
           <div class="section-title"><span>10. SK & Youth (KK)</span><a href="/admin/sk_youth/">+ Manage SK</a></div>
           <table><thead><tr><th>Code</th><th>Project</th><th>Budget</th><th>Status</th></tr></thead><tbody>
             {% for sk in sk_projects %}<tr><td><strong>{{ sk.project_code }}</strong></td><td>{{ sk.title }}</td><td>₱{{ sk.allocated_budget }}</td><td><span class="badge">{{ sk.get_status_display }}</span></td></tr>{% endfor %}
@@ -1035,7 +1035,7 @@
           <table><thead><tr><th>Transition Cycle</th><th>Outgoing Punong Barangay</th><th>Incoming Punong Barangay</th><th>Date</th><th>Status</th></tr></thead><tbody>
             {% for t in turnovers %}<tr><td><strong>{{ t.transition_cycle }}</strong></td><td>{{ t.outgoing_punong_barangay }}</td><td><strong>{{ t.incoming_punong_barangay }}</strong></td><td>{{ t.turnover_date }}</td><td><span class="badge">{{ t.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">No formal turnover sign-off records logged yet. Click "+ Log Turnover Record" above to start BGTT handover.</td></tr>{% endfor %}
           </tbody></table>
-        {% elif module == "POLICY" %}
+        {% elif module == "POLICY" or module == "GLOSSARY" %}
           <div class="section-title"><span>14A. Philippine Statutory & Legal Policy Framework</span></div>
           <table><thead><tr><th>Law / Issuance</th><th>Operational Rule Enforced in BIOAS</th></tr></thead><tbody>
             <tr><td><strong>RA 7160 (Local Government Code)</strong></td><td>Governs Barangay executive/legislative powers, Katarungang Pambarangay mediation before court filing, and the 20% Barangay Development Plan (BDP).</td></tr>
