@@ -43,10 +43,11 @@
     .badge { padding: 3px 8px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; background: #dbeafe; color: #1e40af; }
     .badge-warn { background: #fee2e2; color: #991b1b; }
     .main { overflow-x: auto; }
-    .main table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .main table > thead, .main table > tbody { display: table; width: 100%; min-width: 820px; }
+    .main table { display: table; width: 100%; min-width: 960px; table-layout: auto; }
+    .main table > thead { display: table-header-group; }
+    .main table > tbody { display: table-row-group; }
     .main th { white-space: nowrap; }
-    .main td { min-width: 90px; }
+    .main td:last-child, .main th:last-child { white-space: nowrap; }
     .main th, .main td { vertical-align: middle; line-height: 1.4; }
     .main td button, .main td a, .main .section-title a, .main form button { white-space: nowrap; flex-shrink: 0; line-height: 1.25; }
     .badge { display: inline-block; white-space: nowrap; line-height: 1.3; padding: 4px 9px; border-radius: 7px; }
@@ -406,7 +407,7 @@
           <div class="section-title"><span>03. Certificates &amp; Clearances — Frontline Counter &amp; Issuance Queue</span><a href="?tier=BARANGAY&module=TREASURY">Treasury OR Queue ({{ pending_or_certs|length }}) &rarr;</a></div>
           <div class="card" style="border-top:4px solid #1e3a8a;margin-bottom:14px;">
             <div style="font-weight:800;color:#1e3a8a;margin-bottom:8px;">03A. Frontline Counter Certificate / Clearance Encoder (With Auto-Derogatory Check)</div>
-            <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;align-items:end;">{% csrf_token %}<input type="hidden" name="action" value="ISSUE_WALKIN_CERT">
+            <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end;">{% csrf_token %}<input type="hidden" name="action" value="ISSUE_WALKIN_CERT">
               <div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><label style="font-size:.73rem;font-weight:800;color:#334155;display:block;">Citizen Ref ID or Name *</label><input name="citizen_ref" placeholder="NUE-CAB-LAG-... or Surname" required></div>
               <div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><label style="font-size:.73rem;font-weight:800;color:#334155;display:block;">Document Type *</label><select name="cert_type">{% for val,lbl in cert_type_choices %}<option value="{{ val }}">{{ lbl }}</option>{% endfor %}</select></div>
               <div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><label style="font-size:.73rem;font-weight:800;color:#334155;display:block;">Purpose *</label><input name="purpose" placeholder="Employment, Business, Scholarship" required></div>
