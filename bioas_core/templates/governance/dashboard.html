@@ -216,19 +216,19 @@
           </div>
           <div class="card" style="padding:10px 12px;margin-bottom:8px;">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;align-items:center;">
-              <input id="xlSearch" oninput="filter201Table()" onkeydown="if(event.key==='Enter'){event.preventDefault();filter201Table();}" placeholder="Search Name, QR, Address, Job..." style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
-              <select id="xlPurok" onchange="filter201Table()"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <input id="xlSearch" onkeydown="if(event.key==='Enter'){event.preventDefault();filter201Table();}" placeholder="Search Name, QR, Address, Job..." style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlPurok"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Puroks</option>
                 <option value="Purok I">Purok I</option><option value="Purok II">Purok II</option><option value="Purok III">Purok III</option>
                 <option value="Purok IV">Purok IV</option><option value="Purok V">Purok V</option><option value="Purok VI">Purok VI</option>
               </select>
-              <select id="xlSex" onchange="filter201Table()"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlSex"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Sexes</option><option value="Male">Male</option><option value="Female">Female</option>
               </select>
-              <select id="xlVoter" onchange="filter201Table()"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlVoter"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Voter Status</option><option value="Voter">Registered Voter</option><option value="Non-Voter">Non-Voter</option>
               </select>
-              <select id="xlClass" onchange="filter201Table()"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlClass"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Classifications</option>
                 <option value="Senior">Senior Citizen</option><option value="PWD">PWD</option><option value="Solo Parent">Solo Parent</option>
                 <option value="4Ps">4Ps Beneficiary</option><option value="Pregnant">Pregnant</option><option value="OFW">OFW</option>
@@ -351,7 +351,7 @@
             const XL_MODE_KEY='ledger_02c_display_mode';
             function get201DisplayMode(){try{return localStorage.getItem(XL_MODE_KEY)||'20';}catch(e){return '20';}}
             function set201DisplayMode(m){try{localStorage.setItem(XL_MODE_KEY,m);}catch(e){}filter201Table();}
-            function filter201Table(){
+            window.__xl201Applied=false;function syncXlState(app){if(typeof app==='boolean')window.__xl201Applied=app;window.__xl201Vals={s:document.getElementById('xlSearch')?.value||'',p:document.getElementById('xlPurok')?.value||'',x:document.getElementById('xlSex')?.value||'',v:document.getElementById('xlVoter')?.value||'',c:document.getElementById('xlClass')?.value||''};}function filter201Table(){syncXlState(true);
               const mode=(typeof get201DisplayMode==='function')?get201DisplayMode():'ALL';
               const sel=document.getElementById('xlPageSize');if(sel)sel.value=mode;
               const lim=(mode==='ALL')?999999:(parseInt(mode,10)||20);
@@ -371,7 +371,7 @@
               document.getElementById('xlCount').innerText=lbl;
               const fc=document.getElementById('xlFootCount');if(fc)fc.innerText=lbl;
             }
-            function reset201Filters(){
+            function reset201Filters(){window.__xl201Applied=false;window.__xl201Vals=null;
               ['xlSearch','xlPurok','xlSex','xlVoter','xlClass'].forEach(id=>document.getElementById(id).value='');filter201Table();
             }
             function export201CSV(){
@@ -1380,7 +1380,7 @@ function checkWkUserAvail(val) {
     if(document.hidden) return;
     var ae=document.activeElement;
     if(ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')) return;
-    if(document.querySelectorAll('.pend-chk:checked').length>0) return;
+    if(document.querySelectorAll('.pend-chk:checked').length>0) return;if(document.getElementById('xl201Table')){var _xv=[document.getElementById('xlSearch')?.value,document.getElementById('xlPurok')?.value,document.getElementById('xlSex')?.value,document.getElementById('xlVoter')?.value,document.getElementById('xlClass')?.value].some(Boolean);if(_xv||window.__xl201Applied)return;}
     var openModals=[].slice.call(document.querySelectorAll('[id$="Modal"]')).some(function(m){return m.style.display==='flex'||m.style.display==='block';});
     if(openModals) return;
     try{
