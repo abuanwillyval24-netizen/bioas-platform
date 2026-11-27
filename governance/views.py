@@ -1345,25 +1345,34 @@ def command_dashboard(request):
             purok_names.append(_pn)
     purok_rows = [{"name": p, "count": sum(1 for c in active_citizens if (c.purok or "Purok I") == p)} for p in purok_names]
 
-    children_list = [c for c in active_citizens if c.relationship_to_head == "CHILD" or c.age < 18]
-    pop_stats = {
-        "total_residents": len(active_citizens),
-        "male_count": sum(1 for c in active_citizens if c.sex == "MALE"),
-        "female_count": sum(1 for c in active_citizens if c.sex == "FEMALE"),
-        "registered_voters": sum(1 for c in active_citizens if c.is_registered_voter),
-        "non_voters": sum(1 for c in active_citizens if not c.is_registered_voter),
-        "purok_rows": purok_rows,
-        "children_total": len(children_list), "single_count": sum(1 for c in active_citizens if c.civil_status == "SINGLE"), "married_count": sum(1 for c in active_citizens if c.civil_status == "MARRIED"),
-        "unmarried_children": sum(1 for c in children_list if c.civil_status == "SINGLE"),
-        "married_children": sum(1 for c in children_list if c.civil_status == "MARRIED"),
-        "senior_count": sum(1 for c in active_citizens if c.is_senior_citizen or c.age >= 60),
-        "pwd_count": sum(1 for c in active_citizens if c.is_pwd),
-        "solo_parent_count": sum(1 for c in active_citizens if c.is_solo_parent),
-        "pregnant_count": sum(1 for c in active_citizens if c.is_pregnant),
-        "recent_births_count": sum(1 for c in active_citizens if c.age == 0 or (c.birth_registered_date and c.birth_registered_date >= one_year_ago)),
-        "deaths_count": citizens.filter(status="DECEASED").count(),
-    }
-
+    import json as _json
+    import json as _json
+    children_list = [c for c in active_citizens if c.relationship_to_head == 'CHILD' or c.age < 18]
+    _tot_res = len(active_citizens)
+    _hh_ids = set(c.household_id for c in active_citizens if c.household_id)
+    _hh_count = max(len(_hh_ids), households.count() if hasattr(households, 'count') else len(households))
+    _avg_hh = round(_tot_res / _hh_count, 2) if _hh_count else 0.0
+    _cb = {}
+    for _sp in councilor_staff_list:
+        for _pk in purok_names:
+            if _pk.lower() in (_sp.assigned_purok or '').lower() or _pk.lower() in (_sp.committee_assignment or '').lower(): _cb.setdefault(_pk, f'Hon. {_sp.full_name}')
+    purok_rows = []
+    for p in purok_names:
+        _pm = [c for c in active_citizens if (c.purok or 'Purok I') == p]
+        _phh = len(set(c.household_id for c in _pm if c.household_id))
+        _pv = sum(1 for c in _pm if c.is_registered_voter)
+        _psp = sum(1 for c in _pm if c.is_senior_citizen or c.age >= 60 or c.is_pwd)
+        _pi = sum(1 for c in _pm if getattr(c, 'socioeconomic_tier', '') in ('SUBSISTENCE', 'LOW_INCOME') or getattr(c, 'is_4ps_beneficiary', False))
+        purok_rows.append({'name': p, 'councilor': _cb.get(p, 'Unassigned (Set in Staff)'), 'households': _phh, 'count': len(_pm), 'voters': _pv, 'sen_pwd': _psp, 'indigent': _pi, 'pct': round((len(_pm)/_tot_res)*100, 1) if _tot_res else 0.0})
+    _emp = sum(1 for c in active_citizens if (c.occupation or '').strip() and (c.occupation or '').strip().lower() not in ('none','unemployed','student','n/a','not declared'))
+    _stu = sum(1 for c in active_citizens if getattr(c, 'currently_attending_school', False) or 'student' in (c.occupation or '').lower())
+    _unemp = sum(1 for c in active_citizens if 15 <= c.age <= 64 and not getattr(c, 'currently_attending_school', False) and (not (c.occupation or '').strip() or (c.occupation or '').strip().lower() in ('none','unemployed','n/a','not declared')))
+    _osy = sum(1 for c in active_citizens if 15 <= c.age <= 30 and not getattr(c, 'currently_attending_school', False) and (not (c.occupation or '').strip() or (c.occupation or '').strip().lower() in ('none','unemployed','n/a','not declared')))
+    _ind = sum(1 for c in active_citizens if getattr(c, 'socioeconomic_tier', '') in ('SUBSISTENCE','LOW_INCOME') or getattr(c, 'is_4ps_beneficiary', False))
+    _fps = sum(1 for c in active_citizens if getattr(c, 'is_4ps_beneficiary', False))
+    _sk = sum(1 for c in active_citizens if 15 <= c.age <= 30)
+    pop_citizens_json = _json.dumps([{'id':c.id,'qr':c.citizen_qr_id,'name':c.full_name,'purok':c.purok or 'Purok I','sex':c.sex,'age':c.age,'voter':bool(c.is_registered_voter),'senior':bool(c.is_senior_citizen or c.age>=60),'pwd':bool(c.is_pwd),'solo':bool(c.is_solo_parent),'pregnant':bool(c.is_pregnant),'indigent':bool(getattr(c,'socioeconomic_tier','') in ('SUBSISTENCE','LOW_INCOME') or getattr(c,'is_4ps_beneficiary',False)),'four_ps':bool(getattr(c,'is_4ps_beneficiary',False)),'civil':c.civil_status,'residency':c.residency_status,'hh':c.household_id or 0,'occ':(c.occupation or '').strip(),'school':bool(getattr(c,'currently_attending_school',False)),'portal':bool(c.portal_username),'philsys':bool(c.philsys_id),'mobile':bool(c.mobile_number)} for c in active_citizens])
+    pop_stats = {'total_residents':_tot_res,'household_count':_hh_count,'avg_hh_size':_avg_hh,'male_count':sum(1 for c in active_citizens if c.sex=='MALE'),'female_count':sum(1 for c in active_citizens if c.sex=='FEMALE'),'registered_voters':sum(1 for c in active_citizens if c.is_registered_voter),'non_voters':sum(1 for c in active_citizens if not c.is_registered_voter),'indigent_count':_ind,'four_ps_count':_fps,'sk_youth_count':_sk,'employed_count':_emp,'unemployed_count':_unemp,'student_count':_stu,'osy_count':_osy,'age_0_4':sum(1 for c in active_citizens if 0<=c.age<=4),'age_5_14':sum(1 for c in active_citizens if 5<=c.age<=14),'age_15_30':_sk,'age_31_59':sum(1 for c in active_citizens if 31<=c.age<=59),'age_60_plus':sum(1 for c in active_citizens if c.age>=60),'purok_rows':purok_rows,'children_total':len(children_list),'single_count':sum(1 for c in active_citizens if c.civil_status=='SINGLE'),'married_count':sum(1 for c in active_citizens if c.civil_status=='MARRIED'),'widowed_count':sum(1 for c in active_citizens if c.civil_status=='WIDOWED'),'separated_count':sum(1 for c in active_citizens if c.civil_status=='SEPARATED'),'res_permanent':sum(1 for c in active_citizens if c.residency_status=='PERMANENT'),'res_renter':sum(1 for c in active_citizens if c.residency_status=='RENTER'),'res_sharer':sum(1 for c in active_citizens if c.residency_status=='SHARER'),'res_transient':sum(1 for c in active_citizens if c.residency_status=='TRANSIENT'),'portal_activated':sum(1 for c in active_citizens if c.portal_username),'walkin_only':sum(1 for c in active_citizens if not c.portal_username),'missing_philsys':sum(1 for c in active_citizens if not c.philsys_id),'missing_mobile':sum(1 for c in active_citizens if not c.mobile_number),'unmarried_children':sum(1 for c in children_list if c.civil_status=='SINGLE'),'married_children':sum(1 for c in children_list if c.civil_status=='MARRIED'),'senior_count':sum(1 for c in active_citizens if c.is_senior_citizen or c.age>=60),'pwd_count':sum(1 for c in active_citizens if c.is_pwd),'solo_parent_count':sum(1 for c in active_citizens if c.is_solo_parent),'pregnant_count':sum(1 for c in active_citizens if c.is_pregnant),'recent_births_count':sum(1 for c in active_citizens if c.age==0 or (c.birth_registered_date and c.birth_registered_date>=one_year_ago)),'deaths_count':citizens.filter(status='DECEASED').count(),'pop_citizens_json':pop_citizens_json}
     household_rows = []
     for hh in households:
         members = [m for m in hh.members.all() if m.status == "ACTIVE_RESIDENT"]
