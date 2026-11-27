@@ -1,4 +1,4 @@
-import base64
+﻿import base64
 from io import BytesIO
 import os
 import re
@@ -798,7 +798,7 @@ def citizen_home(request):
                 cert_type=ctype,
                 purpose=request.POST["purpose"].strip(),
                 is_fee_exempt=exempt,
-                fee_amount=0.00 if exempt else float(citizen.barangay.default_clearance_fee),
+                fee_amount=0.00 if exempt else float(getattr(citizen.barangay, "default_clearance_fee", 50.00) if citizen.barangay.fee_collection_enabled else 0.00),
                 status="READY_TO_PRINT" if (exempt or not citizen.barangay.fee_collection_enabled) else "PENDING_OR",
             )
             notice = f"Certificate Requested! Control No.: {cert.control_number} ({cert.get_status_display()})."

@@ -454,7 +454,7 @@ def command_dashboard(request):
                         barangay=active_barangay, citizen=cit,
                         control_number=f"CERT-{uuid.uuid4().hex[:6].upper()}-{secrets.token_hex(2).upper()}",
                         cert_type=ctype, purpose=request.POST.get("purpose", "General Requirement").strip(),
-                        is_fee_exempt=exempt, fee_amount=0.00 if exempt else float(active_barangay.default_clearance_fee),
+                        is_fee_exempt=exempt, fee_amount=0.00 if exempt else float(getattr(active_barangay, "default_clearance_fee", 50.00) if active_barangay.fee_collection_enabled else 0.00),
                         official_receipt_number=or_num, or_date=timezone.localdate() if or_num else None,
                         status=st
                     )
