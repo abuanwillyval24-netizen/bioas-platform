@@ -5,8 +5,9 @@ from django.shortcuts import redirect
 
 
 class RoleAccessAndIDORGuardMiddleware:
-    OFFICIAL_PREFIXES = ('/approve-citizen/', '/update-report-status/', '/office/', '/staff-roster/')
+    OFFICIAL_PREFIXES = ('/approve-citizen/', '/update-report-status/', '/office/', '/staff-roster/', '/citizen-inspect/', '/certificate-assess/')
     CITIZEN_PROTECTED_PREFIXES = ('/citizen-docs/', '/citizen-proof/')
+    NO_STORE_PREFIXES = ('/office/', '/citizen-home/', '/citizen-docs/', '/citizen-proof/', '/citizen-inspect/', '/staff-roster/', '/login/')
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -44,4 +45,9 @@ class RoleAccessAndIDORGuardMiddleware:
             if not cit_id and not is_recovery:
                 return redirect('/login/?role=CITIZEN')
 
-        return self.get_response(request)
+        response = self.get_response(request)
+        if path == '/' or any(path.startswith(p) for p in self.NO_STORE_PREFIXES):
+            response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+        return response
