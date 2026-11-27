@@ -376,5 +376,38 @@
 <script>(function(){var pendingForm=null;document.querySelectorAll('form[data-confirm-title]').forEach(function(f){f.addEventListener('submit',function(e){if(f.dataset.confirmed==='1')return;e.preventDefault();pendingForm=f;document.getElementById('ccmTitle').innerText=f.dataset.confirmTitle;document.getElementById('ccmMsg').innerText=f.dataset.confirmMsg;document.getElementById('citConfirmModal').style.display='flex';});});var ok=document.getElementById('ccmOkBtn');if(ok)ok.addEventListener('click',function(){if(!pendingForm)return;ok.disabled=true;ok.innerText='Submitting...';pendingForm.dataset.confirmed='1';pendingForm.submit();});})();</script>
 <script>var SD_MAP={REGISTRY_ACCOUNT:['Barangay Citizen ID Request (Initial Print)','Barangay Citizen ID Replacement (Lost/Damaged)','Move-Out / Transfer of Residence Filing','Account Freeze & Lost Device Recovery','Unauthorized Account Activity Security Alert'],DOCS_CERTIFICATES:['Certified True Copy / Historical Kasunduan (Affidavit of Loss)','Missing Requirements Resubmission','Barangay Business Permit — New Application','Barangay Business Permit — Annual Renewal','Barangay Business Closure / Cessation Filing'],LUPON_ENGAGEMENT:['Informal Conciliation / Non-Blotter Dispute Mediation','Closed / Archived Lupon Case Review Request','e-Summon Reschedule / Attendance Notice'],SAFETY_CONFIDENTIAL:['Community Safety / Noise / Unrecorded Renter Report','Confidential Administrative Complaint vs. Barangay Personnel','Census Record Dispute (Refused to Participate Correction)'],PROJECTS_INFRA:['Community Infrastructure / Streetlight / Road Proposal','Post-Completion Project Defect Report','Missed Garbage Collection / Waste Spot Request'],WELFARE_DISASTER:['Authorized Representative Ayuda Claim (With Auth Letter & ID)','Ayuda Exclusion Inquiry / Payout Receipt Dispute','Disaster Impact / Evacuation & Property Damage Report'],FACILITY_FEEDBACK:['Service Quality Feedback — Good / Commendation','Service Quality Feedback — Fair / Needs Improvement','Service Quality Feedback — Bad / Service Delay']};function syncSdTypes(){var g=document.getElementById('sdGroupSel'),s=document.getElementById('sdTypeSel');if(!g||!s)return;s.innerHTML='';(SD_MAP[g.value]||[]).forEach(function(item){var o=document.createElement('option');o.value=item;o.textContent=item;s.appendChild(o);});}syncSdTypes();</script>
 <div id="cit201PassModal" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.62);backdrop-filter:blur(2px);z-index:9999;align-items:center;justify-content:center;padding:16px;"><div style="background:#fff;max-width:400px;width:100%;border-radius:16px;padding:22px;box-shadow:0 20px 44px rgba(15,23,42,.28);border-top:4px solid #1e3a8a;"><h3 style="margin:0 0 6px;font-size:1rem;color:#0f172a;">🔒 Security Check: Verify Password</h3><p style="margin:0 0 14px;font-size:.82rem;color:#475569;line-height:1.45;">Enter your Citizen Portal password to view or update your 201 Master Profile and Supporting Documents Vault.</p><form method="post" onsubmit="try{sessionStorage.setItem('bioas_cit_tab','tabProfile');}catch(e){}">{% csrf_token %}<input type="hidden" name="action" value="VERIFY_201_PASSWORD"><input id="cit201PassInp" type="password" name="verify_201_password" placeholder="Enter your portal password..." required style="margin-bottom:14px;"><div style="display:flex;justify-content:flex-end;gap:8px;"><button type="button" onclick="document.getElementById('cit201PassModal').style.display='none'" style="background:#e2e8f0;color:#0f172a;border:0;padding:8px 14px;border-radius:8px;font-weight:700;font-size:.82rem;cursor:pointer;">Cancel</button><button type="submit" style="background:#1e3a8a;color:#fff;border:0;padding:8px 16px;border-radius:8px;font-weight:800;font-size:.82rem;cursor:pointer;">Unlock 201 Profile &rarr;</button></div></form></div></div>
+<script>(function(){
+  async function liveSyncCit(){
+    var ae=document.activeElement;
+    if(ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT')) return;
+    var modals=['citConfirmModal','citPhotoZoomModal','cit201PassModal'];
+    if(modals.some(function(id){var m=document.getElementById(id);return m&&(m.style.display==='flex'||m.style.display==='block');})) return;
+    try{
+      var res=await fetch(window.location.href,{headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!res.ok) return;
+      var doc=new DOMParser().parseFromString(await res.text(),'text/html');
+      var curMain=document.querySelector('main.cit-main'), newMain=doc.querySelector('main.cit-main');
+      if(curMain && newMain && curMain.innerHTML!==newMain.innerHTML){
+        var actPanel=curMain.querySelector('.panel.active');
+        var actId=actPanel?actPanel.id:'tabAdvisories';
+        var st=curMain.scrollTop;
+        curMain.innerHTML=newMain.innerHTML;
+        curMain.querySelectorAll('.panel').forEach(function(p){p.classList.toggle('active',p.id===actId);});
+        curMain.scrollTop=st;
+        if(window.syncSdTypes) window.syncSdTypes();
+      }
+      var curNav=document.querySelector('nav.side-nav'), newNav=doc.querySelector('nav.side-nav');
+      if(curNav && newNav){
+        var curBtns=curNav.querySelectorAll('.tab-btn'), newBtns=newNav.querySelectorAll('.tab-btn');
+        for(var i=0;i<curBtns.length&&i<newBtns.length;i++){
+          var cb=curBtns[i].querySelector('.badge'), nb=newBtns[i].querySelector('.badge');
+          if(cb && nb && cb.innerHTML!==nb.innerHTML) cb.innerHTML=nb.innerHTML;
+        }
+      }
+    }catch(e){}
+  }
+  setInterval(liveSyncCit,6000);
+  window.addEventListener('focus',liveSyncCit);
+})();</script>
 </body>
 </html>
