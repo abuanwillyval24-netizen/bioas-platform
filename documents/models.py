@@ -19,9 +19,12 @@ class CertificateRequest(models.Model):
     ]
 
     STATUS_CHOICES = [
-        ("PENDING_OR", "Pending Treasurer OR Payment"),
-        ("READY_TO_PRINT", "Approved & Ready to Print"),
-        ("ISSUED_PRINTED", "Issued & Released"),
+        ("PENDING_REVIEW", "Received — Pending Secretary Routing"),
+        ("PENDING_OR", "Forwarded to Treasurer — Pending OR Payment"),
+        ("PENDING_COUNCILOR", "Pending Purok Councilor Endorsement"),
+        ("PENDING_CAPTAIN", "Pending Punong Barangay Final Approval"),
+        ("READY_TO_PRINT", "Captain Approved — Ready to Print & Dry Seal"),
+        ("ISSUED_PRINTED", "Issued, Sealed & Released"),
         ("REJECTED_HOLD", "Blocked / Rejected"),
     ]
 
@@ -37,11 +40,14 @@ class CertificateRequest(models.Model):
     or_date = models.DateField(blank=True, null=True)
 
     letterhead_snapshot = models.ForeignKey(LetterheadVersion, on_delete=models.SET_NULL, null=True, blank=True)
+    assigned_councilor = models.ForeignKey("governance.BarangayStaffProfile", on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_certificates")
+    councilor_endorsed_by = models.CharField(max_length=150, blank=True)
+    captain_approved_by = models.CharField(max_length=150, blank=True)
     signatory_name = models.CharField(max_length=150, blank=True)
     signatory_title = models.CharField(max_length=150, default="Punong Barangay")
     is_acting_signatory = models.BooleanField(default=False)
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="READY_TO_PRINT")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING_REVIEW")
     issued_date = models.DateField(default=timezone.localdate)
     valid_until = models.DateField(blank=True, null=True)
     issued_by = models.CharField(max_length=120, blank=True)
