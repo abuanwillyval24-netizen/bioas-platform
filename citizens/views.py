@@ -1011,16 +1011,7 @@ def citizen_docs_repository(request, qr_id):
                 doc_obj.delete()
                 notice = f"Removed '{d_lbl}' from {citizen.full_name}'s repository. You can now attach a replacement file."
         else:
-            doc_title = request.POST.get("document_title", "").strip()
-            uploaded_file = request.FILES.get("repo_file")
-            if not doc_title or not uploaded_file:
-                error = "Document title and file (PDF, JPG, PNG) are required."
-            else:
-                staff_prof = getattr(request.user, "staff_profile", None)
-                uploader = (staff_prof.full_name if staff_prof else request.user.username) if is_official else citizen.full_name
-                ch = "STAFF_REPOSITORY" if is_official else "SELF_PORTAL"
-                pg_no, tot_pg = append_to_citizen_master_pdf(citizen, doc_title, uploaded_file, uploader=uploader, source_channel=ch)
-                notice = f"Merged '{doc_title}' into {citizen.full_name}'s Master Supporting PDF as Page {pg_no} (Total Pages: {tot_pg})."
+            error = "Read-Only Citizen Document Vault: Barangay officials cannot upload or alter resident supporting documents here."
 
     repo_docs = list(citizen.repository_docs.all())
     cert_docs = [c for c in citizen.certificates.all() if getattr(c, "supporting_document", None)]
@@ -1061,14 +1052,7 @@ button{background:{{ p_col }};color:#fff;border:0;padding:9px 16px;border-radius
     </div>
   </div>
 
-  <div class="card" style="border-top:4px solid #16a34a;">
-    <h3 style="margin-top:0;">Upload Additional Supporting Document to Citizen Repository</h3>
-    <form method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:2fr 2fr auto;gap:10px;align-items:end;">{% csrf_token %}
-      <div><label style="font-size:.76rem;font-weight:700;">Document Label / Description *</label><input name="document_title" placeholder="e.g., PSA Birth Certificate / PhilSys ID / Voter Stub" required></div>
-      <div><label style="font-size:.76rem;font-weight:700;">Attach File (PDF, JPG, PNG) *</label><div style="display:flex;align-items:center;gap:6px;"><input type="file" id="repoFileInp" name="repo_file" required style="padding:5px;flex:1;"><button type="button" class="x-del-btn" title="Clear selected file" onclick="askClearRepoFile()">&times;</button></div></div>
-      <button type="submit">+ Upload File</button>
-    </form>
-  </div>
+
 
   <div class="card">
     <h3 style="margin-top:0;">Attached Supporting Documents ({{ repo_docs|length }} Files)</h3>
