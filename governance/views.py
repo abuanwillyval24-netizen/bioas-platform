@@ -25,109 +25,140 @@ from audit_analytics.models import SystemAuditLog, DILGComplianceReport, COAAudi
 
 @never_cache
 def staff_login(request):
-    import hashlib, random, secrets
+    import hashlib, random, secrets, time
     from django.contrib.auth.hashers import check_password
+    from django.core.cache import cache
     from .models import BarangayStaffProfile, TrustedLoginDevice
     for sp_u in BarangayStaffProfile.objects.filter(official_code__isnull=True):
         sp_u.save()
     if request.user.is_authenticated:
-        return redirect("/")
-    if request.session.get("citizen_auth_id") and not request.GET.get("logout"):
-        return redirect("/citizen-home/")
-    error, notice, otp_pending, otp_masked_email = "", "", False, ""
-    role_type = (request.POST.get("role_type") or request.GET.get("role") or "OFFICIAL").strip().upper()
-    ref_code = (request.POST.get("ref_code") or "").strip().upper()
-    username_in = (request.POST.get("username") or "").strip()
+        return redirect('/')
+    if request.session.get('citizen_auth_id') and not request.GET.get('logout'):
+        return redirect('/citizen-home/')
+    error, notice, otp_pending, otp_masked_email = '', '', False, ''
+    role_type = (request.POST.get('role_type') or request.GET.get('role') or 'OFFICIAL').strip().upper()
+    ref_code = (request.POST.get('ref_code') or '').strip().upper()
+    username_in = (request.POST.get('username') or '').strip()
     brgy = BarangayTenant.objects.first()
     showcase = BarangayPortalShowcase.objects.filter(barangay=brgy).first() if brgy else None
-
-    raw_tok = request.COOKIES.get("bioas_dev_tok", "")
+    raw_tok = request.COOKIES.get('bioas_dev_tok', '')
     dev_tok = raw_tok or secrets.token_urlsafe(32)
-    ua_str = request.META.get("HTTP_USER_AGENT", "")[:160]
-    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    client_ip = (xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR", "")) or "0.0.0.0"
-    ip_prefix = ".".join(client_ip.split(".")[:2]) if "." in client_ip else client_ip[:24]
-    dev_hash = hashlib.sha256(f"{dev_tok}|{ua_str[:80]}".encode("utf-8")).hexdigest()
-
-    def _finish_login(acct_key, r_type, obj_id):
-        TrustedLoginDevice.objects.update_or_create(account_key=acct_key, device_token_hash=dev_hash, defaults={"device_label": ua_str, "ip_prefix": ip_prefix})
-        if r_type == "CITIZEN":
-            request.session["citizen_auth_id"] = obj_id
-            resp = redirect("/citizen-home/")
+    ua_str = request.META.get('HTTP_USER_AGENT', '')[:160]
+    xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    client_ip = (xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR', '')) or '0.0.0.0'
+    ip_prefix = '.'.join(client_ip.split('.')[:2]) if '.' in client_ip else client_ip[:24]
+    dev_hash = hashlib.sha256(f'{dev_tok}|{ua_str[:80]}'.encode('utf-8')).hexdigest()
+    bf_ip, bf_usr = f'bioas_bf_ip:{client_ip}', (f'bioas_bf_usr:{username_in.lower()}' if username_in else '')
+    def _is_locked(): return (cache.get(bf_ip, 0) >= 5) or (bool(bf_usr) and cache.get(bf_usr, 0) >= 5)
+    def _rec_fail(): cache.set(bf_ip, cache.get(bf_ip, 0) + 1, 900); bf_usr and cache.set(bf_usr, cache.get(bf_usr, 0) + 1, 900)
+    def _clr_fail(): cache.delete(bf_ip); bf_usr and cache.delete(bf_usr)
+    def _finish_login(acct_key, r_type, obj_id, approve_ws=False):
+        _clr_fail()
+        defs = {'device_label': ua_str, 'ip_prefix': ip_prefix}
+        if approve_ws: defs['is_approved_workstation'] = True
+        TrustedLoginDevice.objects.update_or_create(account_key=acct_key, device_token_hash=dev_hash, defaults=defs)
+        if r_type == 'CITIZEN':
+            request.session['citizen_auth_id'] = obj_id
+            resp = redirect('/citizen-home/')
         else:
             u_obj = get_user_model().objects.filter(id=obj_id).first()
-            if u_obj:
-                login(request, u_obj)
-            resp = redirect(request.GET.get("next") or "/")
-        resp.set_cookie("bioas_dev_tok", dev_tok, max_age=60 * 60 * 24 * 90, httponly=True, samesite="Lax")
+            if u_obj: login(request, u_obj)
+            resp = redirect(request.GET.get('next') or '/')
+        resp.set_cookie('bioas_dev_tok', dev_tok, max_age=7776000, httponly=True, samesite='Lax')
         return resp
-
-    def _trigger_2fa(acct_key, r_type, obj_id, email_addr, disp_name):
-        code = f"{random.randint(100000, 999999)}"
-        masked = (email_addr[:2] + "***@" + email_addr.split("@")[-1]) if "@" in email_addr else "your registered email"
-        request.session["bioas_2fa_pending"] = {"code": code, "acct_key": acct_key, "role_type": r_type, "obj_id": obj_id, "masked_email": masked}
+    def _trigger_2fa(acct_key, r_type, obj_id, email_addr, disp_name, approve_ws=False):
+        code = f'{random.SystemRandom().randint(100000, 999999)}'
+        at_pos = email_addr.find('@') if '@' in email_addr else -1
+        masked = (email_addr[:2] + '***' + email_addr[at_pos:]) if at_pos > 1 else ('***' + email_addr[at_pos:] if at_pos >= 0 else 'your email')
+        request.session['bioas_2fa_pending'] = {'code': code, 'acct_key': acct_key, 'role_type': r_type, 'obj_id': obj_id, 'masked_email': masked, 'attempts': 0, 'expires_at': int(time.time()) + 300, 'approve_ws': approve_ws}
         if email_addr:
             try:
                 from django.core.mail import send_mail
                 from django.conf import settings as dj_settings
-                send_mail(f"[{brgy.name if brgy else 'BIOAS'}] Security Verification OTP ({r_type})", f"Good day {disp_name},\n\nNew device or location detected ({client_ip}).\nYour 6-digit Login OTP is: {code}", getattr(dj_settings, "DEFAULT_FROM_EMAIL", None), [email_addr], fail_silently=False)
+                send_mail(f'[{brgy.name if brgy else chr(66)+chr(73)+chr(79)+chr(65)+chr(83)}] Security OTP ({r_type})', f'Good day {disp_name}, new device ({client_ip}). Your 6-digit OTP is: {code} (valid 5 mins).', getattr(dj_settings, 'DEFAULT_FROM_EMAIL', None), [email_addr], fail_silently=False)
             except Exception as mail_err:
-                print("BIOAS_2FA_EMAIL_ERROR:", repr(mail_err))
+                print('BIOAS_2FA_EMAIL_ERROR:', repr(mail_err))
         return masked
-
-    if request.method == "POST":
-        if request.POST.get("login_step") == "VERIFY_LOGIN_OTP":
-            pend = request.session.get("bioas_2fa_pending")
-            if not pend or request.POST.get("login_otp_code", "").strip() != pend.get("code"):
-                error = "Invalid or expired 6-digit OTP code."
-                otp_pending, otp_masked_email = bool(pend), (pend.get("masked_email", "") if pend else "")
+    if request.method == 'POST':
+        if request.POST.get('login_step') == 'VERIFY_LOGIN_OTP':
+            pend = request.session.get('bioas_2fa_pending')
+            if not pend or time.time() > pend.get('expires_at', 0):
+                request.session.pop('bioas_2fa_pending', None)
+                error = 'Your 6-digit OTP has expired (5-minute limit). Please sign in again.'
+            elif request.POST.get('login_otp_code', '').strip() != pend.get('code'):
+                pend['attempts'] = pend.get('attempts', 0) + 1
+                if pend['attempts'] >= 3:
+                    request.session.pop('bioas_2fa_pending', None)
+                    error = 'Maximum 3 OTP attempts exceeded. Please sign in again.'
+                else:
+                    request.session['bioas_2fa_pending'] = pend
+                    otp_pending, otp_masked_email = True, pend.get('masked_email', '')
+                    error = f'Invalid 6-digit OTP ({3 - pend[chr(97)+chr(116)+chr(116)+chr(101)+chr(109)+chr(112)+chr(116)+chr(115)]} attempt(s) left).'
             else:
-                request.session.pop("bioas_2fa_pending", None)
-                return _finish_login(pend["acct_key"], pend["role_type"], pend["obj_id"])
-        elif role_type == "CITIZEN":
+                request.session.pop('bioas_2fa_pending', None)
+                return _finish_login(pend['acct_key'], pend['role_type'], pend['obj_id'], approve_ws=bool(pend.get('approve_ws')))
+        elif _is_locked():
+            error = 'Security Lockout: Too many failed sign-in attempts. Please wait 15 minutes before trying again.'
+        elif role_type == 'CITIZEN':
             cand = CitizenProfile.objects.filter(citizen_qr_id__iexact=ref_code, portal_username__iexact=username_in).first() if (ref_code and username_in) else None
-            if not cand or not cand.portal_password_hash or not check_password(request.POST.get("password", ""), cand.portal_password_hash):
-                error = "Invalid Citizen Reference Number, Username, or Password."
+            if not cand or not cand.portal_password_hash or not check_password(request.POST.get('password', ''), cand.portal_password_hash):
+                _rec_fail()
+                error = 'Invalid Citizen Reference Number, Username, or Password.'
             else:
-                acct_key = f"CIT:{cand.id}"
+                acct_key = f'CIT:{cand.id}'
                 tr = TrustedLoginDevice.objects.filter(account_key=acct_key, device_token_hash=dev_hash).first()
                 if tr:
-                    return _finish_login(acct_key, "CITIZEN", cand.id)
-                otp_masked_email = _trigger_2fa(acct_key, "CITIZEN", cand.id, cand.email_address or "", cand.full_name)
-                d_code = request.session.get("bioas_2fa_pending", {}).get("code", "")
-                has_smtp = bool(getattr(__import__("django.conf", fromlist=["settings"]).settings, "EMAIL_HOST_USER", "").strip()) and bool(cand.email_address)
-                otp_pending, notice = True, (f"New device detected. A 6-digit verification OTP has been sent to {otp_masked_email}." if has_smtp else f"New device detected. Enter your 6-digit verification code ({d_code}) below to trust this device.")
-        elif any(m in ua_str.lower() for m in ("mobile", "android", "iphone", "ipad", "ipod", "windows phone")):
-            error = "Security Policy: Barangay Official sign-in is blocked on mobile phones/tablets and restricted to authorized Barangay Office Desktop/Laptop workstations only. Select Login as: Citizen on mobile."
+                    return _finish_login(acct_key, 'CITIZEN', cand.id)
+                has_smtp = bool(getattr(__import__('django.conf', fromlist=['settings']).settings, 'EMAIL_HOST_USER', '').strip()) and bool(cand.email_address)
+                if not has_smtp:
+                    error = 'New device detected, but no verified email is configured on this account. Please visit the Barangay Hall Walk-In Desk to verify your identity and register an email address.'
+                else:
+                    otp_masked_email = _trigger_2fa(acct_key, 'CITIZEN', cand.id, cand.email_address or '', cand.full_name)
+                    otp_pending, notice = True, f'New device detected. A 6-digit verification OTP has been sent to {otp_masked_email} (expires in 5 minutes).'
+        elif any(m in ua_str.lower() for m in ('mobile', 'android', 'iphone', 'ipad', 'ipod', 'windows phone')):
+            error = 'Security Policy: Barangay Official sign-in is blocked on mobile phones/tablets and restricted to approved Barangay Office Desktop/Laptop workstations only.'
         else:
-            user = authenticate(request, username=username_in, password=request.POST.get("password", ""))
+            GENERIC_OFF_ERR = 'Invalid Barangay Official Unique Code, Username, or Password.'
+            user = authenticate(request, username=username_in, password=request.POST.get('password', ''))
             if user is None:
-                error = "Invalid Barangay Official Unique Code, Username, or Password."
+                _rec_fail()
+                error = GENERIC_OFF_ERR
             else:
-                prof = getattr(user, "staff_profile", None)
+                prof = getattr(user, 'staff_profile', None)
                 if not user.is_superuser:
-                    if not prof or not ref_code or (prof.official_code or "").upper() != ref_code:
-                        error = "Invalid Unique Official Code for this Barangay Official account."
+                    if not prof or not ref_code or (prof.official_code or '').upper() != ref_code:
+                        _rec_fail()
+                        error = GENERIC_OFF_ERR
                     elif not prof.is_term_active:
-                        error = "Your Official Term has ended and turnover is complete. Your Official Code is deactivated -- please select 'Login as: Citizen' using your personal Citizen Reference Number."
-                    elif prof.approval_status != "ACTIVE":
-                        error = f"Account status: {prof.get_approval_status_display()}. Punong Barangay approval is required before signing in."
-                elif prof and ref_code and (prof.official_code or "").upper() != ref_code:
-                    error = "Unique Official Code does not match this account."
+                        error = 'Your Official Term has ended and turnover is complete. Your Official Code is deactivated -- please select Login as: Citizen.'
+                    elif prof.approval_status != 'ACTIVE':
+                        error = f'Account status: {prof.get_approval_status_display()}. Punong Barangay approval is required before signing in.'
+                elif prof and ref_code and (prof.official_code or '').upper() != ref_code:
+                    _rec_fail()
+                    error = GENERIC_OFF_ERR
                 if not error:
-                    acct_key = f"OFF:{user.id}"
+                    acct_key = f'OFF:{user.id}'
                     tr = TrustedLoginDevice.objects.filter(account_key=acct_key, device_token_hash=dev_hash).first()
-                    if tr:
-                        return _finish_login(acct_key, "OFFICIAL", user.id)
-                    em = (user.email or (prof.citizen.email_address if (prof and prof.citizen) else "") or "").strip()
-                    otp_masked_email = _trigger_2fa(acct_key, "OFFICIAL", user.id, em, prof.full_name if prof else user.username)
-                    d_code = request.session.get("bioas_2fa_pending", {}).get("code", "")
-                    has_smtp = bool(getattr(__import__("django.conf", fromlist=["settings"]).settings, "EMAIL_HOST_USER", "").strip()) and bool(em)
-                    otp_pending, notice = True, (f"New device detected. A 6-digit verification OTP has been sent to {otp_masked_email}." if has_smtp else f"New device detected. Enter your 6-digit verification code ({d_code}) below to trust this device.")
-
-    bg_css = f"background:linear-gradient(120deg,rgba(15,23,42,.82) 0%,rgba(15,23,42,.52) 55%,rgba(15,23,42,.75) 100%),url('{showcase.background_image_url}') center/cover no-repeat fixed;" if (showcase and showcase.background_image_url) else "background:radial-gradient(circle at 20% 25%,#1d4ed8 0%,#0f172a 55%,#090d16 100%);"
-    tpl_str = (Path(__file__).resolve().parent.parent / "bioas_core" / "templates" / "governance" / "login.html").read_text(encoding="utf-8")
-    return HttpResponse(engines["django"].from_string(tpl_str).render({"brgy": brgy, "showcase": showcase, "bg_css": bg_css, "error": error, "notice": notice, "role_type": role_type, "ref_code": ref_code, "username_in": username_in, "otp_pending": otp_pending, "otp_masked_email": otp_masked_email}, request))
+                    has_any_ws = TrustedLoginDevice.objects.filter(account_key=acct_key, is_approved_workstation=True).exists()
+                    is_bootstrap_admin = bool(user.is_superuser or (prof and prof.role == 'CAPTAIN')) and not has_any_ws
+                    if tr and tr.is_approved_workstation:
+                        return _finish_login(acct_key, 'OFFICIAL', user.id, approve_ws=True)
+                    if not is_bootstrap_admin:
+                        TrustedLoginDevice.objects.update_or_create(account_key=acct_key, device_token_hash=dev_hash, defaults={'device_label': ua_str, 'ip_prefix': ip_prefix, 'is_approved_workstation': False})
+                        error = 'Workstation Pre-Authorization Required: This browser/workstation is pending Punong Barangay / System Admin approval in Staff Roster. Mobile Desktop-Site spoofing is blocked.'
+                    else:
+                        em = (user.email or (prof.citizen.email_address if (prof and prof.citizen) else '') or '').strip()
+                        has_smtp = bool(getattr(__import__('django.conf', fromlist=['settings']).settings, 'EMAIL_HOST_USER', '').strip()) and bool(em)
+                        if not has_smtp:
+                            return _finish_login(acct_key, 'OFFICIAL', user.id, approve_ws=True)
+                        otp_masked_email = _trigger_2fa(acct_key, 'OFFICIAL', user.id, em, prof.full_name if prof else user.username, approve_ws=True)
+                        otp_pending, notice = True, f'Bootstrap Office Workstation detected. A 6-digit verification OTP has been sent to {otp_masked_email} (expires in 5 minutes).'
+    bg_css = f'background:linear-gradient(120deg,rgba(15,23,42,.82) 0%,rgba(15,23,42,.52) 55%,rgba(15,23,42,.75) 100%),url({q}{showcase.background_image_url}{q}) center/cover no-repeat fixed;' if (showcase and showcase.background_image_url) else 'background:radial-gradient(circle at 20% 25%,#1d4ed8 0%,#0f172a 55%,#090d16 100%);'
+    tpl_str = (Path(__file__).resolve().parent.parent / 'bioas_core' / 'templates' / 'governance' / 'login.html').read_text(encoding='utf-8')
+    resp_get = HttpResponse(engines['django'].from_string(tpl_str).render({'brgy': brgy, 'showcase': showcase, 'bg_css': bg_css, 'error': error, 'notice': notice, 'role_type': role_type, 'ref_code': ref_code, 'username_in': username_in, 'otp_pending': otp_pending, 'otp_masked_email': otp_masked_email}, request))
+    if not raw_tok:
+        resp_get.set_cookie('bioas_dev_tok', dev_tok, max_age=7776000, httponly=True, samesite='Lax')
+    return resp_get
 
 
 def staff_logout(request):

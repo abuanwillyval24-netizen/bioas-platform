@@ -415,6 +415,7 @@ class BarangayStaffProfile(models.Model):
 
 
 class TrustedLoginDevice(models.Model):
+    is_approved_workstation = models.BooleanField(default=False)
     account_key = models.CharField(max_length=80, db_index=True)
     device_token_hash = models.CharField(max_length=128, db_index=True)
     device_label = models.CharField(max_length=160, blank=True)
