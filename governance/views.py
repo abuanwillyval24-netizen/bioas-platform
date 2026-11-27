@@ -1278,6 +1278,18 @@ def command_dashboard(request):
     citizens = CitizenProfile.objects.select_related("household").defer("supporting_doc_data_uri").filter(barangay=active_barangay) if active_barangay else CitizenProfile.objects.none()
     pending_photo_citizens = list(CitizenProfile.objects.filter(barangay=active_barangay, photo_review_status="PENDING").exclude(pending_photo_data_uri="")) if active_barangay else []
     all_repo_docs = CitizenSupportingDocument.objects.select_related("citizen").defer("file_data_uri", "citizen__supporting_doc_data_uri", "citizen__pending_photo_data_uri").filter(citizen__barangay=active_barangay) if active_barangay else CitizenSupportingDocument.objects.none()
+    _src_map = {"PORTAL_SIGNUP": "Online Citizen Portal Sign-Up", "SELF_PORTAL": "Online Citizen Self-Portal", "WALKIN_DESK": "Barangay Hall Walk-In / Desk Encoding", "CERTIFICATE_REQ": "Certificate Attachment", "STAFF_REPOSITORY": "Direct Staff Repository Upload"}
+    _vmap = {}
+    for _d in all_repo_docs:
+        _cid = _d.citizen_id
+        _lbl = _src_map.get(_d.source_channel, _d.get_source_channel_display() or "Online Citizen Self-Portal")
+        if _cid not in _vmap:
+            _vmap[_cid] = {"citizen": _d.citizen, "latest_at": _d.uploaded_at, "latest_channel": _lbl, "latest_code": ("PORTAL_SIGNUP" if _d.source_channel == "SELF_PORTAL" else _d.source_channel), "latest_by": _d.uploaded_by or _d.citizen.full_name, "titles": [_d.document_title], "count": 1}
+        else:
+            _vmap[_cid]["count"] += 1
+            if _d.document_title not in _vmap[_cid]["titles"]:
+                _vmap[_cid]["titles"].append(_d.document_title)
+    unified_citizen_vaults = list(_vmap.values())
     households = Household.objects.prefetch_related("members").filter(barangay=active_barangay) if active_barangay else Household.objects.none()
     citizen_reports = CitizenCommunityReport.objects.filter(barangay=active_barangay) if active_barangay else CitizenCommunityReport.objects.none()
     councilor_staff_list = list(BarangayStaffProfile.objects.filter(barangay=active_barangay, role="COUNCILOR", approval_status="ACTIVE").order_by("full_name")) if active_barangay else []
@@ -1476,7 +1488,7 @@ def command_dashboard(request):
     template = engines["django"].from_string(html_path.read_text(encoding="utf-8"))
     return HttpResponse(template.render({
         "tier": tier, "module": module, "province": province, "city": city, "barangays": barangays, "active_barangay": active_barangay,
-        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "councilor_staff_list": councilor_staff_list, "it_last_report": request.session.get("bioas_it_report"), "trusted_device_count": __import__("governance.models", fromlist=["TrustedLoginDevice"]).TrustedLoginDevice.objects.count(), "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
+        "theme": theme, "citizens": citizens, "all_repo_docs": all_repo_docs, "unified_citizen_vaults": unified_citizen_vaults, "pending_photo_citizens": pending_photo_citizens, "households": households, "citizen_reports": citizen_reports, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "barangay_staff_list": (list(BarangayStaffProfile.objects.filter(barangay=active_barangay).order_by("role", "full_name")) if active_barangay else []), "all_module_choices": BarangayStaffProfile.ALL_MODULE_CHOICES, "councilor_staff_list": councilor_staff_list, "it_last_report": request.session.get("bioas_it_report"), "trusted_device_count": __import__("governance.models", fromlist=["TrustedLoginDevice"]).TrustedLoginDevice.objects.count(), "citizen_service_tickets": list(__import__("governance.models", fromlist=["CitizenServiceTicket"]).CitizenServiceTicket.objects.select_related("citizen").filter(barangay=active_barangay)[:60]) if active_barangay else [],
         "certificates": certificates, "cert_type_choices": __import__("documents.models", fromlist=["CertificateRequest"]).CertificateRequest.CERT_TYPES, "pending_or_certs": pending_or_certs, "blotter_cases": blotter_cases,
         "committee_entries": list(__import__("governance.models", fromlist=["CommitteeModuleEntry"]).CommitteeModuleEntry.objects.filter(barangay=active_barangay, module_code__in=visible_modules)[:60]) if active_barangay else [],
         "open_icns": list(__import__("governance.models", fromlist=["WalkInIncidentTicket"]).WalkInIncidentTicket.objects.filter(barangay=active_barangay, status="OPEN")[:30]) if active_barangay else [],
