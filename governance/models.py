@@ -42,6 +42,12 @@ class CityMunicipality(models.Model):
 
 
 class BarangayTenant(models.Model):
+    def get_active_signatory(self):
+        cap = self.staff_members.filter(role="CAPTAIN", approval_status="ACTIVE").first() if hasattr(self, "staff_members") else None
+        if cap:
+            return f"Hon. {cap.full_name}"
+        return getattr(self, "punong_barangay_name", "") or "Hon. Punong Barangay"
+
     PROVISION_STATUS = [
         ("PENDING_APPROVAL", "Pending City/DILG Provisioning"),
         ("TRIAL_ACTIVE", "Active Trial Pilot"),
