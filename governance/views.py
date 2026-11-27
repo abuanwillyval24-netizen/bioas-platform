@@ -1365,7 +1365,7 @@ def command_dashboard(request):
     turnover_summary = {
         "pending_citizens": citizens.filter(status="PENDING_APPROVAL").count(),
         "open_citizen_reports": citizen_reports.exclude(status="RESOLVED_CLOSED").count(),
-        "pending_or_certs": pending_or_certs.count(),
+        "pending_or_certs": len(pending_or_certs),
         "active_blotter_holds": blotter_cases.filter(blocks_clearance=True).count(),
         "open_welfare_sheets": abuloy_sheets.exclude(status="TURNED_OVER_SIGNED").count(),
         "unreturned_equipment": equipment_loans.filter(status="OUT_ON_LOAN").count(),
