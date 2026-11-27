@@ -111,11 +111,11 @@
                 </div>
               </div>
             {% endif %}
-            <h2 style="margin:8px 0 4px;font-size:1.05rem;color:#0f172a;font-weight:900;">{{ citizen.full_name }}</h2>
+            <h2 onclick="var b=document.querySelector('[onclick*=tabAdvisories]');if(b)b.click();" title="Return to Citizen Portal Home" onmouseover="this.style.color='#1d4ed8';this.style.textDecoration='underline'" onmouseout="this.style.color='#0f172a';this.style.textDecoration='none'" style="margin:8px 0 4px;font-size:1.05rem;color:#0f172a;font-weight:900;cursor:pointer;transition:color .15s ease;">{{ citizen.full_name }}</h2>
             <span class="badge" style="background:#ECFDF5;color:#059669;border:1px solid #A7F3D0;">&#10003; Active Verified Resident</span>
             <div style="font-size:.75rem;color:#475569;margin-top:8px;line-height:1.45;">
-              <div>Ref ID: <code style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f1f5f9;padding:2px 6px;border-radius:5px;font-weight:800;color:#0f172a;">{{ citizen.citizen_qr_id }}</code></div>
-              <div>Username: <strong>{{ citizen.portal_username }}</strong></div>
+              <div style="white-space:nowrap;font-size:.69rem;">Ref ID: <code style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f1f5f9;padding:2px 5px;border-radius:5px;font-weight:800;color:#0f172a;white-space:nowrap;">{{ citizen.citizen_qr_id }}</code></div>
+              <div style="margin-top:3px;">Username: <strong id="citUserDisp" data-real="{{ citizen.portal_username }}" data-shown="0" style="letter-spacing:.06em;">••••••</strong> <button type="button" onclick="var u=document.getElementById('citUserDisp');var s=u.getAttribute('data-shown')==='1';u.textContent=s?'••••••':u.getAttribute('data-real');u.style.letterSpacing=s?'.06em':'normal';u.setAttribute('data-shown',s?'0':'1');this.textContent=s?'Show':'Hide';" style="background:#e2e8f0;color:#1e293b;border:0;border-radius:5px;padding:1px 6px;font-size:.66rem;font-weight:800;cursor:pointer;margin-left:3px;">Show</button></div>
               <div style="font-size:.71rem;color:#64748b;margin-top:3px;">{{ citizen.purok }}, {{ citizen.barangay.name }}</div>
             </div>
             {% if citizen_qr_uri %}
