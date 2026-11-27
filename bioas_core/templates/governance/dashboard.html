@@ -193,7 +193,7 @@
             <div class="card"><h3>Total Active Residents</h3><div class="stat">{{ pop_stats.total_residents }}</div><small>Verified 201 Registry</small></div>
             <div class="card"><h3>Male / Female</h3><div class="stat">{{ pop_stats.male_count }} / {{ pop_stats.female_count }}</div><small>Male vs. Female</small></div>
             <div class="card"><h3>Voters / Non-Voters</h3><div class="stat">{{ pop_stats.registered_voters }} / {{ pop_stats.non_voters }}</div><small>COMELEC Registered vs. Non-Voter</small></div>
-            <div class="card"><h3>Children (Unmarried / Married)</h3><div class="stat">{{ pop_stats.children_total }} ({{ pop_stats.unmarried_children }} / {{ pop_stats.married_children }})</div><small>Auto-Derived from Household Tree</small></div>
+            <div class="card"><h3>Civil Status (Single / Married)</h3><div class="stat">{{ pop_stats.single_count }} / {{ pop_stats.married_count }}</div><small>Single vs. Married Residents</small></div>
             <div class="card"><h3>Senior Citizens (60+)</h3><div class="stat">{{ pop_stats.senior_count }}</div><small>OSCA Eligible</small></div>
             <div class="card"><h3>Persons with Disabilities</h3><div class="stat">{{ pop_stats.pwd_count }}</div><small>PWD Registry</small></div>
             <div class="card"><h3>Solo Parents</h3><div class="stat">{{ pop_stats.solo_parent_count }}</div><small>RA 8972 / 11861</small></div>
@@ -214,8 +214,8 @@
                 <tr><td>Female Residents</td><td style="text-align:right;"><strong>{{ pop_stats.female_count }}</strong></td></tr>
                 <tr><td>Registered Voters</td><td style="text-align:right;"><strong>{{ pop_stats.registered_voters }}</strong></td></tr>
                 <tr><td>Non-Voters</td><td style="text-align:right;"><strong>{{ pop_stats.non_voters }}</strong></td></tr>
-                <tr><td>Unmarried Children</td><td style="text-align:right;"><strong>{{ pop_stats.unmarried_children }}</strong></td></tr>
-                <tr><td>Married Children</td><td style="text-align:right;"><strong>{{ pop_stats.married_children }}</strong></td></tr>
+                <tr><td>Unmarried / Single Residents</td><td style="text-align:right;"><strong>{{ pop_stats.single_count }}</strong></td></tr>
+                <tr><td>Married Residents / Families</td><td style="text-align:right;"><strong>{{ pop_stats.married_count }}</strong></td></tr>
                 <tr><td>Pregnant Residents</td><td style="text-align:right;"><strong>{{ pop_stats.pregnant_count }}</strong></td></tr>
                 <tr><td>Recent Births (Last 12 Mos.)</td><td style="text-align:right;"><strong>{{ pop_stats.recent_births_count }}</strong></td></tr>
                 <tr><td>Recorded Deaths</td><td style="text-align:right;"><strong>{{ pop_stats.deaths_count }}</strong></td></tr>

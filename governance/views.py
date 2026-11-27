@@ -1353,7 +1353,7 @@ def command_dashboard(request):
         "registered_voters": sum(1 for c in active_citizens if c.is_registered_voter),
         "non_voters": sum(1 for c in active_citizens if not c.is_registered_voter),
         "purok_rows": purok_rows,
-        "children_total": len(children_list),
+        "children_total": len(children_list), "single_count": sum(1 for c in active_citizens if c.civil_status == "SINGLE"), "married_count": sum(1 for c in active_citizens if c.civil_status == "MARRIED"),
         "unmarried_children": sum(1 for c in children_list if c.civil_status == "SINGLE"),
         "married_children": sum(1 for c in children_list if c.civil_status == "MARRIED"),
         "senior_count": sum(1 for c in active_citizens if c.is_senior_citizen or c.age >= 60),
