@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
@@ -343,7 +343,7 @@ class BarangayStaffProfile(models.Model):
         ("AUDIT", "12. COA & DILG Audit"),
         ("REGISTRY_SERVICE", "05. Citizen ID, Move-Out & Account"),
         ("INBOUND_DOCS", "03B. Inbound CTC, Missing Docs & Business"),
-        ("INBOUND_LUPON", "04B. Inbound Coffee Talk & Case Review"),
+        ("INBOUND_LUPON", "04B. Inbound Informal Conciliation & Case Review"),
         ("INBOUND_SAFETY", "02I. Confidential Safety, Personnel & Census"),
         ("INBOUND_PROJECTS", "08B. Inbound Infrastructure & Defect Reports"),
         ("INBOUND_WELFARE", "07B. Inbound Rep Claims & Disaster Reports"),
@@ -621,7 +621,7 @@ class CitizenServiceTicket(models.Model):
     GROUP_CHOICES = [
         ('REGISTRY_ACCOUNT', '1. 201 Registry, Barangay ID & Account Security'),
         ('DOCS_CERTIFICATES', '2. Certificates, CTC & Business Services'),
-        ('LUPON_ENGAGEMENT', '3. Lupon, Coffee Talk & Case Engagement'),
+        ('LUPON_ENGAGEMENT', '3. Lupon, Informal Conciliation & Case Engagement'),
         ('SAFETY_CONFIDENTIAL', '4. Confidential Safety, Personnel & Census Reports'),
         ('PROJECTS_INFRA', '5. Projects, Infrastructure & Defect Reports'),
         ('WELFARE_DISASTER', '6. Social Assistance, Representative Claim & Disaster'),

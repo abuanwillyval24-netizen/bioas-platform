@@ -121,7 +121,7 @@
       {% if "CERTIFICATES" in visible_modules %}<a href="?tier=BARANGAY&module=CERTIFICATES" class="{% if module == 'CERTIFICATES' %}active{% endif %}"><span>03. Certificates</span><span class="pill">{{ certificates|length }}</span></a>{% endif %}
       {% if "INBOUND_DOCS" in visible_modules %}<a href="?tier=BARANGAY&module=INBOUND_DOCS" class="{% if module == 'INBOUND_DOCS' %}active{% endif %}"><span>03B. Inbound CTC &amp; Business Docs</span><span class="pill">&bull;</span></a>{% endif %}
       {% if "BLOTTER" in visible_modules %}<a href="?tier=BARANGAY&module=BLOTTER" class="{% if module == 'BLOTTER' %}active{% endif %}"><span>04. Derogatory Record Flag</span><span class="pill">{{ blotter_cases|length }}</span></a>{% endif %}
-      {% if "INBOUND_LUPON" in visible_modules %}<a href="?tier=BARANGAY&module=INBOUND_LUPON" class="{% if module == 'INBOUND_LUPON' %}active{% endif %}"><span>04B. Inbound Coffee Talk &amp; Case Review</span><span class="pill">&bull;</span></a>{% endif %}
+      {% if "INBOUND_LUPON" in visible_modules %}<a href="?tier=BARANGAY&module=INBOUND_LUPON" class="{% if module == 'INBOUND_LUPON' %}active{% endif %}"><span>04B. Inbound Conciliation &amp; Case Review</span><span class="pill">&bull;</span></a>{% endif %}
       {% if "REGISTRY_SERVICE" in visible_modules %}<a href="?tier=BARANGAY&module=REGISTRY_SERVICE" class="{% if module == 'REGISTRY_SERVICE' %}active{% endif %}"><span>05. Citizen ID, Move-Out &amp; Account</span><span class="pill">&bull;</span></a>{% endif %}
       </details><details class="side-grp" data-gid="grp_TreasuryampRevenue" style="margin:4px 0;"><summary class="side-group" style="list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:8px;background:rgba(255,255,255,.07);border-left:3px solid #fbbf24;font-size:.83rem;font-weight:900;color:#f8fafc;letter-spacing:.09em;text-transform:uppercase;"><span>Treasury &amp; Revenue</span><span>&#9662;</span></summary>
       {% if "TREASURY" in visible_modules %}<a href="?tier=BARANGAY&module=TREASURY" class="{% if module == 'TREASURY' %}active{% endif %}"><span>05. Treasury &amp; Collections</span><span class="pill">{{ receipts|length }}</span></a>{% endif %}
@@ -272,7 +272,7 @@
 
           <div class="section-title" style="margin-top:26px;"><span>02H. Citizen Service &amp; Communication Desk Queue — All 7 Groups ({{ citizen_service_tickets|length }})</span></div>
           <div class="card" style="padding:12px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <select id="sdGrpFlt" onchange="filterSvcTickets()" style="width:auto;min-width:220px;padding:7px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.8rem;font-weight:700;"><option value="">All 7 Service Groups</option><option value="REGISTRY_ACCOUNT">1. 201 Registry, ID &amp; Account Security</option><option value="DOCS_CERTIFICATES">2. Certificates, CTC &amp; Business</option><option value="LUPON_ENGAGEMENT">3. Lupon, Coffee Talk &amp; Case Review</option><option value="SAFETY_CONFIDENTIAL">4. Confidential Safety, Personnel &amp; Census</option><option value="PROJECTS_INFRA">5. Projects, Infrastructure &amp; Defects</option><option value="WELFARE_DISASTER">6. Social Assistance, Rep Claim &amp; Disaster</option><option value="FACILITY_FEEDBACK">7. Facilities, Business Closure &amp; Feedback</option></select>
+            <select id="sdGrpFlt" onchange="filterSvcTickets()" style="width:auto;min-width:220px;padding:7px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.8rem;font-weight:700;"><option value="">All 7 Service Groups</option><option value="REGISTRY_ACCOUNT">1. 201 Registry, ID &amp; Account Security</option><option value="DOCS_CERTIFICATES">2. Certificates, CTC &amp; Business</option><option value="LUPON_ENGAGEMENT">3. Lupon, Informal Conciliation (Non-Blotter) &amp; Case Review</option><option value="SAFETY_CONFIDENTIAL">4. Confidential Safety, Personnel &amp; Census</option><option value="PROJECTS_INFRA">5. Projects, Infrastructure &amp; Defects</option><option value="WELFARE_DISASTER">6. Social Assistance, Rep Claim &amp; Disaster</option><option value="FACILITY_FEEDBACK">7. Facilities, Business Closure &amp; Feedback</option></select>
             <select id="sdStFlt" onchange="filterSvcTickets()" style="width:auto;min-width:190px;padding:7px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.8rem;font-weight:700;"><option value="">All Ticket Statuses</option><option value="SUBMITTED">Submitted — Awaiting Review</option><option value="IN_PROGRESS">Under Verification / Action</option><option value="NEEDS_INFO">Returned — Lacking Requirements</option><option value="RESOLVED">Approved / Resolved / Issued</option><option value="CLOSED">Closed / Archived</option></select>
           </div>
           <div class="card" style="padding:0;overflow-x:auto;">
@@ -970,7 +970,7 @@
         {% elif module == "REGISTRY_SERVICE" %}
           <div class="section-title"><span>05. Citizen ID, Move-Out &amp; Account Security Requests</span><a href="/citizen-home/" target="_blank">Open Citizen Portal ↗</a></div>
           {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="REGISTRY_ACCOUNT" box_title="Inbound Citizen Registry, Barangay ID & Account Security Requests" %}
-          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="LUPON_ENGAGEMENT" box_title="Inbound Citizen Coffee Talk Mediation, Case Review & Summons Requests" %}
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="LUPON_ENGAGEMENT" box_title="Inbound Citizen Informal Conciliation (Non-Blotter) Mediation, Case Review & Summons Requests" %}
 
         {% elif module == "TREASURY" %}
           <div class="section-title"><span>05A. Pending Official Receipt (OR) Clearance Unlock Queue</span></div>
@@ -1389,8 +1389,8 @@
           {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="DOCS_CERTIFICATES" box_title="Inbound CTC, Missing Requirements & Business Filing Queue" %}
 
         {% elif module == "INBOUND_LUPON" %}
-          <div class="section-title"><span>04B. Inbound Citizen Coffee Talk Mediation, Archived Case Review &amp; Summons</span></div>
-          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="LUPON_ENGAGEMENT" box_title="Inbound Coffee Talk Mediation & Case Review Queue" %}
+          <div class="section-title"><span>04B. Inbound Citizen Informal Conciliation (Non-Blotter) Mediation, Archived Case Review &amp; Summons</span></div>
+          {% include "governance/_inbound_service_tickets_box.html" with tickets=citizen_service_tickets filter_group="LUPON_ENGAGEMENT" box_title="Inbound Informal Conciliation (Non-Blotter) Mediation & Case Review Queue" %}
 
         {% elif module == "INBOUND_SAFETY" %}
           <div class="section-title"><span>02I. Confidential Community Safety, Personnel Misconduct &amp; Census Disputes</span></div>
