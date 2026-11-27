@@ -1536,7 +1536,7 @@
               <td style="white-space:nowrap;">{{ v.latest_at|date:"Y-m-d H:i" }}</td>
               <td><div style="display:flex;align-items:center;gap:8px;">{% if v.citizen.photo_data_uri %}<img src="{{ v.citizen.photo_data_uri }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid #1e3a8a;">{% endif %}<div><strong>{{ v.citizen.full_name }}</strong><br><small><code>{{ v.citizen.citizen_qr_id }}</code></small></div></div></td>
               <td><div style="font-size:.73rem;font-weight:800;color:#1e3a8a;margin-bottom:3px;">📁 {{ v.count }} Merged Document{{ v.count|pluralize }} in Individual Vault</div><div style="font-size:.76rem;color:#334155;line-height:1.45;">{% for ttl in v.titles|slice:":4" %}&bull; {{ ttl }}<br>{% endfor %}{% if v.titles|length > 4 %}<em style="color:#64748b;">+ {{ v.titles|length|add:"-4" }} more merged document(s) inside vault...</em>{% endif %}</div></td>
-              <td><span class="badge">{{ v.latest_channel }}</span></td>
+              <td><span class="badge" style="display:inline-block;line-height:1.35;border-radius:7px;padding:4px 8px;white-space:normal;max-width:175px;">{{ v.latest_channel }}</span></td>
               <td>{{ v.latest_by }}</td>
               <td style="white-space:nowrap;">
                 <a href="/citizen-proof/{{ v.citizen.id }}/" target="_blank" style="background:#0f766e;color:#fff;padding:5px 9px;border-radius:5px;text-decoration:none;font-size:.74rem;font-weight:700;">Merged PDF ↗</a>
