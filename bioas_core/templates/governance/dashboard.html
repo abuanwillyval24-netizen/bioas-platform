@@ -44,10 +44,15 @@
     .badge-warn { background: #fee2e2; color: #991b1b; }
     .main { overflow-x: auto; }
     .main table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .main table > thead, .main table > tbody { display: table; width: 100%; min-width: 820px; }
+    .main th { white-space: nowrap; }
+    .main td { min-width: 90px; }
     .main th, .main td { vertical-align: middle; line-height: 1.4; }
     .main td button, .main td a, .main .section-title a, .main form button { white-space: nowrap; flex-shrink: 0; line-height: 1.25; }
     .badge { display: inline-block; white-space: nowrap; line-height: 1.3; padding: 4px 9px; border-radius: 7px; }
-    .main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), .main select, .main textarea { min-height: 34px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; max-width: 100%; }
+    .main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), .main select, .main textarea { width: 100%; min-height: 36px; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.83rem; box-sizing: border-box; }
+    .main td input, .main td select, .main form[style*="inline"] input, .main form[style*="inline"] select { width: auto; min-height: 32px; padding: 5px 8px; }
+    @media (max-width: 1200px) { html, body { height: auto; min-height: 100vh; overflow-y: auto; overflow-x: hidden; } .layout { overflow: visible; flex-direction: column; } .sidebar { width: 100%; min-width: 100%; max-width: 100%; height: auto; max-height: 260px; } .main { height: auto; overflow-y: visible; } }
     @media (max-width: 1440px) { .sidebar { width: 265px; min-width: 265px; max-width: 265px; } .main { padding: 18px 20px; } }
   </style>
 </head>
@@ -443,7 +448,7 @@
           </tbody></table>
           <div class="card" style="margin-top:14px;border-top:4px solid #d97706;">
             <div style="font-weight:800;color:#92400e;margin-bottom:8px;">03B. Two-Way Hold / Delay &amp; Post-Release Error Dispute Desk</div>
-            <form method="post" style="display:grid;grid-template-columns:1fr 1fr 2fr auto;gap:8px;align-items:end;">{% csrf_token %}<input type="hidden" name="action" value="SET_CERT_HOLD_OR_DISPUTE_REPLY">
+            <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;align-items:end;">{% csrf_token %}<input type="hidden" name="action" value="SET_CERT_HOLD_OR_DISPUTE_REPLY">
               <div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><label style="font-size:.73rem;font-weight:800;color:#334155;display:block;">Control No. *</label><input name="control_number" placeholder="CERT-XXXXXX-XXXX" required></div>
               <div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><label style="font-size:.73rem;font-weight:800;color:#334155;display:block;">Action *</label><select name="resolution_mode"><option value="HOLD">Place on Hold / Delay</option><option value="RESOLVE">Resolve Dispute / Re-Issue</option></select></div>
               <div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><label style="font-size:.73rem;font-weight:800;color:#334155;display:block;">Reason / Official Reply *</label><input name="office_note" placeholder="e.g., Missing Cedula / Typo corrected for pickup" required></div>
