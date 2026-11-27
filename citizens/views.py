@@ -746,7 +746,7 @@ def citizen_home(request):
             SocialAidDistribution.objects.create(
                 barangay=citizen.barangay, citizen=citizen, program_category=pcat,
                 distribution_cycle=cyc, item_description=rsn[:140] or "Citizen Portal Assistance Request",
-                status="VERIFIED_ELIGIBLE", remarks=f"Citizen Portal Request: {rsn[:210]}"
+                status="PENDING_REVIEW", remarks=f"Citizen Portal Request: {rsn[:210]}"
             )
             notice = f"Social Assistance Application ({cyc}) submitted to Barangay Social Welfare & Ayuda!"
         elif act == "SUBMIT_SERVICE_TICKET":

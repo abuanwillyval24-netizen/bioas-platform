@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.utils import timezone
 from governance.models import BarangayTenant
 from citizens.models import CitizenProfile
@@ -13,7 +13,7 @@ class SocialAidDistribution(models.Model):
         ("CALAMITY_RELIEF_PACK", "Emergency Calamity Relief Goods / Cash Aid"),
         ("BURIAL_AICS_ENDORSEMENT", "AICS / Crisis Intervention Endorsement"),
     ]
-    STATUS_CHOICES = [
+    STATUS_CHOICES = [("PENDING_REVIEW", "Pending Social Welfare Verification"),
         ("VERIFIED_ELIGIBLE", "Verified Eligible"),
         ("RELEASED_CLAIMED", "Released & Claimed by Beneficiary"),
         ("UNCLAIMED_RETURNED", "Unclaimed / Returned to Treasury"),
@@ -25,7 +25,7 @@ class SocialAidDistribution(models.Model):
     distribution_cycle = models.CharField(max_length=80)
     amount_or_pack_value = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     item_description = models.CharField(max_length=150, default="Cash Assistance / Relief Pack")
-    status = models.CharField(max_length=25, choices=STATUS_CHOICES, default="VERIFIED_ELIGIBLE")
+    status = models.CharField(max_length=25, choices=STATUS_CHOICES, default="PENDING_REVIEW")
     released_date = models.DateField(default=timezone.localdate)
     released_by = models.CharField(max_length=120, blank=True)
     remarks = models.CharField(max_length=255, blank=True)

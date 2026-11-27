@@ -459,6 +459,17 @@ def command_dashboard(request):
                         status=st
                     )
                     action_notice = f"Certificate {c_new.control_number} created for {cit.full_name} ({c_new.get_status_display()})."
+        elif act == "UPDATE_SOCIAL_AID_STATUS" and active_barangay:
+            from social_welfare.models import SocialAidDistribution
+            sa_obj = SocialAidDistribution.objects.filter(barangay=active_barangay, id=request.POST.get("aid_id")).first()
+            new_st = request.POST.get("new_status", "VERIFIED_ELIGIBLE")
+            if sa_obj and new_st in ("VERIFIED_ELIGIBLE", "RELEASED_CLAIMED", "UNCLAIMED_RETURNED"):
+                sa_obj.status = new_st
+                sa_obj.released_by = actor_name
+                if new_st == "RELEASED_CLAIMED":
+                    sa_obj.released_date = timezone.localdate()
+                sa_obj.save(update_fields=["status", "released_by", "released_date"])
+                action_notice = f"Social Aid for {sa_obj.citizen.full_name} updated to {sa_obj.get_status_display()} — mirrored live to Citizen Portal."
         elif act == "MARK_CERT_ISSUED" and active_barangay:
             c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
             if c_obj:
