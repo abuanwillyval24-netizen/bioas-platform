@@ -1281,3 +1281,32 @@ def citizen_proof_pdf(request, citizen_id):
             status=404,
         )
     return HttpResponse("No supporting document attached for this citizen record.", status=404)
+
+
+@never_cache
+def citizen_live_sync_api(request):
+    from django.http import JsonResponse
+    cid = request.session.get("citizen_auth_id")
+    if not cid:
+        return JsonResponse({"ok": False}, status=401)
+    c = CitizenProfile.objects.filter(id=cid).first()
+    if not c:
+        return JsonResponse({"ok": False}, status=404)
+    certs = list(c.certificates.select_related("assigned_councilor").order_by("-issued_date", "-id")[:25])
+    reps = list(c.community_reports.order_by("-created_at")[:15]) if hasattr(c, "community_reports") else []
+    resv = list(c.facility_reservations.order_by("-created_at")[:15]) if hasattr(c, "facility_reservations") else []
+    tkts = list(c.service_tickets.order_by("-created_at")[:15]) if hasattr(c, "service_tickets") else []
+    notif = []
+    for r in certs:
+        notif.append({"tab": "tabCerts", "color": "#1d4ed8", "title": f"📜 {r.get_cert_type_display()} ({r.control_number})", "status": r.get_status_display(), "sub": f"Purpose: {r.purpose}"})
+    for rp in reps:
+        notif.append({"tab": "tabReports", "color": "#dc2626", "title": f"⚠ Report {rp.tracking_code}", "status": rp.get_status_display(), "sub": rp.location_landmark or ""})
+    for rv in resv:
+        notif.append({"tab": "tabReserve", "color": "#0f766e", "title": f"🏛 Reservation {rv.reservation_code}", "status": rv.get_status_display(), "sub": ""})
+    for tk in tkts:
+        notif.append({"tab": "tabServiceDesk", "color": "#d97706", "title": f"📨 Service Ticket {tk.ticket_code}", "status": tk.get_status_display(), "sub": ""})
+    cert_rows = [{"id": r.id, "control_number": r.control_number, "status": r.status, "status_display": r.get_status_display(), "or_number": (r.official_receipt_number if r.official_receipt_number and r.official_receipt_number != "N/A" else ""), "councilor": (r.assigned_councilor.full_name if r.assigned_councilor else ""), "hold_reason": r.hold_or_delay_reason or "", "dispute_display": (r.get_dispute_status_display() if r.dispute_status != "NONE" else ""), "dispute_reply": r.office_dispute_reply or "", "can_print": r.status in ("READY_TO_PRINT", "ISSUED_PRINTED", "RELEASED")} for r in certs]
+    resp = JsonResponse({"ok": True, "bell_count": len(notif), "notifications": notif, "certs": cert_rows})
+    resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp["Pragma"] = "no-cache"
+    return resp

@@ -8,7 +8,7 @@ from django.views.static import serve
 from governance.views import command_dashboard, theme_settings, staff_login, staff_logout
 from governance.portal_info import portal_info
 from governance.staff_turnover import staff_roster_and_turnover, approve_staff_account, download_term_archive
-from citizens.views import citizen_portal, citizen_home, approve_citizen, review_citizen_photo, update_report_status, citizen_docs_repository, citizen_201_inspect, citizen_proof_pdf
+from citizens.views import citizen_portal, citizen_home, approve_citizen, review_citizen_photo, update_report_status, citizen_docs_repository, citizen_201_inspect, citizen_proof_pdf, citizen_live_sync_api
 from documents.views import issue_certificate_counter, print_certificate
 from treasury.views import export_treasury_excel, issue_or_and_unlock
 
@@ -25,6 +25,7 @@ urlpatterns = [
     path("portal/", citizen_portal, name="citizen_portal"),
     path("anonymous-report/", public_anonymous_report, name="public_anonymous_report"),
     path("citizen-home/", citizen_home, name="citizen_home"),
+    path("citizen/api/live-sync/", citizen_live_sync_api, name="citizen_live_sync_api"),
     path("sk-portal/", sk_portal, name="sk_portal"),
     path("citizen-docs/<str:qr_id>/", citizen_docs_repository, name="citizen_docs_repository"),
     path("citizen-inspect/<int:citizen_id>/", citizen_201_inspect, name="citizen_201_inspect"),
