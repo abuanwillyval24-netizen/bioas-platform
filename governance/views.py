@@ -501,6 +501,37 @@ def command_dashboard(request):
                     sa_obj.released_date = timezone.localdate()
                 sa_obj.save(update_fields=["status", "released_by", "released_date"])
                 action_notice = f"Social Aid for {sa_obj.citizen.full_name} updated to {sa_obj.get_status_display()} — mirrored live to Citizen Portal."
+        elif act == 'ASSESS_AND_ROUTE_CERT' and active_barangay:
+            c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get('cert_id')).first()
+            if c_obj:
+                dec = request.POST.get('assess_decision', 'VERIFY_FORWARD')
+                tags = ', '.join(request.POST.getlist('check_tags'))
+                extra_tag = request.POST.get('custom_tags', '').strip()
+                c_obj.assessment_tags = ', '.join([x for x in (tags, extra_tag) if x])[:245]
+                c_obj.assessment_remarks = request.POST.get('assessment_remarks', '').strip()
+                c_obj.assessed_by = actor_name
+                if dec == 'RETURN_CORRECTION':
+                    c_obj.status = 'RETURNED_FOR_CORRECTION'
+                    c_obj.hold_or_delay_reason = c_obj.assessment_remarks or 'Missing or incomplete supporting documents — please review and resubmit.'
+                    c_obj.save(update_fields=['assessment_tags', 'assessment_remarks', 'assessed_by', 'status', 'hold_or_delay_reason'])
+                    action_notice = f'Returned {c_obj.control_number} to Citizen Portal for correction/missing documents.'
+                else:
+                    cid = request.POST.get('assigned_councilor_id', '').strip()
+                    c_obj.assigned_councilor = BarangayStaffProfile.objects.filter(barangay=active_barangay, id=cid).first() if cid else c_obj.assigned_councilor
+                    try:
+                        f_val = float(request.POST.get('assessed_fee', c_obj.fee_amount) or 0)
+                    except Exception:
+                        f_val = float(c_obj.fee_amount or 0)
+                    c_obj.fee_amount = max(0.0, f_val)
+                    c_obj.is_fee_exempt = (c_obj.fee_amount <= 0)
+                    c_obj.hold_or_delay_reason = ''
+                    if c_obj.fee_amount > 0:
+                        c_obj.status = 'PENDING_OR'
+                        action_notice = f'Assessed & Verified {c_obj.control_number} (Fee: ₱{c_obj.fee_amount:.2f}) — Routed to Treasury Module for Official Receipt (OR).'
+                    else:
+                        c_obj.status = 'PENDING_COUNCILOR'
+                        action_notice = f'Assessed & Verified {c_obj.control_number} (Zero Fee / Exempt) — Bypassed Treasury straight to Assigned Purok Councilor.'
+                    c_obj.save(update_fields=['assessment_tags', 'assessment_remarks', 'assessed_by', 'assigned_councilor', 'fee_amount', 'is_fee_exempt', 'hold_or_delay_reason', 'status'])
         elif act == "ROUTE_CERT_FROM_SECRETARY" and active_barangay:
             c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
             if c_obj:

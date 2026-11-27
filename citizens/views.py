@@ -791,15 +791,20 @@ def citizen_home(request):
                 error = "Incorrect password. Please enter your Citizen Portal password to access your 201 Profile."
         elif act == "REQUEST_CERT":
             ctype = request.POST["cert_type"]
+            purp_txt = request.POST["purpose"].strip()
             exempt = ctype in ("INDIGENCY", "FIRST_TIME_JOBSEEKER")
+            desk = "SOCIAL_WELFARE" if ctype in ("INDIGENCY", "SOLO_PARENT") else ("LUPON_VAWC" if ctype == "LUPON_CFA" else ("HEALTH_BHS" if any(w in purp_txt.lower() for w in ("health", "medical", "hospital", "clinic")) else "SECRETARY_ADMIN"))
+            def_fee = 0.00 if exempt else (150.00 if ctype == "BUSINESS_CLEARANCE" else float(getattr(citizen.barangay, "default_clearance_fee", 50.00) or 50.00))
             cert = CertificateRequest.objects.create(
                 barangay=citizen.barangay,
                 citizen=citizen,
                 control_number=f"CERT-{uuid.uuid4().hex[:6].upper()}-{__import__('secrets').token_hex(2).upper()}",
                 cert_type=ctype,
-                purpose=request.POST["purpose"].strip(),
+                purpose=purp_txt,
                 is_fee_exempt=exempt,
-                fee_amount=0.00 if exempt else float(getattr(citizen.barangay, "default_clearance_fee", 50.00) if citizen.barangay.fee_collection_enabled else 0.00),
+                fee_amount=def_fee,
+                source_channel="CITIZEN_PORTAL",
+                intake_desk=desk,
                 status="PENDING_REVIEW",
             )
             notice = f"Certificate Requested! Control No.: {cert.control_number} ({cert.get_status_display()})."
