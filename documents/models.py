@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from governance.models import BarangayTenant, LetterheadVersion
@@ -15,7 +15,7 @@ class CertificateRequest(models.Model):
         ("GOOD_MORAL", "Certificate of Good Moral Character"),
         ("SOLO_PARENT", "Solo Parent / Senior / PWD Endorsement"),
         ("BUILDING_FENCING", "Barangay Building / Fencing Clearance"),
-        ("LUPON_CFA", "Lupon Certificate to File Action (CFA)"),
+        ("LUPON_CFA", "Lupon Certificate to File Action (CFA)"), ("OTHER_CERT", "Others (Custom Barangay Certification / Endorsement)"),
     ]
 
     STATUS_CHOICES = [

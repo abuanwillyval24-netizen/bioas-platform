@@ -1,4 +1,4 @@
-from datetime import date
+﻿from datetime import date
 from django.db import models
 from django.utils import timezone
 from governance.models import BarangayTenant, PhysicalStructure
@@ -321,7 +321,7 @@ class CitizenPortalUpdateRequest(models.Model):
 
 class CitizenCommunityReport(models.Model):
 
-    REPORT_CATEGORIES = [
+    REPORT_CATEGORIES = [("BLOTTER_DISPUTE", "Formal Blotter / Dispute / Altercation Complaint (Katarungang Pambarangay)"),
         ("INFRASTRUCTURE_LIGHT", "Broken Streetlight / Road & Drainage Issue"),
         ("PEACE_ORDER_NOISE", "Peace & Order / Curfew / Noise Concern"),
         ("SANITATION_WASTE", "Garbage Collection / Drainage Clogging"),
