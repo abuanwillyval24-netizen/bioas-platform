@@ -165,7 +165,9 @@ def staff_login(request):
 
 
 def staff_logout(request):
+    request.session.pop("bioas_2fa_pending", None)
     logout(request)
+    request.session.flush()
     return redirect("/login/")
 
 

@@ -488,6 +488,8 @@ def citizen_home(request):
     else:
         if request.GET.get("logout") == "1":
             request.session.pop("citizen_auth_id", None)
+            request.session.pop("bioas_2fa_pending", None)
+            request.session.flush()
             return redirect("/login/?role=CITIZEN")
         auth_cid = request.session.get("citizen_auth_id")
         if auth_cid:
