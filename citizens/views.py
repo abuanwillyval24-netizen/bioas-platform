@@ -715,10 +715,14 @@ def citizen_home(request):
             from assets_fleet.models import FacilityEquipmentReservation
             try:
                 b_code = f"RES-{uuid.uuid4().hex[:6].upper()}-{secrets.token_hex(2).upper()}"
+                r_from = request.POST.get("reservation_date")
+                r_to = (request.POST.get("end_date") or "").strip() or r_from
                 FacilityEquipmentReservation.objects.create(
                     barangay=citizen.barangay, citizen=citizen, booking_code=b_code,
                     facility_or_item=request.POST.get("facility_or_item", "COVERED_COURT"),
-                    reservation_date=request.POST.get("reservation_date"),
+                    schedule_pattern=request.POST.get("schedule_pattern", "SINGLE_DAY"),
+                    quantity_note=(request.POST.get("quantity_note") or "").strip() or "1 Unit / Full Facility",
+                    reservation_date=r_from, end_date=r_to,
                     start_time=request.POST.get("start_time"), end_time=request.POST.get("end_time"),
                     purpose=request.POST.get("purpose", "").strip(),
                 )

@@ -97,7 +97,16 @@ class FacilityEquipmentReservation(models.Model):
     citizen = models.ForeignKey(CitizenProfile, on_delete=models.CASCADE, related_name="facility_reservations")
     booking_code = models.CharField(max_length=32, unique=True)
     facility_or_item = models.CharField(max_length=30, choices=ASSET_CHOICES)
+    SCHEDULE_MODES = [
+        ("SINGLE_DAY", "Single-Day Event"),
+        ("MULTI_DAY_CONTINUOUS", "Multi-Day / Week-Long Continuous Borrowing (Burial / Event)"),
+        ("RECURRING_DAILY_WINDOW", "Recurring Daily Time-Slot Across Months (Liga / Seminars)"),
+        ("RECURRING_WEEKENDS", "Recurring Weekends (Sat-Sun) Across Date Range"),
+    ]
     reservation_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    schedule_pattern = models.CharField(max_length=30, choices=SCHEDULE_MODES, default="SINGLE_DAY")
+    quantity_note = models.CharField(max_length=100, blank=True, default="1 Unit / Full Facility")
     start_time = models.TimeField()
     end_time = models.TimeField()
     purpose = models.CharField(max_length=180)
@@ -109,14 +118,20 @@ class FacilityEquipmentReservation(models.Model):
         from django.core.exceptions import ValidationError
         if self.end_time and self.start_time and self.end_time <= self.start_time:
             raise ValidationError("End time must be later than start time.")
+        eff_end = self.end_date or self.reservation_date
+        if self.end_date and self.reservation_date and self.end_date < self.reservation_date:
+            raise ValidationError("Date To cannot be earlier than Date From.")
         if self.barangay_id and self.reservation_date and self.start_time and self.end_time:
+            from django.db.models import Q
             clash = FacilityEquipmentReservation.objects.filter(
                 barangay_id=self.barangay_id, facility_or_item=self.facility_or_item,
-                reservation_date=self.reservation_date, status__in=["PENDING", "APPROVED"],
+                status__in=["PENDING", "APPROVED"],
+                reservation_date__lte=eff_end,
                 start_time__lt=self.end_time, end_time__gt=self.start_time,
-            ).exclude(pk=self.pk).first()
+            ).filter(Q(end_date__gte=self.reservation_date) | Q(end_date__isnull=True, reservation_date__gte=self.reservation_date)).exclude(pk=self.pk).first()
             if clash:
-                raise ValidationError(f"Time-Slot Conflict Lock: Already reserved on {self.reservation_date} from {clash.start_time.strftime('%H:%M')} to {clash.end_time.strftime('%H:%M')} ({clash.booking_code}).")
+                c_end = clash.end_date or clash.reservation_date
+                raise ValidationError(f"Time-Slot Conflict Lock: Already reserved ({clash.reservation_date} to {c_end}, {clash.start_time.strftime('%H:%M')}-{clash.end_time.strftime('%H:%M')}) [{clash.booking_code}].")
 
     def save(self, *args, **kwargs):
         self.full_clean()
