@@ -68,40 +68,6 @@ class CertificateRequest(models.Model):
         if self.cert_type in ("INDIGENCY", "FIRST_TIME_JOBSEEKER"):
             self.is_fee_exempt = True
             self.fee_amount = 0.00
-        if (
-            self.barangay
-            and self.barangay.fee_collection_enabled
-            and not self.is_fee_exempt
-            and self.fee_amount > 0
-            and not self.official_receipt_number.strip()
-        ):
-            raise ValidationError(
-                {"official_receipt_number": "Treasurer Official Receipt (OR) Number is required before issuing paid certificates."}
-            )
-
-    def save(self, *args, **kwargs):
-        if self.cert_type in ("INDIGENCY", "FIRST_TIME_JOBSEEKER"):
-            self.is_fee_exempt = True
-            self.fee_amount = 0.00
-        if not self.letterhead_snapshot and self.barangay:
-            self.letterhead_snapshot = self.barangay.letterheads.filter(is_current=True).first()
-        if not self.signatory_name and self.barangay:
-            pb_seat = self.barangay.seats.filter(category="PUNONG_BARANGAY").first()
-            if pb_seat:
-                holder = pb_seat.get_effective_holder(self.issued_date)
-                self.signatory_name = holder["name"]
-                self.signatory_title = holder["title"]
-                self.is_acting_signatory = holder["is_acting"]
-        if (
-            self.barangay
-            and self.barangay.fee_collection_enabled
-            and not self.is_fee_exempt
-            and self.fee_amount > 0
-            and not self.official_receipt_number.strip()
-        ):
-            self.status = "PENDING_OR"
-        elif self.status == "PENDING_OR":
-            self.status = "READY_TO_PRINT"
         super().save(*args, **kwargs)
 
     def __str__(self):
