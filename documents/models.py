@@ -19,7 +19,7 @@ class CertificateRequest(models.Model):
     ]
 
     STATUS_CHOICES = [
-        ("PENDING_REVIEW", "Received — Pending Secretary Routing"),
+        ("PENDING_REVIEW", "Submitted — Pending"),
         ("PENDING_OR", "Forwarded to Treasurer — Pending OR Payment"),
         ("PENDING_COUNCILOR", "Pending Purok Councilor Endorsement"),
         ("PENDING_CAPTAIN", "Pending Punong Barangay Final Approval"),

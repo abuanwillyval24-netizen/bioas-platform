@@ -521,6 +521,11 @@ def command_dashboard(request):
                 c_obj.status = "READY_TO_PRINT"
                 c_obj.save(update_fields=["captain_approved_by", "signatory_name", "status"])
                 action_notice = f"Punong Barangay Final Approval granted for {c_obj.control_number}! Returned to Releasing Desk for Printing & Dry Seal."
+                if getattr(c_obj.citizen, "email_address", ""):
+                    try:
+                        send_mail(subject=f"[{active_barangay.name}] Approved & Ready: {c_obj.get_cert_type_display()} ({c_obj.control_number})", message=f"Dear {c_obj.citizen.full_name},\n\nYour request for {c_obj.get_cert_type_display()} (Control No. {c_obj.control_number}) has received Final Approval from {c_obj.signatory_name} and is now ready for Dry Seal & Release at {active_barangay.name}.\n\nYou may also view/print your verified copy in your BIOAS Citizen Portal.\n\nThank you.", from_email=getattr(dj_settings, "DEFAULT_FROM_EMAIL", None), recipient_list=[c_obj.citizen.email_address], fail_silently=True)
+                    except Exception:
+                        pass
         elif act == "MARK_CERT_ISSUED" and active_barangay:
             c_obj = CertificateRequest.objects.filter(barangay=active_barangay, id=request.POST.get("cert_id")).first()
             if c_obj:
