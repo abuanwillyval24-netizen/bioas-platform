@@ -216,19 +216,19 @@
           </div>
           <div class="card" style="padding:10px 12px;margin-bottom:8px;">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;align-items:center;">
-              <input id="xlSearch" onkeydown="if(event.key==='Enter'){event.preventDefault();filter201Table();}" placeholder="Search Name, QR, Address, Job..." style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
-              <select id="xlPurok"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <input id="xlSearch" oninput="filter201Table()" onkeydown="if(event.key==='Enter'){event.preventDefault();filter201Table();}" placeholder="Search Name, QR, Address, Job..." style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlPurok" onchange="filter201Table()"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Puroks</option>
                 <option value="Purok I">Purok I</option><option value="Purok II">Purok II</option><option value="Purok III">Purok III</option>
-                <option value="Purok IV">Purok IV</option><option value="Purok V">Purok V</option><option value="Purok VI">Purok VI</option><option value="Purok VII">Purok VII</option>
+                <option value="Purok IV">Purok IV</option><option value="Purok V">Purok V</option><option value="Purok VI">Purok VI</option>
               </select>
-              <select id="xlSex"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlSex" onchange="filter201Table()"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Sexes</option><option value="Male">Male</option><option value="Female">Female</option>
               </select>
-              <select id="xlVoter"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlVoter" onchange="filter201Table()"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Voter Status</option><option value="Voter">Registered Voter</option><option value="Non-Voter">Non-Voter</option>
               </select>
-              <select id="xlClass"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
+              <select id="xlClass" onchange="filter201Table()"  style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.82rem;">
                 <option value="">All Classifications</option>
                 <option value="Senior">Senior Citizen</option><option value="PWD">PWD</option><option value="Solo Parent">Solo Parent</option>
                 <option value="4Ps">4Ps Beneficiary</option><option value="Pregnant">Pregnant</option><option value="OFW">OFW</option>
@@ -352,7 +352,7 @@
             function get201DisplayMode(){try{return localStorage.getItem(XL_MODE_KEY)||'20';}catch(e){return '20';}}
             function set201DisplayMode(m){try{localStorage.setItem(XL_MODE_KEY,m);}catch(e){}filter201Table();}
             function filter201Table(){
-              const mode=get201DisplayMode();
+              const mode=(typeof get201DisplayMode==='function')?get201DisplayMode():'ALL';
               const sel=document.getElementById('xlPageSize');if(sel)sel.value=mode;
               const lim=(mode==='ALL')?999999:(parseInt(mode,10)||20);
               const q=document.getElementById('xlSearch').value.toLowerCase();
@@ -362,7 +362,7 @@
               const cl=document.getElementById('xlClass').value;
               let matched=0,shown=0;
               document.querySelectorAll('#xl201Table tbody tr.xl-row').forEach(tr=>{
-                const ok=(!q||tr.innerText.toLowerCase().includes(q))&&(!pk||tr.dataset.purok===pk)&&(!sx||tr.dataset.sex===sx)&&(!vt||tr.dataset.voter===vt)&&(!cl||tr.dataset.class.includes(cl));
+                const ok=(!q||tr.innerText.toLowerCase().includes(q))&&(!pk||tr.dataset.purok===pk)&&(!sx||tr.dataset.sex===sx)&&(!vt||tr.dataset.voter===vt)&&(!cl||(tr.dataset.class||'').includes(cl));
                 if(!ok){tr.style.display='none';return;}
                 matched++;
                 if(shown>=lim){tr.style.display='none';}else{tr.style.display='';shown++;}
