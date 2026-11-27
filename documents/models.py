@@ -24,7 +24,7 @@ class CertificateRequest(models.Model):
         ("PENDING_COUNCILOR", "Pending Purok Councilor Endorsement"),
         ("PENDING_CAPTAIN", "Pending Punong Barangay Final Approval"),
         ("READY_TO_PRINT", "Captain Approved — Ready to Print & Dry Seal"),
-        ("ISSUED_PRINTED", "Issued, Sealed & Released"),
+        ("ISSUED_PRINTED", "Issued, Sealed & Released"), ("RELEASED", "Issued, Sealed & Released"),
         ("REJECTED_HOLD", "Blocked / Rejected"),
     ]
 
